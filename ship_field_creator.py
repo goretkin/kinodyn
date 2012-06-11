@@ -17,7 +17,9 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 
 class PathCreator:
-    def __init__(self,ax):
+    def __init__(self,ax,finished_path_callback):
+        self.finished_path_callback = finished_path_callback
+        
         self.ax = ax
         self.canvas = self.ax.figure.canvas
 
@@ -26,6 +28,9 @@ class PathCreator:
         
         #outline of path
         self.line, = ax.plot([],[],marker='o', markerfacecolor='r', animated=True)
+        self.reset()
+
+    def reset(self):
         
         self.pathdata = []
         self.pathxy = []
@@ -33,9 +38,8 @@ class PathCreator:
         self.startxy = None             #starting point in data coords
         self.startxy_display = None     #starting point in display coordinates
         self.done = False               #done creating a path
-
+        
     def draw_callback(self, event):
-        print 'draw'
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
         if(self.pathpatch is not None):
             self.ax.draw_artist(self.pathpatch)
@@ -46,17 +50,18 @@ class PathCreator:
         if event.inaxes==None: return
         if event.button != 1: return
         if self.done : return
+        
         #xydata = self.ax.transData.inverted().transform((event.x,event.y))
         
         close = False #poly is not closed
         if len(self.pathdata) == 0:
-            #firstpoint
+            #chose first vertex of polygon
             self.startxy = (event.xdata,event.ydata)
             self.startxy_display = (event.x,event.y)
             self.pathdata.append((Path.MOVETO,self.startxy))
         else:
             d = ((event.x - self.startxy_display[0])**2 + (event.y-self.startxy_display[1])**2) **(0.5)
-            if(d<5):    #5 pixels
+            if(d<5):    #clicked within 5 pixels of starting point
                 self.pathdata.append((Path.CLOSEPOLY,self.startxy))
                 close = True
             else:
@@ -72,23 +77,31 @@ class PathCreator:
 
         if close:
             self.line.set_visible(False)
+        else:
+            self.line.set_visible(True)
             
         codes, verts = zip(*self.pathdata)
         
         path = mpath.Path(verts, codes)
-        self.pathpatch = mpatches.PathPatch(path, facecolor='green', edgecolor='yellow', alpha=0.5)
-        self.done =True
-        
-        
+
+        if(self.pathpatch is not None):
+            self.pathpatch.remove() 
+
+        self.pathpatch = mpatches.PathPatch(path, facecolor='green', edgecolor='yellow', alpha=0.5)            
+            
         self.ax.add_patch(self.pathpatch)
                             
         #redraw
-        self.canvas.restore_region(self.background)
+        #self.canvas.restore_region(self.background)
         if(self.pathpatch is not None):
             self.ax.draw_artist(self.pathpatch)
             
         self.ax.draw_artist(self.line)
         self.canvas.blit(self.ax.bbox)
+        
+        if close:
+            self.finished_path_callback(self.pathpatch)
+            self.reset()
                             
         
 
@@ -145,10 +158,8 @@ class PathInteractor:
         Artist.update_from(self.line, pathpatch)
         self.line.set_visible(vis)  # don't use the pathpatch visibility state
 
-
     def get_ind_under_point(self, event):
         'get the index of the vertex under point if within epsilon tolerance'
-
         # display coords
         xy = np.asarray(self.pathpatch.get_path().vertices)
         xyt = self.pathpatch.get_transform().transform(xy)
@@ -179,15 +190,12 @@ class PathInteractor:
                                  event.ydata,
                                  0,
                                  self.pathpatch.get_path(),
-                                 None)
-                                             
-#            drag = self.pathpatch.get_path().intersects_path(
-#                mpatches.Circle((event.xdata,event.ydata),.5).get_path(),filled=True)                                 
-                
+                                 None)                
             if drag:
                 ind = 'drag_patch'
         self._ind = ind
         print self._ind
+        return (self._ind is not None) #handled event or no?
 
     def button_release_callback(self, event):
         'whenever a mouse button is released'
@@ -198,12 +206,15 @@ class PathInteractor:
     def key_press_callback(self, event):
         'whenever a key is pressed'
         if not event.inaxes: return
+        handled = False
         if event.key=='t':
             self.showverts = not self.showverts
             self.line.set_visible(self.showverts)
             if not self.showverts: self._ind = None
-
+            handled = True
         self.canvas.draw()
+        
+        return handled #handled event or no?
 
     def motion_notify_callback(self, event):
         'on mouse movement'
@@ -230,47 +241,26 @@ class PathInteractor:
         self.canvas.blit(self.ax.bbox)
 
 
+
+
+def new_patch(patch):
+    print patch
+    interactor = PathInteractor(patch)
+
 Path = mpath.Path
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-pathdata = [
-    (Path.MOVETO, (1.58, -2.57)),
-    (Path.CURVE4, (0.35, -1.1)),
-    (Path.CURVE4, (-1.75, 2.0)),
-    (Path.CURVE4, (0.375, 2.0)),
-    (Path.LINETO, (0.85, 1.15)),
-    (Path.CURVE4, (2.2, 3.2)),
-    (Path.CURVE4, (3, 0.05)),
-    (Path.CURVE4, (2.0, -0.5)),
-    (Path.CLOSEPOLY, (1.58, -2.57)),
-    ]
-    
-pathdata = [
-    (Path.MOVETO, (1.58, -2.57)),
-    (Path.LINETO, (0.35, -1.1)),
-    (Path.LINETO, (-1.75, 2.0)),
-    (Path.LINETO, (0.375, 2.0)),
-    (Path.LINETO, (0.85, 1.15)),
-    (Path.LINETO, (2.2, 3.2)),
-    (Path.LINETO, (3, 0.05)),
-    (Path.LINETO, (2.0, -0.5)),
-    (Path.CLOSEPOLY, (1.58, -2.57)),
-    ]
-
-codes, verts = zip(*pathdata)
-path = mpath.Path(verts, codes)
-patch = mpatches.PathPatch(path, facecolor='green', edgecolor='yellow', alpha=0.5)
-
-#patch = mpatches.Circle((0,0),radius=1)
-ax.add_patch(patch)
-interactor = PathInteractor(patch)
+#ax.add_patch(patch)
+#interactor = PathInteractor(patch)
 
 ax.set_title('drag vertices to update path')
 ax.set_xlim(-3,4)
 ax.set_ylim(-3,4)
-#pc = PathCreator(ax)
+pc = PathCreator(ax,new_patch)
+
+
 
 plt.show()
 
