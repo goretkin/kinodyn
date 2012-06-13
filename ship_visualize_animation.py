@@ -14,6 +14,7 @@ Created on Mon Jun  4 17:41:01 2012
 """
 
 import shelve
+import ipdb
 
 ship_shelve = shelve.open('ship.shelve')
 field_shelve = shelve.open('field.shelve')
@@ -36,7 +37,8 @@ import matplotlib.animation as animation
 import matplotlib
 import matplotlib as mpl
 import numpy as np
-
+import shapely
+import shapely.geometry as geo
 
 pps = []
 for op in obstacle_paths:
@@ -117,7 +119,16 @@ class Ship_Sprite():
         
         self.body_patches = [self.body_back_patch,self.body_patch] #doesn't include flames
         #self.ship_collection = matplotlib.collections.PatchCollection(self.patches,match_original=True)
-    
+        
+        #this is for optimization -- like representing the ship body as a single poly
+        s = geo.Polygon()
+        for p in self.body_patches:
+            v = p.get_patch_transform().transform_path(p.get_path()).vertices
+            s = s.union(geo.Polygon(v))
+                    
+        self.shapely_body = s
+        self.ship_patch = mpl.patches.Polygon(np.array(self.shapely_body.exterior.xy).T)
+        
     def update_thrust(self,lin_thrust,ang_thrust):
         lin_flame_patch = self.lin_flame_patch
             
@@ -192,7 +203,17 @@ class Ship_Sprite():
         return intersect_paths(transformed_obstacle_paths,
                                #[trans.transform_path(p) for p in mpl.collections.PatchCollection(self.patches).get_paths()]
                                [trans.transform_path(p.get_path()) for p in self.body_patches]
-                               )                               
+                               )
+    def collision2(self,obstacle_paths):
+        #use a single ship patch
+        trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
+        trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)
+        
+        trans = trans2+trans1
+        
+        return intersect_paths(obstacle_paths,
+                               [trans.transform_path(self.ship_patch.get_path())]
+                               )
     def set_alpha(self,alpha):
         for p in self.patches:
             p.set_alpha(alpha)
@@ -222,15 +243,19 @@ trail_plot.set_aspect('equal')
 
 trail_plot.add_collection(obstacle_pc)
 
-
-
-
+def benchmark_collision2(n):
+    a = Ship_Sprite()
+    for i in np.linspace(0,20,n):
+        theta = np.random.random()*np.pi*2
+        a.update_pose(i,0,theta)    
+        a.collision2(obstacle_pc.get_paths())
+        
 def benchmark_collision(n):
     a = Ship_Sprite()
     for i in np.linspace(0,20,n):
         theta = np.random.random()*np.pi*2
         a.update_pose(i,0,theta)    
-        a.collision(obstacle_pc.get_paths())
+        a.collision(obstacle_pc.get_paths())        
     
 assert False    
 ani_fig = plt.figure(None)
