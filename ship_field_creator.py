@@ -3,35 +3,34 @@
 Created on Wed Jun  6 14:29:30 2012
 
 @author: gustavo
-"""
 
-
-"""
-http://matplotlib.sourceforge.net/examples/event_handling/path_editor.py
+based off: http://matplotlib.sourceforge.net/examples/event_handling/path_editor.py
 """
 
 import numpy as np
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import matplotlib.mlab as mlab
 
 class PathCreator:
     def __init__(self,ax,finished_path_callback):
+        """
+        finished_path_callback is called when a closed path is generated
+        """
         self.finished_path_callback = finished_path_callback
-        
         self.ax = ax
         self.canvas = self.ax.figure.canvas
 
-        self.canvas.mpl_connect('button_press_event', self.button_press_callback)
+        #self.canvas.mpl_connect('button_press_event', self.button_press_callback)
         self.canvas.mpl_connect('draw_event', self.draw_callback)
         
         #outline of path
         self.line, = ax.plot([],[],marker='o', markerfacecolor='r', animated=True)
+        
         self.reset()
 
     def reset(self):
-        
+        self.line.set_visible(False)
         self.pathdata = []
         self.pathxy = []
         self.pathpatch = None
@@ -47,13 +46,21 @@ class PathCreator:
         self.canvas.blit(self.ax.bbox)
         
     def button_press_callback(self,event):
-        if event.inaxes==None: return
-        if event.button != 1: return
-        if self.done : return
+        """
+        returns True if button_press was handled
+        """
+        if event.inaxes==None: return False
+        if event.button == 3:
+            print "CLEAR PATH"
+            self.reset()
+            self.draw_callback(None)
+            return True
+        if event.button != 1: return False
+        if self.done : return False
         
         #xydata = self.ax.transData.inverted().transform((event.x,event.y))
         
-        close = False #poly is not closed
+        close = False #poly is not yet closed
         if len(self.pathdata) == 0:
             #chose first vertex of polygon
             self.startxy = (event.xdata,event.ydata)
@@ -92,7 +99,7 @@ class PathCreator:
         self.ax.add_patch(self.pathpatch)
                             
         #redraw
-        #self.canvas.restore_region(self.background)
+        self.canvas.restore_region(self.background)
         if(self.pathpatch is not None):
             self.ax.draw_artist(self.pathpatch)
             
@@ -101,44 +108,47 @@ class PathCreator:
         
         if close:
             self.finished_path_callback(self.pathpatch)
-            self.reset()
-                            
+            self.reset() #prepare to draw a new polygon
         
-
+        return True
+                                   
 class PathInteractor:
     """
-    An path editor.
+    A path editor.
 
     Key-bindings
 
       't' toggle vertex markers on and off.  When vertex markers are on,
           you can move them, delete them
-
-
     """
 
-    showverts = True
+    
     epsilon = 5  # max pixel distance to count as a vertex hit
 
     def __init__(self, pathpatch):
+        self.showverts = True
 
         self.ax = pathpatch.axes
         canvas = self.ax.figure.canvas
+        self.canvas = canvas
         self.pathpatch = pathpatch
-        self.pathpatch.set_animated(True)
+        self.pathpatch.set_animated(False)
 
         x, y = zip(*self.pathpatch.get_path().vertices)
 
-        self.line, = ax.plot(x,y,marker='o', markerfacecolor='r', animated=True)
-
+        self.line, = ax.plot(x,y,color='y',marker='o', markerfacecolor='r', animated=True)
+        #pathpatch.axes.add_line(self.line)
+        self.canvas.draw()
+        
         self._ind = None # the active vert
 
-        canvas.mpl_connect('draw_event', self.draw_callback)
-        canvas.mpl_connect('button_press_event', self.button_press_callback)
-        canvas.mpl_connect('key_press_event', self.key_press_callback)
-        canvas.mpl_connect('button_release_event', self.button_release_callback)
-        canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
-        self.canvas = canvas
+        self.canvas.mpl_connect('draw_event', self.draw_callback)
+        
+        #canvas.mpl_connect('button_press_event', self.button_press_callback)
+        #canvas.mpl_connect('key_press_event', self.key_press_callback)
+        #canvas.mpl_connect('button_release_event', self.button_release_callback)
+        #canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
+        
         
         #for mouse drag
         self.last_displacement = None
@@ -146,9 +156,15 @@ class PathInteractor:
         
     def draw_callback(self, event):
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
-        self.ax.draw_artist(self.pathpatch)
-        self.ax.draw_artist(self.line)
+        print id(self),'snapshot'
+        for p in ax.patches:
+            self.ax.draw_artist(p)
+        #self.ax.draw_artist(self.pathpatch)
+        for l in ax.lines:
+            self.ax.draw_artist(l)
+        #self.ax.draw_artist(self.line)
         self.canvas.blit(self.ax.bbox)
+        #pass
         
     def pathpatch_changed(self, pathpatch):
         print 'pathpatch_changed'
@@ -195,16 +211,20 @@ class PathInteractor:
                 ind = 'drag_patch'
         self._ind = ind
         print self._ind
+
+        if (self._ind is not None):
+            self.pathpatch.set_animated(True)
         return (self._ind is not None) #handled event or no?
 
     def button_release_callback(self, event):
-        'whenever a mouse button is released'
+        #whenever a mouse button is released
         if not self.showverts: return
         if event.button != 1: return
         self._ind = None
-
+        self.pathpatch.set_animated(False)
+        
     def key_press_callback(self, event):
-        'whenever a key is pressed'
+        #whenever a key is pressed
         if not event.inaxes: return
         handled = False
         if event.key=='t':
@@ -217,7 +237,7 @@ class PathInteractor:
         return handled #handled event or no?
 
     def motion_notify_callback(self, event):
-        'on mouse movement'
+        #on mouse movement
         if not self.showverts: return
         if self._ind is None: return
         if event.inaxes is None: return
@@ -232,7 +252,7 @@ class PathInteractor:
             self.last_displacement = displacement
         else:
             vertices[self._ind] = x,y
-            
+                    
         self.line.set_data(vertices[:,0],vertices[:,1])
 
         self.canvas.restore_region(self.background)
@@ -240,29 +260,70 @@ class PathInteractor:
         self.ax.draw_artist(self.line)
         self.canvas.blit(self.ax.bbox)
 
+event_handling_objects = [] #objects at the beginning of list get priority
+last_click = None   #element of event_handling_objects that was last sent a button_press event
 
-
+def button_press_event_dispatcher(event):
+    if fig.canvas.widgetlock.locked(): #matplotlib widget in use
+        return
+    global last_click
+    last_click = None
+    for o in event_handling_objects:
+        if(o.button_press_callback(event)):
+            #o handled the event
+            last_click = o
+            break
+    print 'last_click',id(last_click)
+        
+def key_press_event_dispatcher(event):
+    if(last_click):
+        try:
+            last_click.key_press_callback(event)
+        except AttributeError:
+            pass
+        
+def motion_notify_event_dispatcher(event):
+    if(last_click):
+        try:
+            last_click.motion_notify_callback(event)
+        except AttributeError:
+            pass
+        
+def button_release_event_dispatcher(event):
+    if(last_click):
+        try:
+            last_click.button_release_callback(event)
+        except AttributeError:
+            pass
 
 def new_patch(patch):
-    print patch
+    print 'new patch'
+    global event_handling_objects
     interactor = PathInteractor(patch)
+    event_handling_objects.insert(0,interactor) #add to beginning 
 
 Path = mpath.Path
 
 fig = plt.figure()
+
+fig.canvas.mpl_connect('button_press_event', button_press_event_dispatcher)
+fig.canvas.mpl_connect('key_press_event', key_press_event_dispatcher)
+fig.canvas.mpl_connect('button_release_event', button_release_event_dispatcher)
+fig.canvas.mpl_connect('motion_notify_event', motion_notify_event_dispatcher)
+        
 ax = fig.add_subplot(111)
 
-#ax.add_patch(patch)
-#interactor = PathInteractor(patch)
-
-ax.set_title('drag vertices to update path')
+ax.set_title('click to draw polygon')
 ax.set_xlim(-3,4)
 ax.set_ylim(-3,4)
 pc = PathCreator(ax,new_patch)
 
-
+event_handling_objects.append(pc)
 
 plt.show()
 
-
+import shelve
+field_shelve = shelve.open('field.shelve')
+field_shelve['obstacle_paths']=[p.get_path() for p in ax.patches]
+field_shelve.close()
 

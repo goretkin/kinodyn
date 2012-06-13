@@ -16,6 +16,10 @@ Created on Mon Jun  4 17:41:01 2012
 import shelve
 
 ship_shelve = shelve.open('ship.shelve')
+field_shelve = shelve.open('field.shelve')
+
+obstacle_paths = field_shelve['obstacle_paths']
+
 print 'loading local vars',ship_shelve.keys()
 
 #to pacify the linter
@@ -30,11 +34,23 @@ for k in ship_shelve.keys():
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib
+import matplotlib as mpl
 import numpy as np
 
-path_figure = plt.figure(None)
-path_figure.gca().plot(traj[:,3],traj[:,4],'.')
-path_figure.gca().set_aspect('equal')
+
+pps = []
+for op in obstacle_paths:
+    trans = mpl.transforms.Affine2D().scale(15)+mpl.transforms.Affine2D().translate(35,20)
+    op = trans.transform_path(op)
+    pp = matplotlib.patches.PathPatch(path=op,color='k')
+    pps.append(pp)
+    #trail_plot.add_patch(pp)
+obstacle_pc = matplotlib.collections.PatchCollection(pps,match_original=True)
+
+if False:
+    path_figure = plt.figure(None)
+    path_figure.gca().plot(traj[:,3],traj[:,4],'.')
+    path_figure.gca().set_aspect('equal')
     
 trail_figure = plt.figure(None)
 
@@ -76,6 +92,13 @@ max_ang_thrust = np.max(np.abs(utraj[:,1]))
 flame_color_map = matplotlib.cm.get_cmap(name='hot')
 flame_color_map = matplotlib.cm.get_cmap(name='autumn')
 
+def intersect_paths(paths1,paths2):
+    for path1 in paths1:
+        for path2 in paths2:
+            if path1.intersects_path(path2):
+                return True
+    return False
+    
 class Ship_Sprite():
     def __init__(self):
         self.body_length = 3.0
@@ -92,6 +115,7 @@ class Ship_Sprite():
 
         self.patches = [self.body_patch,self.body_back_patch,self.lin_flame_patch,self.ang_flame_patch]
         
+        self.body_patches = [self.body_back_patch,self.body_patch] #doesn't include flames
         #self.ship_collection = matplotlib.collections.PatchCollection(self.patches,match_original=True)
     
     def update_thrust(self,lin_thrust,ang_thrust):
@@ -144,9 +168,34 @@ class Ship_Sprite():
         trans0 = mpl_axes.transData
         trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
         trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)
-        trans3 = matplotlib.transforms.Affine2D().scale(6)
+        trans3 = matplotlib.transforms.Affine2D().scale(1)
         for p in self.patches:
             p.set_transform(trans3 + trans2+trans1+trans0)
+            
+    def collision(self,obstacle_paths):
+        trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
+        trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)
+        
+        trans = trans2+trans1
+        
+        return intersect_paths(obstacle_paths,
+                               #[trans.transform_path(p) for p in mpl.collections.PatchCollection(self.patches).get_paths()]
+                               [trans.transform_path(p.get_path()) for p in self.body_patches]
+                               )
+    def collision1(self,obstacle_patches):
+        trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
+        trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)
+        
+        trans = trans2+trans1
+        
+        transformed_obstacle_paths = [p.get_patch_transform().transform_path(p.get_path()) for p in obstacle_patches]
+        return intersect_paths(transformed_obstacle_paths,
+                               #[trans.transform_path(p) for p in mpl.collections.PatchCollection(self.patches).get_paths()]
+                               [trans.transform_path(p.get_path()) for p in self.body_patches]
+                               )                               
+    def set_alpha(self,alpha):
+        for p in self.patches:
+            p.set_alpha(alpha)
 
 for i in trail_indices:
     a = Ship_Sprite()
@@ -154,14 +203,36 @@ for i in trail_indices:
                     ang_thrust=utraj[i,1]/max_ang_thrust)
     a.update_pose(traj[i,3],traj[i,4],traj[i,5])
     a.update_transform_axes(trail_plot)
+
+    a.set_alpha(0.3)
+    #trail_plot.add_collection(mpl.collections.PatchCollection(a.patches))
+    collide = a.collision(obstacle_pc.get_paths())
+    #collide = a.collision1(pps)
+    if collide:
+        print i,'collide'
     for p in a.patches:
-        p.set_alpha(0.6)
+        #p.set_alpha(0.6)
+        if(collide):
+            p.set_color('r')
         trail_plot.add_artist(p)                    
     
 trail_plot.set_xlim(np.min(traj[:,3])-10,np.max(traj[:,3])+10)
 trail_plot.set_ylim(np.min(traj[:,4]-10),np.max(traj[:,4])+10)
 trail_plot.set_aspect('equal')
 
+trail_plot.add_collection(obstacle_pc)
+
+
+
+
+def benchmark_collision(n):
+    a = Ship_Sprite()
+    for i in np.linspace(0,20,n):
+        theta = np.random.random()*np.pi*2
+        a.update_pose(i,0,theta)    
+        a.collision(obstacle_pc.get_paths())
+    
+assert False    
 ani_fig = plt.figure(None)
 ani_ax = ani_fig.gca()
 
