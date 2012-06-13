@@ -16,6 +16,8 @@ Created on Mon Jun  4 17:41:01 2012
 import shelve
 import ipdb
 
+from global_help import Rectangle_centered
+
 ship_shelve = shelve.open('ship.shelve')
 field_shelve = shelve.open('field.shelve')
 
@@ -37,15 +39,16 @@ import matplotlib.animation as animation
 import matplotlib
 import matplotlib as mpl
 import numpy as np
-import shapely
 import shapely.geometry as geo
 
+shapely_obstacles = geo.Polygon()
 pps = []
 for op in obstacle_paths:
     trans = mpl.transforms.Affine2D().scale(15)+mpl.transforms.Affine2D().translate(35,20)
     op = trans.transform_path(op)
     pp = matplotlib.patches.PathPatch(path=op,color='k')
     pps.append(pp)
+    shapely_obstacles = shapely_obstacles.union(geo.Polygon(op.vertices))
     #trail_plot.add_patch(pp)
 obstacle_pc = matplotlib.collections.PatchCollection(pps,match_original=True)
 
@@ -61,32 +64,6 @@ trail_plot.set_axis_bgcolor((.9,.9,.9)) #gray background
 
 trail_indices = np.arange(0,T,20)
 trail_traj = traj[trail_indices,:] #samples of trajectory to draw
-
-import types #for monkey patching
-
-def Rectangle_centered(xy,width,height,*args,**kwargs):
-    x = xy[0] - width/2
-    y = xy[1] - height/2
-    rect = matplotlib.patches.Rectangle((x,y),width,height,*args,**kwargs)
-    rect._x_centered = 0
-    rect._y_centered = 0
-    #monkey patch some things (really should just inherit from Rectangle)
-    def set_xy(self,xy):
-        (self._x_centered,self._y_centered) = xy
-        self._x = self._x_centered - self._width/2
-        self._y = self._y_centered - self._height/2
-    def set_width(self,width):
-        self._width = width
-        self.set_xy((self._x_centered,self._y_centered))
-    def set_height(self,height):
-        self._height = height
-        self.set_xy((self._x_centered,self._y_centered))
-        
-    rect.set_xy = types.MethodType(set_xy,rect)
-    rect.set_width = types.MethodType(set_width,rect)
-    rect.set_height = types.MethodType(set_height,rect)
-    
-    return rect
 
 max_lin_thrust = np.max(np.abs(utraj[:,0]))
 max_ang_thrust = np.max(np.abs(utraj[:,1]))
@@ -126,8 +103,9 @@ class Ship_Sprite():
             v = p.get_patch_transform().transform_path(p.get_path()).vertices
             s = s.union(geo.Polygon(v))
                     
-        self.shapely_body = s
+        self.shapely_body = s.simplify(1e-6*self.body_length)
         self.ship_patch = mpl.patches.Polygon(np.array(self.shapely_body.exterior.xy).T)
+        self.ship_exterior_path = self.ship_patch.get_path()
         
     def update_thrust(self,lin_thrust,ang_thrust):
         lin_flame_patch = self.lin_flame_patch
@@ -214,6 +192,16 @@ class Ship_Sprite():
         return intersect_paths(obstacle_paths,
                                [trans.transform_path(self.ship_patch.get_path())]
                                )
+                               
+    def collision3(self,shapely_multipoly):
+        #broken
+        trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
+        trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)        
+        trans = trans2+trans1
+        
+        xy = trans.transform_path(self.ship_exterior_path).vertices
+        return shapely_multipoly.intersects(geo.Polygon(xy))
+        
     def set_alpha(self,alpha):
         for p in self.patches:
             p.set_alpha(alpha)
@@ -226,9 +214,7 @@ for i in trail_indices:
     a.update_transform_axes(trail_plot)
 
     a.set_alpha(0.3)
-    #trail_plot.add_collection(mpl.collections.PatchCollection(a.patches))
-    collide = a.collision(obstacle_pc.get_paths())
-    #collide = a.collision1(pps)
+    collide = a.collision2(obstacle_pc.get_paths())
     if collide:
         print i,'collide'
     for p in a.patches:
@@ -243,6 +229,13 @@ trail_plot.set_aspect('equal')
 
 trail_plot.add_collection(obstacle_pc)
 
+def benchmark_collision3(n):
+    a = Ship_Sprite()
+    for i in np.linspace(0,20,n):
+        theta = np.random.random()*np.pi*2
+        a.update_pose(i,0,theta)    
+        a.collision3(shapely_obstacles)
+        
 def benchmark_collision2(n):
     a = Ship_Sprite()
     for i in np.linspace(0,20,n):
@@ -254,7 +247,7 @@ def benchmark_collision(n):
     a = Ship_Sprite()
     for i in np.linspace(0,20,n):
         theta = np.random.random()*np.pi*2
-        a.update_pose(i,0,theta)    
+        a.update_pose(i,0,theta)
         a.collision(obstacle_pc.get_paths())        
     
 assert False    
