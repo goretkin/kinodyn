@@ -33,7 +33,6 @@ def intersect_paths(paths1,paths2):
     return False
     
 class Ship_Sprite():
-
     def __init__(self):
         self.body_length = 3.0
         self.body_width = 2.0
@@ -133,7 +132,7 @@ class Ship_Sprite():
     def collision1(self,obstacle_patches):
         trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
         trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)
-        
+       I thin 
         trans = trans2+trans1
         
         transformed_obstacle_paths = [p.get_patch_transform().transform_path(p.get_path()) for p in obstacle_patches]
