@@ -16,14 +16,16 @@ def distance(from_node,to_point):
     return np.linalg.norm(to_point-from_node['state'])
     
 class RRT():
-    def __init__(self):
+    def __init__(self,state_ndim):
         self.tree = tree = nx.DiGraph()
-        self.state_ndim =2
+        self.state_ndim = state_nidm
         self.next_node_id = 0
         
         self.gamma_rrt = 1
         self.eta = .5
         self.c = 1
+        
+        self.n_pruned = 0
         
     def get_node_id(self):
         _id = self.next_node_id
@@ -47,7 +49,18 @@ class RRT():
         self.collision_check = collision_check
         
     def set_sample(self,sample):
+        """
+        sample() returns point in state space
+        """
         self.sample = sample
+    
+    def set_steer(self,steer):
+        """
+        steer(start,toward) returns a tuple (xnew, u)
+        where xnew is point in the direction of toward from start
+        and where u is the control action to apply
+        """
+        self.steer = steer
 
     def near(self,point,radius):
         """
@@ -99,16 +112,14 @@ class RRT():
             x_rand = self.sample()
             x_nearest_id, _a  = self.nearest_neighbor(x_rand)
             x_nearest = tree.node[x_nearest_id]['state']
-            extension_direction = x_rand - x_nearest
-            extension_direction = extension_direction/np.linalg.norm(extension_direction)
-            x_new = x_nearest+ 1e-1 *extension_direction #steer
+            (x_new, _a) = self.steer(x_nearest,x_rand)
             
             #determine who the parent of x_new should be            
             if(collision_free(tree.node[x_nearest_id],x_new)):
                 cardinality = len(tree.node)
                 radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
                 radius = np.min((radius,self.eta))
-                print i,radius
+                print i,self.n_pruned
                 
                 X_near = self.near(x_new,radius)        
                         
@@ -158,6 +169,8 @@ class RRT():
                             tree.add_edge(old_parent,x_near,attr_dict={'pruned':1})
                         
                         tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
+                        
+                        self.n_pruned += 1
                            
 def obstacles(x,y):
     #return true for if point is not in collision
@@ -179,7 +192,10 @@ def isStateValid(state):
     return bool(obstacles(x,y))
     
 def sample():
-    return np.random.rand(2)*2-1
+    if np.random.rand()<.5:
+        return np.random.rand(2)*2-1
+    else: #goal bias
+        return np.array([1.0,0.0])
 
 def collision_free(from_node,to_point):
     #print from_node,to_point,'collision_free'
@@ -198,18 +214,21 @@ def collision_free(from_node,to_point):
             return False
     return True
 
+def steer(x_from,x_toward):
+    extension_direction = x_toward-x_from
+    extension_direction = extension_direction/np.linalg.norm(extension_direction)
+    control = 1e-1 *extension_direction #steer
+    x_new = x_from + control 
+    return (x_new,control)
+            
 start = np.array([-1,-1])*1    
-rrt = RRT()
+rrt = RRT(state_ndim=2)
+rrt.set_steer(steer)
 rrt.set_goal_test(lambda state: False )
 rrt.set_sample(sample)
 rrt.set_collision_check(isStateValid)
 rrt.set_start(start)
-rrt.search()
-#s = near(tree,np.array([.5,.5]),.1)
-#s = k_nearest_neighbor(tree,np.array([.5,.5]),100)
-#for node in s:
-#    tree.node[node]['hops']= -1
-
+rrt.search(iters=1e3)
 
 tree = rrt.tree
 nx.draw_networkx(tree,pos=nx.get_node_attributes(tree,'state'),
