@@ -162,6 +162,26 @@ class Ship_Sprite():
     def set_alpha(self,alpha):
         for p in self.patches:
             p.set_alpha(alpha)
+    
+    @staticmethod            
+    def make_trail_plot(ax,thrust,traj):
+        assert thrust.shape[0] == traj.shape[0]
+        for i in xrange(thrust.shape[0]):
+            a = Ship_Sprite()
+            a.update_thrust(lin_thrust=thrust[i,0],
+                            ang_thrust=thrust[i,1])
+            a.update_pose(traj[i,0],traj[i,1],traj[i,2])
+            a.update_transform_axes(ax)
+        
+            a.set_alpha(0.3)
+            collide = a.collision2(obstacle_pc.get_paths())
+            if collide:
+                print i,'collide'
+            for p in a.patches:
+                #p.set_alpha(0.6)
+                if(collide):
+                    p.set_color('r')
+                ax.add_artist(p)                  
 
 
 def benchmark_collision3(n):
@@ -222,29 +242,20 @@ if __name__ == '__main__':
     
     trail_plot = trail_figure.gca() #.subplot(111,aspect='equal')
     trail_plot.set_axis_bgcolor((.9,.9,.9)) #gray background
-    
+
+    #only draw these time indices    
     trail_indices = np.arange(0,T,20)
-    trail_traj = traj[trail_indices,:] #samples of trajectory to draw
     
     max_lin_thrust = np.max(np.abs(utraj[:,0]))
     max_ang_thrust = np.max(np.abs(utraj[:,1]))
-
-    for i in trail_indices:
-        a = Ship_Sprite()
-        a.update_thrust(lin_thrust=utraj[i,0]/max_lin_thrust,
-                        ang_thrust=utraj[i,1]/max_ang_thrust)
-        a.update_pose(traj[i,3],traj[i,4],traj[i,5])
-        a.update_transform_axes(trail_plot)
     
-        a.set_alpha(0.3)
-        collide = a.collision2(obstacle_pc.get_paths())
-        if collide:
-            print i,'collide'
-        for p in a.patches:
-            #p.set_alpha(0.6)
-            if(collide):
-                p.set_color('r')
-            trail_plot.add_artist(p)                    
+    trail_utraj = utraj[trail_indices]
+    trail_utraj[:,0] = trail_utraj[:,0]/max_lin_thrust
+    trail_utraj[:,1] = trail_utraj[:,1]/max_ang_thrust
+    
+    trail_traj = traj[trail_indices,3:6] #use position coordinates
+    
+    Ship_Sprite.make_trail_plot(trail_plot,trail_utraj,trail_traj)
         
     trail_plot.set_xlim(np.min(traj[:,3])-10,np.max(traj[:,3])+10)
     trail_plot.set_ylim(np.min(traj[:,4]-10),np.max(traj[:,4])+10)
