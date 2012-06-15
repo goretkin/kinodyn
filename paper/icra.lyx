@@ -1,0 +1,619 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass IEEEtran
+\begin_preamble
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+\end_preamble
+\options letterpaper, 10pt, conference
+\use_default_options true
+\begin_modules
+linguistics
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman lmodern
+\font_sans lmss
+\font_typewriter lmtt
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 2
+\papersides 1
+\paperpagestyle fancy
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\renewcommand{\at}[1]{}
+{\left.#1\right|}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Title
+Generalized Motion Planning for Dynamical Systems
+\end_layout
+
+\begin_layout Abstract
+We propose a method for finding probabilistically optimal control trajectories
+ for dynamical systems with differentiable dynamics and differentiable cost
+ function.
+ The method consists of the RRT* sample-based motion planning algorithm
+ with a heuristic motivated by linear control system theory.
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+Describe the state of the art.
+ Needs to be very accessible
+\end_layout
+
+\begin_layout Section
+Background
+\end_layout
+
+\begin_layout Subsection
+RRT*
+\end_layout
+
+\begin_layout Subsection
+LQR-RRT*
+\end_layout
+
+\begin_layout Section
+Locally approximating the cost function
+\end_layout
+
+\begin_layout Standard
+Consider a discrete-time dynamical system in the form 
+\begin_inset Formula 
+\begin{equation}
+x_{k+1}=f\left(x_{k},u_{k}\right)\label{eq:dynamics}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with additive cost function
+\begin_inset Formula 
+\begin{equation}
+J\left(\mathbf{u},\mathbf{x}\right)=\sum_{k=0}^{T}g\left(x_{k},u_{k}\right)\label{eq:cost_functional}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and starting point 
+\begin_inset Formula $x_{0}$
+\end_inset
+
+.
+ The state vector, 
+\begin_inset Formula $x$
+\end_inset
+
+, is 
+\begin_inset Formula $n$
+\end_inset
+
+-dimensional and the control vector, 
+\begin_inset Formula $u$
+\end_inset
+
+, is 
+\begin_inset Formula $m$
+\end_inset
+
+-dimensional.
+ We aim to find a sequence 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\mathbf{u}=\left\{ u_{0},\cdots,u_{T}\right\} $
+\end_inset
+
+ which induces a trajectory 
+\begin_inset Formula $\mathbf{x}=\left\{ x_{1},\cdots,x_{T}\right\} $
+\end_inset
+
+ satisfying the dynamics (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:dynamics"
+
+\end_inset
+
+) such that 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $C$
+\end_inset
+
+ is minimized according to (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:cost_functional"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+The real cost of moving from point 
+\begin_inset Formula $x'$
+\end_inset
+
+ to 
+\begin_inset Formula $x''$
+\end_inset
+
+ is
+\begin_inset Formula 
+\begin{multline*}
+C\left(x,x'\right)=\min_{\mathbf{u}}J\left(\mathbf{u},\mathbf{x}\right)\\
+\mbox{subject to (\ref{eq:dynamics}), \ensuremath{x_{0}=x}, \ensuremath{x_{T}=x'}}
+\end{multline*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that the minimization happens over control sequences 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ of different time lengths.
+\end_layout
+
+\begin_layout Standard
+We approximate 
+\begin_inset Formula $C\left(x',x''\right)$
+\end_inset
+
+ by taking a first-order approximation of the dynamics and a second-order
+ approximation of the cost and applying LQR control.
+ In general, the approximated dynamics and cost are of the following form
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+x_{k+1} & \approx Ax_{k}+Bu_{k}+c\label{eq:dynamics_approx}\\
+J\left(\mathbf{u},\mathbf{x}\right) & \approx\sum_{k=0}^{T}x_{k}^{T}Qx_{k}+u_{k}^{T}Ru_{k}+2q^{T}x_{k}+2r^{T}u_{k}+d\label{eq:cost_approx}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $A$
+\end_inset
+
+ and 
+\begin_inset Formula $Q$
+\end_inset
+
+ are 
+\begin_inset Formula $n\times n$
+\end_inset
+
+, 
+\begin_inset Formula $B$
+\end_inset
+
+ is 
+\begin_inset Formula $m\times n$
+\end_inset
+
+, 
+\begin_inset Formula $R$
+\end_inset
+
+ is 
+\begin_inset Formula $n\times n$
+\end_inset
+
+.
+ 
+\begin_inset Formula $c$
+\end_inset
+
+ and 
+\begin_inset Formula $q$
+\end_inset
+
+ are 
+\begin_inset Formula $n\times1$
+\end_inset
+
+, 
+\begin_inset Formula $r$
+\end_inset
+
+ is 
+\begin_inset Formula $m\times1$
+\end_inset
+
+ and 
+\begin_inset Formula $d$
+\end_inset
+
+ is a scalar.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+A & =\left.\frac{\partial f}{\partial x}\right|_{x^{*},u^{*}}\\
+B & =\left.\frac{\partial f}{\partial u}\right|_{x^{*},u^{*}}\\
+c & =-Ax^{*}-Bu^{*}+f\left(x^{*},u^{*}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $x^{*}$
+\end_inset
+
+, 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $u^{*}$
+\end_inset
+
+ is the point about which the linearization is performed.
+ Typically 
+\begin_inset Formula $u^{*}$
+\end_inset
+
+ is taken to be 
+\begin_inset Formula $\mathbf{0}$
+\end_inset
+
+ and 
+\begin_inset Formula $x^{*}=x'$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Equations 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:dynamics_approx"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:cost_approx"
+
+\end_inset
+
+ are the truncated Taylor expansions of 
+\begin_inset Formula $f$
+\end_inset
+
+ and 
+\begin_inset Formula $g$
+\end_inset
+
+.
+ The dynamics 
+\begin_inset Formula $f$
+\end_inset
+
+ must be once-differentiable and addition cost 
+\begin_inset Formula $g$
+\end_inset
+
+ must be twice-differentiable.
+\end_layout
+
+\begin_layout Standard
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+\begin_inset Formula 
+\begin{align*}
+\underbrace{\left[\begin{matrix}x_{k+1}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k+1}} & =\underbrace{\left(\begin{matrix}A & c-R^{-1}r\\
+0 & 1
+\end{matrix}\right)}_{\hat{A}}\underbrace{\left[\begin{matrix}x_{k}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k}}+\underbrace{\left(\begin{matrix}B\\
+0
+\end{matrix}\right)}_{\hat{B}}\hat{u}_{k}\\
+C\left(\mathbf{u},\mathbf{x}\right) & =\sum_{k=0}^{T}\hat{x}_{k}^{T}\hat{Q}\hat{x}_{k}+\hat{u}_{k}^{T}\hat{R}\hat{u}_{k}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with 
+\begin_inset Formula $\hat{u}_{k}=u_{k}+R^{-1}r$
+\end_inset
+
+ and 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\hat{Q}=\left(\begin{matrix}Q & q\\
+q^{T} & \eta_{1}
+\end{matrix}\right)$
+\end_inset
+
+.
+ 
+\begin_inset Formula $\eta_{1}$
+\end_inset
+
+ is arbitrarily chosen -- it produces a constant offset in the the cost
+ function at each time step.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+\begin_inset Formula $\left(\begin{matrix}x\\
+1
+\end{matrix}\right)^{T}\left(\begin{matrix}Q & q\\
+q^{T} & \eta_{1}
+\end{matrix}\right)\left(\begin{matrix}x\\
+1
+\end{matrix}\right)=\left(\begin{matrix}x\\
+1
+\end{matrix}\right)^{T}\left(\begin{matrix}Qx+q\\
+q^{T}x+\eta_{1}
+\end{matrix}\right)=x^{T}Qx+x^{T}q+q^{T}x+\eta_{1}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+How to choose 
+\begin_inset Formula $\eta_{1}$
+\end_inset
+
+?
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $\hat{A}$
+\end_inset
+
+, 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\hat{B}$
+\end_inset
+
+, 
+\begin_inset Formula $\hat{Q}$
+\end_inset
+
+, and 
+\begin_inset Formula $R$
+\end_inset
+
+ matrices specify a linear dynamical system with quadratic costs to which
+ an optimal solution can be found with LQR.
+ 
+\end_layout
+
+\begin_layout Subsection
+Problems
+\end_layout
+
+\begin_layout Standard
+The linearized system may be uncontrollable -- the 
+\begin_inset Formula $A$
+\end_inset
+
+ and 
+\begin_inset Formula $B$
+\end_inset
+
+ matrices are such that the matrices
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+What if 
+\begin_inset Formula $\hat{Q}$
+\end_inset
+
+ is indefinite?
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Example Implementation / Domain
+\end_layout
+
+\begin_layout Subsection
+Derivation of LQR dynamics and cost matrices
+\end_layout
+
+\begin_layout Subsection
+Performance / Results
+\end_layout
+
+\begin_layout Standard
+Picture of tree, cost over iteration
+\end_layout
+
+\begin_layout Section
+Related Work
+\end_layout
+
+\begin_layout Section
+Discussion and Conlcusion
+\end_layout
+
+\begin_layout Section
+Problem Statement
+\end_layout
+
+\begin_layout Section
+LQR Formulation
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+x_{k+1} & \approx & \at{\frac{\partial f\left(x,u\right)}{\partial x}}_{\bar{x},\bar{u}}\left(x_{k}-\bar{x}\right)+\at{\frac{\partial f\left(x,u\right)}{\partial u}}_{\bar{x},\bar{u}}\left(u_{k}-\bar{u}\right)+f\left(\bar{x},\bar{u}\right)\\
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+With some manipulations, it is possible to find matrices 
+\begin_inset Formula $A,B,Q,R$
+\end_inset
+
+ such that the state evolution equations locally approximate the dynamics
+ and the cost.
+\end_layout
+
+\end_body
+\end_document
