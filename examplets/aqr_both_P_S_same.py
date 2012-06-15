@@ -13,6 +13,7 @@ or its inverse P in the Riccati iteration gives same solution
 
 from __future__ import division
 
+import examplets
 import control
 import yottalab
 import scipy

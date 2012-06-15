@@ -7,6 +7,8 @@ Created on Sun Feb 12 21:42:53 2012
 
 from __future__ import division
 
+import examplets
+
 import control
 import yottalab
 import scipy

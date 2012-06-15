@@ -7,6 +7,11 @@ Created on Wed Mar 28 11:33:30 2012
 import numpy as np
 
 def dtfh_lqr(A,B,Q,R,N,Q_terminal=None):
+    """
+    returns (Fs,Ps) where, for i in [0,N-1], 
+    Fs[i] is the gain matrix 
+    Ps[i] is the cost-to-go-matrix 
+    """
     A = np.matrix(A)
     B = np.matrix(B)
     Q = np.matrix(Q)

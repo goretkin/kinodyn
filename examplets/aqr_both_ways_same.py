@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
 """
 Created on Sun Feb 12 21:42:53 2012
 
@@ -14,8 +15,7 @@ and having an affine term in the cost
 
 """
 
-from __future__ import division
-
+import examplets
 import control
 import yottalab
 import scipy
@@ -164,7 +164,7 @@ b = Bct
 nb=1
 n=3
 
-SETTING = True
+SETTING = False #switch between coordinate change vs affine term
 ztmp=np.zeros((nb,n+nb))
 tmp=np.hstack((a,b))
 tmp=np.vstack((tmp,ztmp))
