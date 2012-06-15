@@ -16,9 +16,9 @@ def distance(from_node,to_point):
     return np.linalg.norm(to_point-from_node['state'])
     
 class RRT():
-    def __init__(self,state_ndim):
+    def __init__(self,state_ndim,keep_pruned_edges=False):
         self.tree = tree = nx.DiGraph()
-        self.state_ndim = state_nidm
+        self.state_ndim = state_ndim
         self.next_node_id = 0
         
         self.gamma_rrt = 1
@@ -26,6 +26,7 @@ class RRT():
         self.c = 1
         
         self.n_pruned = 0
+        self.keep_pruned_edges = keep_pruned_edges
         
     def get_node_id(self):
         _id = self.next_node_id
@@ -102,10 +103,12 @@ class RRT():
         return S
     
     def search(self,iters=5e2):
+        self.waste = 0
+
         c=1 #cost
         
         tree = self.tree
-        tree.add_node(self.get_node_id,
+        tree.add_node(self.get_node_id(),
                       attr_dict={'state':self.state0,'hops':0,'cost':0})
 
         for i in xrange(iters):
@@ -115,62 +118,100 @@ class RRT():
             (x_new, _a) = self.steer(x_nearest,x_rand)
             
             #determine who the parent of x_new should be            
-            if(collision_free(tree.node[x_nearest_id],x_new)):
-                cardinality = len(tree.node)
-                radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
-                radius = np.min((radius,self.eta))
-                print i,self.n_pruned
-                
-                X_near = self.near(x_new,radius)        
-                        
-                x_min = x_nearest_id
-                c_min = tree.node[x_min]['cost'] + c*distance(tree.node[x_min],x_new)
-                
-                #connect x_new to lowest-cost parent
-                for x_near in X_near:
-                    this_cost = tree.node[x_near]['cost'] + c*distance(tree.node[x_near],x_new) 
+            free_points, all_the_way = collision_free(tree.node[x_nearest_id],x_new)
+            
+            if len(free_points) == 0:
+                break
+            
+            if not all_the_way:
+                x_new = free_points[-1]
+                print 'not all the way'
+            else:
+                if not np.linalg.norm(np.array(free_points[-1]) - x_new) < 1e-5:
+                    print np.linalg.norm(np.array(free_points[-1]) - x_new)
+                    raise AssertionError()
+
+            cardinality = len(tree.node)
+            radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
+            radius = np.min((radius,self.eta))
+            print i,self.n_pruned,self.waste
+            
+            X_near = self.near(x_new,radius)        
                     
-                    #cheaper to check first condition
-                    if this_cost < c_min and collision_free(tree.node[x_near],x_new):
-                        x_min = x_near
-                        c_min = this_cost
+            x_min = x_nearest_id
+            c_min = tree.node[x_min]['cost'] + c*distance(tree.node[x_min],x_new)
+            
+            #connect x_new to lowest-cost parent
+            for x_near in X_near:
+                this_cost = tree.node[x_near]['cost'] + c*distance(tree.node[x_near],x_new) 
                 
-                x_new_id = self.get_node_id()
-                tree.add_node(x_new_id,attr_dict={'state':x_new,
-                                                 'hops':1+tree.node[x_min]['hops'],
-                                                 'cost':tree.node[x_min]['cost']+distance(tree.node[x_min],x_new)
-                                                 }
-                                                 )
-                tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
-                        
-                #X_near = [] #don't rewire
-                discard_pruned_edge = True
-                #rewire to see if it's cheaper to go through the new point
-                for x_near in X_near:
-                    this_cost = tree.node[x_new_id]['cost'] + c*distance(tree.node[x_near],x_new) 
+                #cheaper to check first condition
+                if this_cost < c_min and collision_free(tree.node[x_near],x_new)[1]:
+                    x_min = x_near
+                    c_min = this_cost
+            
+            x_new_id = self.get_node_id()
+            tree.add_node(x_new_id,attr_dict={'state':x_new,
+                                             'hops':1+tree.node[x_min]['hops'],
+                                             'cost':tree.node[x_min]['cost']+distance(tree.node[x_min],x_new)
+                                             }
+                                             )
+            tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
                     
-                    if (collision_free(tree.node[x_new_id],tree.node[x_near]['state'])
-                        and this_cost < tree.node[x_near]['cost']):
-                        #better parent exists
-                        old_parent = tree.predecessors(x_near)
-                        if(discard_pruned_edge):  #don't keep pruned edges
-                            assert len(old_parent)==1 #each node in tree has only one parent
-                            old_parent = old_parent[0]
-                            tree.remove_edge(old_parent,x_near)
-                        else:
-                            #we are keeping edges that a pruned, so a node might 
-                            #actually have more than one parent
-                            true_parent = []
-                            for parent in old_parent:
-                                if tree.edge[parent][x_near]['pruned']==0:
-                                    true_parent.append(parent)
-                            assert len(true_parent)==1
-                            old_parent = true_parent[0]
-                            tree.add_edge(old_parent,x_near,attr_dict={'pruned':1})
-                        
-                        tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
-                        
-                        self.n_pruned += 1
+            #X_near = [] #don't rewire
+            discard_pruned_edge = not self.keep_pruned_edges
+            #rewire to see if it's cheaper to go through the new point
+            for x_near in X_near:
+                this_cost = tree.node[x_new_id]['cost'] + c*distance(tree.node[x_near],x_new) 
+                
+                if (this_cost < tree.node[x_near]['cost'] and
+                    collision_free(tree.node[x_new_id],tree.node[x_near]['state'])[1]
+                    ):
+                    #better parent exists
+                    old_parent = tree.predecessors(x_near)
+                    if(discard_pruned_edge):  #don't keep pruned edges
+                        assert len(old_parent)==1 #each node in tree has only one parent
+                        old_parent = old_parent[0]
+                        tree.remove_edge(old_parent,x_near)
+                    else:
+                        #we are keeping edges that a pruned, so a node might 
+                        #actually have more than one parent
+                        true_parent = []
+                        for parent in old_parent:
+                            if tree.edge[parent][x_near]['pruned']==0:
+                                true_parent.append(parent)
+                        assert len(true_parent)==1
+                        old_parent = true_parent[0]
+                        tree.add_edge(old_parent,x_near,attr_dict={'pruned':1})
+                    
+                    tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
+                    
+                    self.n_pruned += 1
+    def best_solution(self,x):
+        """
+        return list of node IDs forming a path
+        starting at the root node that comes closest to x
+        """
+        assert len(x)==self.state_ndim
+
+        path = []        
+        parent = self.nearest_neighbor(x)[0]
+        path.append(parent)
+        
+        while(parent != 0): #until you get at the root
+            possible_parents = self.tree.predecessors(parent)
+            if(self.keep_pruned_edges):
+                parent = filter(lambda node_id: self.tree.node[node_id]['pruned']==0,
+                                possible_parents)
+            else:
+                parent = possible_parents
+                
+            assert len(parent)==1
+            parent = parent[0]
+            path.append(parent)
+
+            
+        return path[::-1] #reverse
                            
 def obstacles(x,y):
     #return true for if point is not in collision
@@ -190,12 +231,13 @@ def isStateValid(state):
     x = state[0]
     y = state[1]
     return bool(obstacles(x,y))
-    
+
+goal = np.array([1.0,1.0])
 def sample():
-    if np.random.rand()<.5:
+    if np.random.rand()<.9:
         return np.random.rand(2)*2-1
     else: #goal bias
-        return np.array([1.0,0.0])
+        return goal
 
 def collision_free(from_node,to_point):
     #print from_node,to_point,'collision_free'
@@ -208,16 +250,26 @@ def collision_free(from_node,to_point):
     l = np.linalg.norm(direction)
     direction /= l
     step = .01
+    
+    free_points = []
+    all_the_way = True
     for i in range(int(l/step)):
-        (x,y) = direction*step*i+from_node['state']
-        if( not obstacles(x,y)):
-            return False
-    return True
+        (x,y) = direction*step*(i+1)+from_node['state']
+        if( obstacles(x,y)):
+            free_points.append(np.array([x,y]))
+        else:
+            all_the_way = False
+            break
+    free_points.append(np.array(to_point))
+    return free_points, all_the_way
 
 def steer(x_from,x_toward):
     extension_direction = x_toward-x_from
-    extension_direction = extension_direction/np.linalg.norm(extension_direction)
+    norm = np.linalg.norm(extension_direction)
+    if norm > 1:
+        extension_direction = extension_direction/norm
     control = 1e-1 *extension_direction #steer
+    
     x_new = x_from + control 
     return (x_new,control)
             
@@ -228,10 +280,14 @@ rrt.set_goal_test(lambda state: False )
 rrt.set_sample(sample)
 rrt.set_collision_check(isStateValid)
 rrt.set_start(start)
-rrt.search(iters=1e3)
+rrt.search(iters=2e3)
+
+ax = plt.figure(None).add_subplot(111)
 
 tree = rrt.tree
-nx.draw_networkx(tree,pos=nx.get_node_attributes(tree,'state'),
+nx.draw_networkx(G=tree,
+                 pos=nx.get_node_attributes(tree,'state'),
+                 ax=ax,
                  node_size=50,
                  node_color=nx.get_node_attributes(tree,'cost').values(),
                  cmap = mpl.cm.get_cmap(name='copper'),
@@ -239,13 +295,18 @@ nx.draw_networkx(tree,pos=nx.get_node_attributes(tree,'state'),
                 with_labels=False,
                 #style='dotted'
                 )
+                
+xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
+
+
 
 x = np.linspace(-1,1,1000)
 X,Y = np.meshgrid(x,x)
 o = obstacles(X,Y) #rasterize the obstacles
-plt.imshow(o,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
-            
-plt.show()            
+ax.imshow(o,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
+
+ax.plot(xpath[0],xpath[1],'g--',lw=3,alpha=.7)            
+plt.show()
     
             
         
