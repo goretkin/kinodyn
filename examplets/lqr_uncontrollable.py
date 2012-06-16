@@ -12,17 +12,17 @@ from lqr_tools import dtfh_lqr, simulate_lti_fb_dt
 import numpy as np
 import matplotlib.pyplot as plt
 
-A = np.matrix([[2,0],
-              [0,3]])
+A = np.matrix([[1.2,0],
+              [0,1.4]])
 
-B = np.matrix([1,.1]).T
+B = np.matrix([1,100]).T
 
 
 Q = np.matrix([[1,0],
-               [0,-1]])
-R = np.eye(1)
+               [0,1]])
+R = np.eye(1) * 1
 
-T = 20
+T = 40
 gain_schedule,cost_to_go_schedule = dtfh_lqr(A,B,Q,R,T-1)
 
 x0 = np.array([2,1])

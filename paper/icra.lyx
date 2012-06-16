@@ -70,7 +70,7 @@ linguistics
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\renewcommand{\at}[1]{}
+\newcommand{\at}[1]{}
 {\left.#1\right|}
 \end_inset
 
@@ -534,6 +534,10 @@ The
 Problems
 \end_layout
 
+\begin_layout Subsubsection
+Uncontrollable Dynamics
+\end_layout
+
 \begin_layout Standard
 The linearized system may be uncontrollable -- the 
 \begin_inset Formula $A$
@@ -543,7 +547,36 @@ The linearized system may be uncontrollable -- the
 \begin_inset Formula $B$
 \end_inset
 
- matrices are such that the matrices
+ matrices are such that it's not possible to control all the modes of the
+ system.
+ This is the case, for example, for a cart with two inverted pendulums of
+ the same length linearized about the upward-pointing fixed point.
+ The control input to the system affects both linearized pendulums in the
+ same way, so it's not possible to independently stabilize them.
+ For the infinite-horizon LQR control problem, there is no solution.
+ For the finite-horizon problem, there is a solution, though it might not
+ be possible to go to any arbitrary location.
+ If the system linearized at 
+\begin_inset Formula $x'$
+\end_inset
+
+ cannot reach 
+\begin_inset Formula $x''$
+\end_inset
+
+, then 
+\begin_inset Formula $C\left(x',x''\right)$
+\end_inset
+
+ needs to be defined in another way.
+\end_layout
+
+\begin_layout Standard
+is Therefore using the LQR cost metric cannot approximate the cost 
+\end_layout
+
+\begin_layout Subsubsection
+Indefinite Cost
 \end_layout
 
 \begin_layout Standard
@@ -556,6 +589,19 @@ What if
 \end_inset
 
  is indefinite?
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+Can we even use LQR? We cannot put actuation constraints 
 \end_layout
 
 \end_inset

@@ -1,0 +1,6 @@
+python packages needed:
+
+ * python-control http://sourceforge.net/apps/mediawiki/python-control/index.php?title=Main_Page
+ * NetworkX http://networkx.lanl.gov/
+ * shapely (can be easily avoided) https://github.com/sgillies/shapely
+ * SciPy/NumPy/Matplotlib
