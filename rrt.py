@@ -25,6 +25,8 @@ class RRT():
         self.eta = .5
         self.c = 1
         
+        self.search_initialized = False 
+        
         self.n_pruned = 0
         self.keep_pruned_edges = keep_pruned_edges
         
@@ -102,26 +104,39 @@ class RRT():
             S[k-i-1]=heapq.heappop(H)[1] #extract node ID
         return S
     
-    def search(self,iters=5e2):
+    def init_search(self):
+        """
+        only call once
+        """
+        if(self.search_initialized):
+            print "search already initializd"
+
+        self.search_initialized = True
+        
         self.waste = 0
+        self.tree.add_node(self.get_node_id(),
+          attr_dict={'state':self.state0,'hops':0,'cost':0})
+
+        
+    def search(self,iters=5e2):
+        
 
         c=1 #cost
         
         tree = self.tree
-        tree.add_node(self.get_node_id(),
-                      attr_dict={'state':self.state0,'hops':0,'cost':0})
 
         for i in xrange(iters):
             x_rand = self.sample()
             x_nearest_id, _a  = self.nearest_neighbor(x_rand)
             x_nearest = tree.node[x_nearest_id]['state']
-            (x_new, _a) = self.steer(x_nearest,x_rand)
+            (x_new, _action) = self.steer(x_nearest,x_rand)
             
             #determine who the parent of x_new should be            
             free_points, all_the_way = collision_free(tree.node[x_nearest_id],x_new)
             
             if len(free_points) == 0:
-                break
+                continue
+            
             
             if not all_the_way:
                 x_new = free_points[-1]
@@ -134,7 +149,7 @@ class RRT():
             cardinality = len(tree.node)
             radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
             radius = np.min((radius,self.eta))
-            print i,self.n_pruned,self.waste
+            print i,self.n_pruned,self.waste,len(free_points)
             
             X_near = self.near(x_new,radius)        
                     
@@ -234,18 +249,21 @@ def isStateValid(state):
 
 goal = np.array([1.0,1.0])
 def sample():
-    if np.random.rand()<.9:
+    if np.random.rand()<.8:
         return np.random.rand(2)*2-1
     else: #goal bias
         return goal
 
 def collision_free(from_node,to_point):
+    """
+    check that the line in between is free
+    """
     #print from_node,to_point,'collision_free'
     (x,y) = from_node['state']
     (x1,y1) = to_point
-    endpoints_free = obstacles(x,y) and obstacles(x1,y1)
-    if not endpoints_free:
-        return False
+    #endpoints_free = obstacles(x,y) and obstacles(x1,y1)
+    if not obstacles(x,y):
+        return [],False
     direction = to_point-from_node['state']
     l = np.linalg.norm(direction)
     direction /= l
@@ -260,7 +278,12 @@ def collision_free(from_node,to_point):
         else:
             all_the_way = False
             break
-    free_points.append(np.array(to_point))
+    
+    #add the to_point if itś not in an obstacle and the line was free
+    if all_the_way and obstacles(x1,y1):
+        free_points.append(np.array(to_point))
+    else:
+        all_the_way = False
     return free_points, all_the_way
 
 def steer(x_from,x_toward):
@@ -280,6 +303,7 @@ rrt.set_goal_test(lambda state: False )
 rrt.set_sample(sample)
 rrt.set_collision_check(isStateValid)
 rrt.set_start(start)
+rrt.init_search()
 rrt.search(iters=2e3)
 
 ax = plt.figure(None).add_subplot(111)
@@ -288,24 +312,22 @@ tree = rrt.tree
 nx.draw_networkx(G=tree,
                  pos=nx.get_node_attributes(tree,'state'),
                  ax=ax,
-                 node_size=50,
+                 node_size=25,
                  node_color=nx.get_node_attributes(tree,'cost').values(),
                  cmap = mpl.cm.get_cmap(name='copper'),
                  edge_color=nx.get_edge_attributes(tree,'pruned').values(),
                 with_labels=False,
                 #style='dotted'
                 )
-                
-xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
-
-
-
+              
 x = np.linspace(-1,1,1000)
 X,Y = np.meshgrid(x,x)
 o = obstacles(X,Y) #rasterize the obstacles
 ax.imshow(o,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
 
-ax.plot(xpath[0],xpath[1],'g--',lw=3,alpha=.7)            
+xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
+ax.plot(xpath[0],xpath[1],'g--',lw=10,alpha=.7)
+
 plt.show()
     
             
