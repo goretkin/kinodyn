@@ -10,10 +10,6 @@ import networkx as nx
 import heapq
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-
-def distance(from_node,to_point):
-    #to_point is an array and from_point is a node
-    return np.linalg.norm(to_point-from_node['state'])
     
 class RRT():
     def __init__(self,state_ndim,keep_pruned_edges=False):
@@ -70,6 +66,11 @@ class RRT():
         and where u is the control action to apply
         """
         self.steer = steer
+    def set_distance(self,distance):
+        """
+        distance(from_node,to_point)
+        """
+        self.distance = distance
 
     def near(self,point,radius):
         """
@@ -77,7 +78,7 @@ class RRT():
         """
         S = {}    
         for this_node in self.tree.nodes_iter():
-            this_distance = distance(self.tree.node[this_node],point)
+            this_distance = self.distance(self.tree.node[this_node],point)
             if(this_distance<radius):
                 S[this_node] = this_distance
         return S
@@ -86,7 +87,7 @@ class RRT():
         node_so_far = None
         distance_so_far = None
         for this_node in self.tree.nodes_iter():
-            this_distance = distance(self.tree.node[this_node],state) 
+            this_distance = self.distance(self.tree.node[this_node],state) 
             if(distance_so_far is None):            
                 node_so_far = this_node
                 distance_so_far = this_distance 
@@ -100,7 +101,7 @@ class RRT():
         H =[]
         heapsize = 0
         for this_node in self.tree.nodes_iter():
-            this_distance = distance(self.tree.node[this_node],point)
+            this_distance = self.distance(self.tree.node[this_node],point)
             if(heapsize<k):
                 heapq.heappush(H,(this_distance,this_node))
             else:
@@ -158,11 +159,11 @@ class RRT():
             X_near = self.near(x_new,radius)        
                     
             x_min = x_nearest_id
-            c_min = tree.node[x_min]['cost'] + c*distance(tree.node[x_min],x_new)
+            c_min = tree.node[x_min]['cost'] + c*self.distance(tree.node[x_min],x_new)
             
             #connect x_new to lowest-cost parent
             for x_near in X_near:
-                this_cost = tree.node[x_near]['cost'] + c*distance(tree.node[x_near],x_new) 
+                this_cost = tree.node[x_near]['cost'] + c*self.distance(tree.node[x_near],x_new) 
                 
                 #cheaper to check first condition
                 if this_cost < c_min and self.collision_free(tree.node[x_near],x_new)[1]:
@@ -172,7 +173,8 @@ class RRT():
             x_new_id = self.get_node_id()
             tree.add_node(x_new_id,attr_dict={'state':x_new,
                                              'hops':1+tree.node[x_min]['hops'],
-                                             'cost':tree.node[x_min]['cost']+distance(tree.node[x_min],x_new)
+                                             'cost':tree.node[x_min]['cost']+
+                                             self.distance(tree.node[x_min],x_new)
                                              }
                                              )
             tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
@@ -181,7 +183,7 @@ class RRT():
             discard_pruned_edge = not self.keep_pruned_edges
             #rewire to see if it's cheaper to go through the new point
             for x_near in X_near:
-                this_cost = tree.node[x_new_id]['cost'] + c*distance(tree.node[x_near],x_new) 
+                this_cost = tree.node[x_new_id]['cost'] + c*self.distance(tree.node[x_near],x_new) 
                 
                 if (this_cost < tree.node[x_near]['cost'] and
                     self.collision_free(tree.node[x_new_id],tree.node[x_near]['state'])[1]
@@ -299,14 +301,22 @@ def steer(x_from,x_toward):
     
     x_new = x_from + control 
     return (x_new,control)
+    
+def distance(from_node,to_point):
+    #to_point is an array and from_point is a node
+    return np.linalg.norm(to_point-from_node['state'])
+    
             
 start = np.array([-1,-1])*1    
 rrt = RRT(state_ndim=2)
+
+rrt.set_distance(distance)
 rrt.set_steer(steer)
 rrt.set_goal_test(lambda state: False )
 rrt.set_sample(sample)
 rrt.set_collision_check(isStateValid)
 rrt.set_collision_free(collision_free)
+
 rrt.set_start(start)
 rrt.init_search()
 rrt.search(iters=2e3)
