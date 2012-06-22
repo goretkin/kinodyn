@@ -121,7 +121,8 @@ class RRT():
         self.search_initialized = True
         
         self.waste = 0
-        self.tree.add_node(self.get_node_id(),
+        self.start_node_id = self.get_node_id()
+        self.tree.add_node(self.start_node_id,
           attr_dict={'state':self.state0,'hops':0,'cost':0})
 
         
@@ -208,7 +209,7 @@ class RRT():
                     tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
                     
                     self.n_pruned += 1
-    def best_solution(self,x):
+    def best_solution_(self,x):
         """
         return list of node IDs forming a path
         starting at the root node that comes closest to x
@@ -233,6 +234,24 @@ class RRT():
 
             
         return path[::-1] #reverse
+    def best_solution(self,x):
+        """
+        return list of node IDs forming a path
+        starting at the root node that comes closest to x
+        """
+        assert len(x)==self.state_ndim
+        goal_id = self.nearest_neighbor(x)[0]
+        graph = self.tree.reverse()
+        #remove pruned edges if we kept them in the graph
+        if self.keep_pruned_edges:            
+            for e in graph.edges_iter():
+                if graph.edge[e]['pruned']==1:
+                    del graph.edge[e]
+            
+            
+        #there's actually only a single path, since the graph is a tree
+        path = nx.shortest_path(graph,source=goal_id,target=self.start_node_id)
+        return path[::-1]
                            
 def obstacles(x,y):
     #return true for if point is not in collision
