@@ -51,6 +51,12 @@ class RRT():
         """
         self.collision_check = collision_check
         
+    def set_collision_free(self,collision_free):
+        """
+        collision_test(node,state) = [free states],all_the_way
+        """
+        self.collision_free = collision_free  
+        
     def set_sample(self,sample):
         """
         sample() returns point in state space
@@ -119,20 +125,18 @@ class RRT():
 
         
     def search(self,iters=5e2):
-        
-
         c=1 #cost
         
         tree = self.tree
 
-        for i in xrange(iters):
+        for i in xrange(int(iters)):
             x_rand = self.sample()
             x_nearest_id, _a  = self.nearest_neighbor(x_rand)
             x_nearest = tree.node[x_nearest_id]['state']
             (x_new, _action) = self.steer(x_nearest,x_rand)
             
             #determine who the parent of x_new should be            
-            free_points, all_the_way = collision_free(tree.node[x_nearest_id],x_new)
+            free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
             
             if len(free_points) == 0:
                 continue
@@ -140,7 +144,7 @@ class RRT():
             
             if not all_the_way:
                 x_new = free_points[-1]
-                print 'not all the way'
+
             else:
                 if not np.linalg.norm(np.array(free_points[-1]) - x_new) < 1e-5:
                     print np.linalg.norm(np.array(free_points[-1]) - x_new)
@@ -161,7 +165,7 @@ class RRT():
                 this_cost = tree.node[x_near]['cost'] + c*distance(tree.node[x_near],x_new) 
                 
                 #cheaper to check first condition
-                if this_cost < c_min and collision_free(tree.node[x_near],x_new)[1]:
+                if this_cost < c_min and self.collision_free(tree.node[x_near],x_new)[1]:
                     x_min = x_near
                     c_min = this_cost
             
@@ -180,7 +184,7 @@ class RRT():
                 this_cost = tree.node[x_new_id]['cost'] + c*distance(tree.node[x_near],x_new) 
                 
                 if (this_cost < tree.node[x_near]['cost'] and
-                    collision_free(tree.node[x_new_id],tree.node[x_near]['state'])[1]
+                    self.collision_free(tree.node[x_new_id],tree.node[x_near]['state'])[1]
                     ):
                     #better parent exists
                     old_parent = tree.predecessors(x_near)
@@ -302,6 +306,7 @@ rrt.set_steer(steer)
 rrt.set_goal_test(lambda state: False )
 rrt.set_sample(sample)
 rrt.set_collision_check(isStateValid)
+rrt.set_collision_free(collision_free)
 rrt.set_start(start)
 rrt.init_search()
 rrt.search(iters=2e3)
