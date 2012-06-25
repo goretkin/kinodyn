@@ -17,15 +17,16 @@ class RRT():
         self.state_ndim = state_ndim
         self.next_node_id = 0
         
-        self.gamma_rrt = 1
-        self.eta = .5
-        self.c = 1
+        self.gamma_rrt = 1.0 #decay rate of ball
+        self.eta = 0.5  #maximum ball size
+        self.c = 1      #how the cost gets weighted
         
         self.search_initialized = False 
         
         self.n_pruned = 0
         self.keep_pruned_edges = keep_pruned_edges
         
+        self.check_cost_decreasing = True
         
         #visualization
         self.viz_x_rand = None  #sampled point
@@ -130,7 +131,6 @@ class RRT():
 
         self.search_initialized = True
         
-        self.waste = 0
         self.start_node_id = self.get_node_id()
         self.tree.add_node(self.start_node_id,
           attr_dict={'state':self.state0,'hops':0,'cost':0})
@@ -148,7 +148,7 @@ class RRT():
                 return
             
     def search(self,iters=5e2):
-        c=1 #cost
+        c=self.c #cost
         
         tree = self.tree
 
@@ -176,15 +176,17 @@ class RRT():
             radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
             radius = np.min((radius,self.eta))
             
-            print i,self.n_pruned,self.waste,len(free_points)
+            print 'iter:',i,' n_pruned:',self.n_pruned,' num free_points:',len(free_points)
             
             X_near = self.near(x_new,radius)        
                     
             x_min = x_nearest_id
             c_min = tree.node[x_min]['cost'] + c*self.distance(tree.node[x_min],x_new)
-            
-            #connect x_new to lowest-cost parent
-            if False:
+                        
+            do_find_cheapest_parent = True
+
+            if do_find_cheapest_parent:
+                #connect x_new to lowest-cost parent
                 for x_near in X_near:
                     this_cost = tree.node[x_near]['cost'] + c*self.distance(tree.node[x_near],x_new) 
                     
@@ -192,10 +194,6 @@ class RRT():
                     if this_cost < c_min and self.collision_free(tree.node[x_near],x_new)[1]:
                         x_min = x_near
                         c_min = this_cost
-            
-            
-            
-            
             
             add_intermediate_nodes = True
             
@@ -222,7 +220,7 @@ class RRT():
                     tree.add_node(this_node_id,attr_dict={'state':x,
                                                  'hops':1+tree.node[last_node_id ]['hops'],
                                                  'cost':tree.node[last_node_id ]['cost']+
-                                                 self.distance(tree.node[last_node_id ],x_new)
+                                                 self.distance(tree.node[last_node_id ],x)
                                                  }
                                                  )
                     tree.add_edge(last_node_id,this_node_id,attr_dict={'pruned':0})
@@ -237,35 +235,60 @@ class RRT():
             self.viz_x_from_id = x_min
             self.viz_search_radius = radius
             
-            #X_near = [] #don't rewire
-            discard_pruned_edge = not self.keep_pruned_edges
-            #rewire to see if it's cheaper to go through the new point
-            for x_near in X_near:
-                this_cost = tree.node[x_new_id]['cost'] + c*self.distance(tree.node[x_near],x_new) 
-                
-                if (this_cost < tree.node[x_near]['cost'] and
-                    self.collision_free(tree.node[x_new_id],tree.node[x_near]['state'])[1]
-                    ):
-                    #better parent exists
-                    old_parent = tree.predecessors(x_near)
-                    if(discard_pruned_edge):  #don't keep pruned edges
-                        assert len(old_parent)==1 #each node in tree has only one parent
-                        old_parent = old_parent[0]
-                        tree.remove_edge(old_parent,x_near)
-                    else:
-                        #we are keeping edges that a pruned, so a node might 
-                        #actually have more than one parent
-                        true_parent = []
-                        for parent in old_parent:
-                            if tree.edge[parent][x_near]['pruned']==0:
-                                true_parent.append(parent)
-                        assert len(true_parent)==1
-                        old_parent = true_parent[0]
-                        tree.add_edge(old_parent,x_near,attr_dict={'pruned':1})
+            do_rewire = True
+            if do_rewire:
+                discard_pruned_edge = not self.keep_pruned_edges
+                #rewire to see if it's cheaper to go through the new point
+                for x_near in X_near:
+                    #proposed_cost = tree.node[x_new_id]['cost'] + c*self.distance(tree.node[x_near],x_new)
+                    proposed_cost = tree.node[x_new_id]['cost'] + c*self.distance(tree.node[x_new_id],tree.node[x_near]['state'])  
                     
-                    tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
-                    
-                    self.n_pruned += 1
+                    if (proposed_cost < tree.node[x_near]['cost'] and
+                        self.collision_free(tree.node[x_new_id],tree.node[x_near]['state'])[1]
+                        ):
+                        #better parent exists
+                        old_parent = tree.predecessors(x_near)
+                        if(discard_pruned_edge):  #don't keep pruned edges
+                            assert len(old_parent)==1 #each node in tree has only one parent
+                            old_parent = old_parent[0]
+                            tree.remove_edge(old_parent,x_near)
+                        else:
+                            #we are keeping edges that a pruned, so a node might 
+                            #actually have more than one parent
+                            true_parent = []
+                            for parent in old_parent:
+                                if tree.edge[parent][x_near]['pruned']==0:
+                                    true_parent.append(parent)
+                            assert len(true_parent)==1
+                            old_parent = true_parent[0]
+                            ani_rrt.tree.edge[old_parent][x_near]['pruned']=1 #don't delete edge -- mark as pruned
+                        
+                        tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
+
+                        if self.check_cost_decreasing:
+                            if tree.node[x_near]['cost'] <= proposed_cost:
+                                raise AssertionError('cost of node %d increased by %f'%(x_near,proposed_cost-tree.node[x_near]['cost'])
+
+                        tree.node[x_near]['cost'] = proposed_cost
+                            
+                        self._update_cost_children(x_near)
+
+                        self.n_pruned += 1
+        
+    def _update_cost_children(self,node_id):
+        """
+        update the cost of all the children of node_id
+        """
+        tree = self.tree
+        for child in tree.successors_iter(node_id):
+            new_cost = tree.node[node_id]['cost'] + self.distance(tree.node[node_id],tree.node[child]['state'])
+            if self.check_cost_decreasing:
+                if tree.node[new]['cost'] <= proposed_cost:
+                    raise AssertionError('cost of node %d increased by %f'%(x_near,proposed_cost-tree.node[x_near]['cost'])
+
+            tree.node[child]['cost'] = new_cost
+            self._update_cost_children(child)
+        
     def best_solution_(self,x):
         """
         return list of node IDs forming a path
