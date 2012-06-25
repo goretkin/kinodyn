@@ -264,30 +264,26 @@ class RRT():
                             ani_rrt.tree.edge[old_parent][x_near]['pruned']=1 #don't delete edge -- mark as pruned
                         
                         tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
-
-                        if self.check_cost_decreasing:
-                            if tree.node[x_near]['cost'] <= proposed_cost:
-                                raise AssertionError('cost of node %d increased by %f'%(x_near,proposed_cost-tree.node[x_near]['cost'])
-
-                        tree.node[x_near]['cost'] = proposed_cost
-                            
-                        self._update_cost_children(x_near)
+    
+                        self._deep_update_cost(x_near,proposed_cost)
 
                         self.n_pruned += 1
         
-    def _update_cost_children(self,node_id):
+    def _deep_update_cost(self,node_id,cost):
         """
-        update the cost of all the children of node_id
+        update the cost node_id and of all the children of node_id
         """
         tree = self.tree
+
+        if self.check_cost_decreasing:
+            if tree.node[node_id]['cost'] < cost:
+                raise AssertionError('cost of node %d increased by %f'%(node_id,cost-tree.node[node_id]['cost']))
+            else:
+                print 'node %d decreased by %f'%(node_id,tree.node[node_id]['cost']-cost)
+        
         for child in tree.successors_iter(node_id):
             new_cost = tree.node[node_id]['cost'] + self.distance(tree.node[node_id],tree.node[child]['state'])
-            if self.check_cost_decreasing:
-                if tree.node[new]['cost'] <= proposed_cost:
-                    raise AssertionError('cost of node %d increased by %f'%(x_near,proposed_cost-tree.node[x_near]['cost'])
-
-            tree.node[child]['cost'] = new_cost
-            self._update_cost_children(child)
+            self._deep_update_cost(child,new_cost)
         
     def best_solution_(self,x):
         """

@@ -111,9 +111,8 @@ x = np.linspace(-1,1,1000)
 X,Y = np.meshgrid(x,x)
 obstacle_bitmap = obstacles(X,Y) #rasterize the obstacles
 
-
-rrt.search(iters=1e3)
-if True:
+if False:
+    rrt.search(iters=1e3)
     ax = plt.figure(None).add_subplot(111)
 
     tree = rrt.tree
