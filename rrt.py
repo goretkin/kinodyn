@@ -184,22 +184,51 @@ class RRT():
             c_min = tree.node[x_min]['cost'] + c*self.distance(tree.node[x_min],x_new)
             
             #connect x_new to lowest-cost parent
-            for x_near in X_near:
-                this_cost = tree.node[x_near]['cost'] + c*self.distance(tree.node[x_near],x_new) 
-                
-                #cheaper to check first condition
-                if this_cost < c_min and self.collision_free(tree.node[x_near],x_new)[1]:
-                    x_min = x_near
-                    c_min = this_cost
+            if False:
+                for x_near in X_near:
+                    this_cost = tree.node[x_near]['cost'] + c*self.distance(tree.node[x_near],x_new) 
+                    
+                    #cheaper to check first condition
+                    if this_cost < c_min and self.collision_free(tree.node[x_near],x_new)[1]:
+                        x_min = x_near
+                        c_min = this_cost
             
-            x_new_id = self.get_node_id()
-            tree.add_node(x_new_id,attr_dict={'state':x_new,
-                                             'hops':1+tree.node[x_min]['hops'],
-                                             'cost':tree.node[x_min]['cost']+
-                                             self.distance(tree.node[x_min],x_new)
-                                             }
-                                             )
-            tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
+            
+            
+            
+            
+            add_intermediate_nodes = True
+            
+            if not add_intermediate_nodes:
+                x_new_id = self.get_node_id()    
+                tree.add_node(x_new_id,attr_dict={'state':x_new,
+                                                 'hops':1+tree.node[x_min]['hops'],
+                                                 'cost':tree.node[x_min]['cost']+
+                                                 self.distance(tree.node[x_min],x_new)
+                                                 }
+                                                 )
+                tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
+            else:
+                path,all_the_way = self.collision_free(tree.node[x_min],x_new)
+                assert all_the_way #it was just true when we called
+                
+                last_node_id = x_min
+                decimation_factor = 10
+                decimated_path = path[:-1:decimation_factor ]
+                decimated_path.append(path[-1]) #ensure final point is in the path, regardless of decimation
+                
+                for x in decimated_path:
+                    this_node_id = self.get_node_id()
+                    tree.add_node(this_node_id,attr_dict={'state':x,
+                                                 'hops':1+tree.node[last_node_id ]['hops'],
+                                                 'cost':tree.node[last_node_id ]['cost']+
+                                                 self.distance(tree.node[last_node_id ],x_new)
+                                                 }
+                                                 )
+                    tree.add_edge(last_node_id,this_node_id,attr_dict={'pruned':0})
+                    last_node_id = this_node_id
+                    
+                x_new_id = last_node_id
             
 
             self.viz_x_rand = x_rand

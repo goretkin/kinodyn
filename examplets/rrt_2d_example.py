@@ -75,9 +75,10 @@ def collision_free(from_node,to_point):
 def steer(x_from,x_toward):
     extension_direction = x_toward-x_from
     norm = np.linalg.norm(extension_direction)
-    if norm > 1:
+    if norm > .5:
         extension_direction = extension_direction/norm
-    control = 1e-1 *extension_direction #steer
+        extension_direction *= .5
+    control = extension_direction #steer
     
     x_new = x_from + control 
     return (x_new,control)
@@ -140,7 +141,20 @@ ani_ax.set_aspect('equal')
 ani_ax.imshow(o,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
 
 #import copy
-def update_frame(i):
+
+
+# shift the axis to make room for legend
+box = ani_ax.get_position()
+ani_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
+
+
+def update_frame(i):    
+    ani_ax.cla()
+    ani_ax.set_xlim(-1,1)
+    ani_ax.set_ylim(-1,1)
+    ani_ax.set_aspect('equal')    
+    ani_ax.imshow(o,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
+    
     ani_rrt.force_iteration()
     ani_ax.set_title('time index: %d'%(i))
     
@@ -150,6 +164,10 @@ def update_frame(i):
         p.remove()
         
     tree = ani_rrt.tree
+
+    xpath = np.array([tree.node[i]['state'] for i in ani_rrt.best_solution(goal)]).T
+    ani_ax.plot(xpath[0],xpath[1],'g--',lw=10,alpha=.7,label='best path so far')
+
     nx.draw_networkx(G=tree,
                  pos=nx.get_node_attributes(tree,'state'),
                  ax=ani_ax,
@@ -161,24 +179,36 @@ def update_frame(i):
                 #style='dotted'
                 )
     
-    #mfc is marker face color
-    ani_ax.plot(*ani_rrt.viz_x_rand,marker='*',mfc='k')
-    ani_ax.add_patch(mpl.patches.Circle(xy=ani_rrt.viz_x_rand,radius=ani_rrt.viz_search_radius,
-                                        alpha=.3))
     viz_x_nearest = tree.node[ani_rrt.viz_x_nearest_id]['state']
-    ani_ax.plot(*viz_x_nearest,marker='+',mfc='y')
-
     viz_x_new = tree.node[ani_rrt.viz_x_new_id]['state']
-    ani_ax.plot(*viz_x_new ,marker='x',mfc='r')
+    viz_x_from = tree.node[ani_rrt.viz_x_from_id]['state']    
+    
+    ani_ax.plot([viz_x_from[0],viz_x_new[0]],[viz_x_from[1],viz_x_new[1]],'y',lw=5,alpha=.7,label='new extension')
+    
+    #mfc is marker face color
 
-    viz_x_from = tree.node[ani_rrt.viz_x_from_id]['state']
-    ani_ax.plot(*viz_x_from ,marker='o',mfc='g')
+    ani_ax.add_patch(mpl.patches.Circle(xy=ani_rrt.viz_x_rand,radius=ani_rrt.viz_search_radius,
+                                        alpha=.3,fc='none',ec='b',label='_rewire radius'))
+
+    ani_ax.plot(*ani_rrt.viz_x_rand,marker='*',mfc='k',mec='k',label='x_rand',color='none')
+    ani_ax.plot(*viz_x_nearest,marker='+',mfc='y',mec='y',label='x_nearest',color='none')
+    ani_ax.plot(*viz_x_new ,marker='x',mfc='r',mec='r',label='x_new',color='none')    
+    ani_ax.plot(*viz_x_from ,marker='o',mfc='g',mec='g',label='x_from',color='none')
+
+
+
+    ani_ax.legend(bbox_to_anchor=(1.05,0.0),loc=3,
+                   ncol=1, borderaxespad=0.,
+                    fancybox=True, shadow=True,)
+
+#    ani_ax.legend(ncol=2)
+    plt.setp(ani_ax.get_legend().get_texts(),fontsize='small')
+
+
     
-    ani_ax.plot([viz_x_from[0],viz_x_new[0]],[viz_x_from[1],viz_x_new[1]],'y',lw=5,alpha=.8)
     
     
-    
-ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=40,interval=50)
+ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=20,interval=500)
 ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
 #ani.save('test.mp4', fps=20, codec='mpeg4', clear_temp=True)
     
