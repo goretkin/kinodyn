@@ -26,6 +26,16 @@ class RRT():
         self.n_pruned = 0
         self.keep_pruned_edges = keep_pruned_edges
         
+        
+        #visualization
+        self.viz_x_rand = None  #sampled point
+        self.viz_x_nearest_id = None #point nearest to x_rand
+        self.viz_x_new_id = None #extend till
+        self.viz_x_from_id = None #point to extend from
+        self.viz_search_radius = None
+            
+            
+        
     def get_node_id(self):
         _id = self.next_node_id
         self.next_node_id += 1
@@ -125,7 +135,18 @@ class RRT():
         self.tree.add_node(self.start_node_id,
           attr_dict={'state':self.state0,'hops':0,'cost':0})
 
-        
+    def force_iteration(self):
+        """
+        sometimes during an iteration of RRT, a sampled state is such that
+        no extensions are feasible, and so no new points are added.
+        this keeps sampled until there is a success
+        """
+        n = len(self.tree.node)
+        while(True):
+            self.search(iters=1)
+            if len(self.tree.node)>n:
+                return
+            
     def search(self,iters=5e2):
         c=1 #cost
         
@@ -141,8 +162,7 @@ class RRT():
             free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
             
             if len(free_points) == 0:
-                continue
-            
+                continue #go to next iteration
             
             if not all_the_way:
                 x_new = free_points[-1]
@@ -155,6 +175,7 @@ class RRT():
             cardinality = len(tree.node)
             radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
             radius = np.min((radius,self.eta))
+            
             print i,self.n_pruned,self.waste,len(free_points)
             
             X_near = self.near(x_new,radius)        
@@ -179,7 +200,14 @@ class RRT():
                                              }
                                              )
             tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
-                    
+            
+
+            self.viz_x_rand = x_rand
+            self.viz_x_nearest_id = x_nearest_id
+            self.viz_x_new_id = x_new_id
+            self.viz_x_from_id = x_min
+            self.viz_search_radius = radius
+            
             #X_near = [] #don't rewire
             discard_pruned_edge = not self.keep_pruned_edges
             #rewire to see if it's cheaper to go through the new point

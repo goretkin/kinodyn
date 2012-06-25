@@ -10,6 +10,7 @@ from rrt import RRT
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import matplotlib as mpl
 import networkx as nx
 
@@ -87,7 +88,7 @@ def distance(from_node,to_point):
     
             
 start = np.array([-1,-1])*1    
-rrt = RRT(state_ndim=2)
+rrt = RRT(state_ndim=2,keep_pruned_edges=False)
 
 rrt.set_distance(distance)
 rrt.set_steer(steer)
@@ -98,7 +99,11 @@ rrt.set_collision_free(collision_free)
 
 rrt.set_start(start)
 rrt.init_search()
-rrt.search(iters=2e3)
+
+import copy
+ani_rrt = copy.deepcopy(rrt)
+
+#rrt.search(iters=2e3)
 
 ax = plt.figure(None).add_subplot(111)
 
@@ -123,3 +128,58 @@ xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
 ax.plot(xpath[0],xpath[1],'g--',lw=10,alpha=.7)
 
 plt.show()
+
+
+ani_fig = plt.figure(None)
+ani_ax = ani_fig.gca()
+
+ani_ax.set_xlim(-1,1)
+ani_ax.set_ylim(-1,1)
+ani_ax.set_aspect('equal')
+
+ani_ax.imshow(o,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
+
+#import copy
+def update_frame(i):
+    ani_rrt.force_iteration()
+    ani_ax.set_title('time index: %d'%(i))
+    
+    for l in ani_ax.lines:
+        l.remove()
+    for p in ani_ax.patches:
+        p.remove()
+        
+    tree = ani_rrt.tree
+    nx.draw_networkx(G=tree,
+                 pos=nx.get_node_attributes(tree,'state'),
+                 ax=ani_ax,
+                 node_size=25,
+                 node_color=nx.get_node_attributes(tree,'cost').values(),
+                 cmap = mpl.cm.get_cmap(name='copper'),
+                 edge_color=nx.get_edge_attributes(tree,'pruned').values(),
+                with_labels=False,
+                #style='dotted'
+                )
+    
+    #mfc is marker face color
+    ani_ax.plot(*ani_rrt.viz_x_rand,marker='*',mfc='k')
+    ani_ax.add_patch(mpl.patches.Circle(xy=ani_rrt.viz_x_rand,radius=ani_rrt.viz_search_radius,
+                                        alpha=.3))
+    viz_x_nearest = tree.node[ani_rrt.viz_x_nearest_id]['state']
+    ani_ax.plot(*viz_x_nearest,marker='+',mfc='y')
+
+    viz_x_new = tree.node[ani_rrt.viz_x_new_id]['state']
+    ani_ax.plot(*viz_x_new ,marker='x',mfc='r')
+
+    viz_x_from = tree.node[ani_rrt.viz_x_from_id]['state']
+    ani_ax.plot(*viz_x_from ,marker='o',mfc='g')
+    
+    ani_ax.plot([viz_x_from[0],viz_x_new[0]],[viz_x_from[1],viz_x_new[1]],'y',lw=5,alpha=.8)
+    
+    
+    
+ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=40,interval=50)
+ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
+#ani.save('test.mp4', fps=20, codec='mpeg4', clear_temp=True)
+    
+    
