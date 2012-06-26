@@ -314,12 +314,21 @@ fig.canvas.mpl_connect('motion_notify_event', motion_notify_event_dispatcher)
 ax = fig.add_subplot(111)
 
 ax.set_title('click to draw polygon')
-ax.set_xlim(-3,4)
-ax.set_ylim(-3,4)
+ax.set_xlim(-10,110)
+ax.set_ylim(-10,110)
+ax.set_aspect('equal')
 pc = PathCreator(ax,new_patch)
 
 event_handling_objects.append(pc)
 
+if True:
+    from ship_visualize_animation import Ship_Sprite
+    ship_sprite = Ship_Sprite()
+    ship_sprite.update_pose(0,0,0)
+    ship_sprite.update_thrust(0,0)
+    ship_sprite.update_transform_axes(ax)
+    for p in ship_sprite.patches:
+        ax.add_artist(p)
 plt.show()
 
 import shelve

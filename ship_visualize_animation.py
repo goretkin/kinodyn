@@ -13,9 +13,6 @@ Created on Mon Jun  4 17:41:01 2012
 @author: gustavo
 """
 
-import shelve
-import ipdb
-
 from global_help import Rectangle_centered
 
 import matplotlib.pyplot as plt
@@ -207,8 +204,10 @@ def benchmark_collision(n):
         
         
 if __name__ == '__main__':
+    import shelve
+    import ipdb
     ship_shelve = shelve.open('ship.shelve')
-    field_shelve = shelve.open('field.shelve')
+    field_shelve = shelve.open('field1.shelve')
     
     obstacle_paths = field_shelve['obstacle_paths']
     
@@ -225,8 +224,8 @@ if __name__ == '__main__':
     shapely_obstacles = geo.Polygon()
     pps = []
     for op in obstacle_paths:
-        trans = mpl.transforms.Affine2D().scale(15)+mpl.transforms.Affine2D().translate(35,20)
-        op = trans.transform_path(op)
+        #trans = mpl.transforms.Affine2D().scale(15)+mpl.transforms.Affine2D().translate(35,20)
+        #op = trans.transform_path(op)
         pp = matplotlib.patches.PathPatch(path=op,color='k')
         pps.append(pp)
         shapely_obstacles = shapely_obstacles.union(geo.Polygon(op.vertices))

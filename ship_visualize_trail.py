@@ -19,10 +19,13 @@ for k in ship_shelve.keys():
     locals()[k]=ship_shelve[k]
 
 
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib
 import numpy as np
+
+from global_help import Rectangle_centered
 
 path_figure = plt.figure(None)
 path_figure.gca().plot(traj[:,3],traj[:,4],'.')
@@ -35,17 +38,6 @@ trail_plot.set_axis_bgcolor((.9,.9,.9)) #gray background
 
 trail_indices = np.arange(0,T,10)
 trail_traj = traj[trail_indices,:] #samples of trajectory to draw
-
-
-def Rectangle_centered(xy,width,height,*args,**kwargs):
-    x = xy[0] - width/2
-    y = xy[1] - height/2
-    rect = matplotlib.patches.Rectangle((x,y),width,height,*args,**kwargs)
-    rect.set_xy = def set_xy(self,xy):
-        self._x = xy[0] - self._width/2
-        self._y = xy[1] - self._height/2
-    return rect
-    
 
 max_lin_thrust = np.max(np.abs(utraj[:,0]))
 max_ang_thrust = np.max(np.abs(utraj[:,1]))
