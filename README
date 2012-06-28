@@ -1,7 +1,22 @@
 python packages needed:
 
- * python-control http://sourceforge.net/apps/mediawiki/python-control/index.php?title=Main_Page
- * NetworkX http://networkx.lanl.gov/
- * shapely (can be easily avoided) https://github.com/sgillies/shapely
- * * libgeos for speedup
- * SciPy/NumPy/Matplotlib
+  * python-control http://sourceforge.net/apps/mediawiki/python-control/index.php?title=Main_Page
+    wget http://sourceforge.net/projects/python-control/files/control-0.5b.tar.gz
+    tar -xvf control-0.5b.tar.gz
+    cd control-0.5b
+    python setup.py install
+
+    * python-control depends on slycot (Python bindings to slicot. slicot requires a fortran compiler)
+      git clone git://github.com/avventi/Slycot.git
+      cd Slycot
+      python setup.py install
+
+  * NetworkX http://networkx.lanl.gov/
+  * shapely (can be easily avoided) https://github.com/sgillies/shapely
+    * have installed libgeos for speedup
+
+  * SciPy/NumPy/Matplotlib
+
+to use IPython's graphical console
+Installing PyQt: http://problemssol.blogspot.com/2010/12/compile-and-install-pyqt4-for-python27.html
+  
