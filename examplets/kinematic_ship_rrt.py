@@ -4,7 +4,6 @@ from ship_visualize_animation import Ship_Sprite
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import matplotlib as mpl
 #import networkx as nx
 
@@ -91,11 +90,6 @@ def distance(from_node,to_point):
         delta[2] = delta[2] - 2*np.pi*np.sign(delta[2])
     return np.linalg.norm(delta)
     
-
-
-
-
-
 start = np.array([0,0,0])
 goal = np.array([100.0,100.0,0])
 
