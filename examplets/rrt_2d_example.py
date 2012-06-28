@@ -65,7 +65,7 @@ def collision_free(from_node,to_point):
             all_the_way = False
             break
     
-    #add the to_point if itś not in an obstacle and the line was free
+    #add the to_point if it's not in an obstacle and the line was free
     if all_the_way and obstacles(x1,y1):
         free_points.append(np.array(to_point))
     else:

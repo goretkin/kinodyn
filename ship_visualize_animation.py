@@ -206,7 +206,8 @@ def benchmark_collision(n):
 if __name__ == '__main__':
     import shelve
     import ipdb
-    ship_shelve = shelve.open('ship.shelve')
+    #ship_shelve = shelve.open('ship.shelve')
+    ship_shelve = shelve.open('kin_traj.shelve')
     field_shelve = shelve.open('field1.shelve')
     
     obstacle_paths = field_shelve['obstacle_paths']

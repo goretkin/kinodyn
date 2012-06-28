@@ -26,7 +26,9 @@ class RRT():
         self.n_pruned = 0
         self.keep_pruned_edges = keep_pruned_edges
         
-        self.check_cost_decreasing = True
+        #check that whenever a node's cost is updated, it's not increased.
+        self.check_cost_decreasing = False
+        
         
         #visualization
         self.viz_x_rand = None  #sampled point
