@@ -16,10 +16,10 @@ Created on Mon Jun  4 17:41:01 2012
 from global_help import Rectangle_centered
 
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import matplotlib
 import matplotlib as mpl
 import numpy as np
+
 import shapely.geometry as geo
 
 def intersect_paths(paths1,paths2):
@@ -204,6 +204,7 @@ def benchmark_collision(n):
         
         
 if __name__ == '__main__':
+    import matplotlib.animation as animation
     import shelve
     import ipdb
     #ship_shelve = shelve.open('ship.shelve')
