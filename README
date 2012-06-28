@@ -15,6 +15,10 @@ python packages needed:
   * shapely (can be easily avoided) https://github.com/sgillies/shapely
     * have installed libgeos for speedup
 
+  * cvxopt 
+    Won't install with pip or easy_install since setup.py is in the wrong place. 
+    Still, use pip to download the build files, navigate to python/build/cvxopt/src and run python setup.py install
+
   * SciPy/NumPy/Matplotlib
 
 to use IPython's graphical console
