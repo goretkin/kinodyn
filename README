@@ -1,6 +1,34 @@
 python packages needed:
 
- * python-control http://sourceforge.net/apps/mediawiki/python-control/index.php?title=Main_Page
- * NetworkX http://networkx.lanl.gov/
- * shapely (can be easily avoided) https://github.com/sgillies/shapely
- * SciPy/NumPy/Matplotlib
+  * python-control http://sourceforge.net/apps/mediawiki/python-control/index.php?title=Main_Page
+    wget http://sourceforge.net/projects/python-control/files/control-0.5b.tar.gz
+    tar -xvf control-0.5b.tar.gz
+    cd control-0.5b
+    python setup.py install
+
+    * python-control depends on slycot (Python bindings to slicot. slicot requires a fortran compiler)
+      git clone git://github.com/avventi/Slycot.git
+      cd Slycot
+      python setup.py install
+
+  * NetworkX http://networkx.lanl.gov/
+  * shapely (can be easily avoided) https://github.com/sgillies/shapely
+    * have installed libgeos for speedup
+
+  * cvxopt 
+    Won't install with pip or easy_install since setup.py is in the wrong place. 
+    Still, use pip to download the build files, navigate to python/build/cvxopt/src and run python setup.py install
+
+  * SciPy/NumPy/Matplotlib
+
+to use IPython's graphical console
+Installing PyQt: http://problemssol.blogspot.com/2010/12/compile-and-install-pyqt4-for-python27.html
+need libpyside-dev package to install for python2.7 in 10.04:
+
+https://launchpad.net/~pyside/+archive/ppa 
+(there is a nicer way to do this. just follow the instuctions on the ppa website)
+* add the sources to /etc/apt/source.list
+* sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 073700C1
+* sudo apt-get update
+
+(still not sure how to get libpyside-python2.7.so)
