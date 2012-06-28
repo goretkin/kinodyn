@@ -23,4 +23,12 @@ python packages needed:
 
 to use IPython's graphical console
 Installing PyQt: http://problemssol.blogspot.com/2010/12/compile-and-install-pyqt4-for-python27.html
-  
+need libpyside-dev package to install for python2.7 in 10.04:
+
+https://launchpad.net/~pyside/+archive/ppa 
+(there is a nicer way to do this. just follow the instuctions on the ppa website)
+* add the sources to /etc/apt/source.list
+* sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 073700C1
+* sudo apt-get update
+
+(still not sure how to get libpyside-python2.7.so)
