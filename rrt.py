@@ -26,9 +26,12 @@ class RRT():
         self.n_pruned = 0
         self.keep_pruned_edges = keep_pruned_edges
         
+        self.found_feasible_solution = False
+        self.worst_cost = None #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
+        self.goal_set_nodes = set() #a set of node ids that are within the goal set
+
         #check that whenever a node's cost is updated, it's not increased.
         self.check_cost_decreasing = False
-        
         
         #visualization
         self.viz_x_rand = None  #sampled point
@@ -36,8 +39,17 @@ class RRT():
         self.viz_x_new_id = None #extend till
         self.viz_x_from_id = None #point to extend from
         self.viz_search_radius = None
+        
+        self.save_vars = ['tree','found_feasible_solution','n_pruned','goal_set_nodes','worst_cost',
+                          'search_initialized','next_node_id']
+                          
+    def save(self,shelf_file):
+        for var in self.save_vars:
+            shelf_file[var] = self.__dict__[var]
             
-            
+    def load(self,shelf_file):
+        for var in self.save_vars:
+            self.__dict__[var] = shelf_file[var]
         
     def get_node_id(self):
         _id = self.next_node_id
@@ -50,9 +62,17 @@ class RRT():
     
     def set_goal_test(self,goal_test):
         """
-        goal_test(state) = True/False
+        goal_test(node) = True/False
         """
         self.goal_test = goal_test
+    
+    def set_distance_from_goal(self,distance_from_goal):
+        """
+        goal_distance(node) = distance
+        
+        needed since goal is typically a set, not a single point.
+        """
+        self.distance_from_goal = distance_from_goal
         
     def set_collision_check(self,collision_check):
         """
@@ -207,6 +227,7 @@ class RRT():
                                                  self.distance(tree.node[x_min],x_new)
                                                  }
                                                  )
+
                 tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
             else:
                 path,all_the_way = self.collision_free(tree.node[x_min],x_new)
@@ -229,8 +250,19 @@ class RRT():
                     last_node_id = this_node_id
                     
                 x_new_id = last_node_id
-            
 
+            if self.goal_test(tree.node[x_new_id]):
+                print 'added point in the goal set'
+                self.goal_set_nodes.add(x_new_id)
+                if not self.found_feasible_solution:
+                    self.found_feasible_solution = True
+                    self.worst_cost = tree.node[x_new_id]['cost']
+                else:
+                    if tree.node[x_new_id]['cost']<self.worst_cost:
+                        self.worst_cost = tree.node[x_new_id]['cost']
+                print 'Prune the tree'
+                self.prune(self.worst_cost)
+                
             self.viz_x_rand = x_rand
             self.viz_x_nearest_id = x_nearest_id
             self.viz_x_new_id = x_new_id
@@ -263,7 +295,7 @@ class RRT():
                                     true_parent.append(parent)
                             assert len(true_parent)==1
                             old_parent = true_parent[0]
-                            ani_rrt.tree.edge[old_parent][x_near]['pruned']=1 #don't delete edge -- mark as pruned
+                            tree.edge[old_parent][x_near]['pruned']=1 #don't delete edge -- mark as pruned
                         
                         tree.add_edge(x_new_id,x_near,attr_dict={'pruned':0})
     
@@ -283,8 +315,20 @@ class RRT():
             else:
                 print 'node %d decreased by %f'%(node_id,tree.node[node_id]['cost']-cost)
         
+        tree.node[node_id]['cost'] = cost
+        
+        if node_id in self.goal_set_nodes:
+            if cost<self.worst_cost:                
+                print "_deep_update_cost updated self.worst_cost from %f to %f"%(self.worst_cost,cost)
+                self.worst_cost = cost
+                
         for child in tree.successors_iter(node_id):
             new_cost = tree.node[node_id]['cost'] + self.distance(tree.node[node_id],tree.node[child]['state'])
+            #TODO cache distances
+            #_new_cost = tree.node[node_id]['cost'] + (tree.node[child]['cost'] - tree.node[node_id]['cost'])
+            #if not abs(new_cost - _new_cost)<1e-6:
+            #    print '_new_cost %f new_cost %f'%(_new_cost,new_cost)
+                
             self._deep_update_cost(child,new_cost)
         
     def best_solution_(self,x):
@@ -308,10 +352,9 @@ class RRT():
                 
             assert len(parent)==1
             parent = parent[0]
-            path.append(parent)
-
-            
+            path.append(parent)            
         return path[::-1] #reverse
+        
     def best_solution(self,x):
         """
         return list of node IDs forming a path
@@ -325,9 +368,35 @@ class RRT():
             for e in graph.edges_iter():
                 if graph.edge[e]['pruned']==1:
                     del graph.edge[e]
-            
-            
+
         #there's actually only a single path, since the graph is a tree
         path = nx.shortest_path(graph,source=goal_id,target=self.start_node_id)
-        return path[::-1]          
+        return path[::-1]
+        
+    def prune(self,bound):
+        n_nodes_before = len(self.tree.nodes())
+        n_edges_before = len(self.tree.edges())
+        self._prune_from(bound,self.start_node_id)
+        n_nodes_after = len(self.tree.nodes())
+        n_edges_after = len(self.tree.edges())
+        
+        print 'prune tree before nodes:%d after nodes:%d'%(n_nodes_before,n_nodes_after)
+        
+    def _prune_from(self,bound,root):
+        #prune the subtree rooted at root
+        for this_id in self.tree.successors(root):
+            if self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id]) > bound:
+                self.remove_subtree(this_id)
+            else:
+                self._prune_from(bound,this_id)            
+        
+    def remove_subtree(self,root_id):
+        succs = self.tree.successors(root_id)
+        
+        for node in succs:
+            self.tree.remove_edge(root_id,node)
+            self.remove_subtree(node)
+            
+        self.tree.remove_node(root_id)
+        return
         

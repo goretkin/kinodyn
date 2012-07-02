@@ -86,24 +86,40 @@ def steer(x_from,x_toward):
 def distance(from_node,to_point):
     #to_point is an array and from_point is a node
     return np.linalg.norm(to_point-from_node['state'])
-            
+
+def goal_test(node):
+    global goal
+    return distance(node,goal)<.01
+    
+def distance_from_goal(node):
+    global goal
+    return distance(node,goal)
+
 start = np.array([-1,-1])*1    
 rrt = RRT(state_ndim=2,keep_pruned_edges=False)
 
 rrt.set_distance(distance)
 rrt.set_steer(steer)
-rrt.set_goal_test(lambda state: False )
+
+rrt.set_goal_test(goal_test)
 rrt.set_sample(sample)
 rrt.set_collision_check(isStateValid)
 rrt.set_collision_free(collision_free)
 
+rrt.set_distance_from_goal(distance_from_goal)
+
 rrt.gamma_rrt = 10.0
-rrt.eta = 1.0
+rrt.eta = 0.7
 rrt.c = 1
 
 rrt.set_start(start)
 rrt.init_search()
 
+if False:
+    import shelve
+    load_shelve = shelve.open('rrt780.shelve')
+    rrt.load(load_shelve)
+    
 import copy
 ani_rrt = copy.deepcopy(rrt)
 
@@ -151,7 +167,6 @@ ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5)
 # shift the axis to make room for legend
 box = ani_ax.get_position()
 ani_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
-
 
 def update_frame(i): 
     print 'frame: ',i 
@@ -209,21 +224,15 @@ def update_frame(i):
     ani_ax.plot(*viz_x_new, marker='x', mfc='r', mec='r', ls='None', zorder=8, label='x_new')    
     ani_ax.plot(*viz_x_from, marker='o', mfc='g',mec='g', ls='None',alpha=.5, zorder=9, label='x_from')
 
-
-
     ani_ax.legend(bbox_to_anchor=(1.05,0.0),loc=3,
                    ncol=1, borderaxespad=0.,
                     fancybox=True, shadow=True,numpoints=1)
 
 #    ani_ax.legend(ncol=2)
     plt.setp(ani_ax.get_legend().get_texts(),fontsize='small')
-
-
-    
-    
-    
+   
 ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=1000,interval=500)
-ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
+#ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
 #ani.save('test.mp4', fps=20, codec='mpeg4', clear_temp=True)
     
     
