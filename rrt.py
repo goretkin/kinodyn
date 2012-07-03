@@ -18,7 +18,7 @@ class RRT():
         self.next_node_id = 0
         
         self.gamma_rrt = 1.0 #decay rate of ball
-        self.eta = 0.5  #maximum ball size
+        self.eta = 0.5  #maximum ball sizetry to speak french though
         self.c = 1      #how the cost gets weighted
         
         self.search_initialized = False 
@@ -34,10 +34,17 @@ class RRT():
         self.check_cost_decreasing = False
         
         #visualization
+        self.viz_change = False #did any of these data members get updated 
         self.viz_x_rand = None  #sampled point
+
         self.viz_x_nearest_id = None #point nearest to x_rand
-        self.viz_x_new_id = None #extend till
+        self.viz_x_new_id = None #extend till        
         self.viz_x_from_id = None #point to extend from
+        
+        self.viz_x_nearest = None
+        self.viz_x_new = None
+        self.viz_x_from  = None
+        
         self.viz_search_radius = None
         
         self.save_vars = ['tree','found_feasible_solution','n_pruned','goal_set_nodes','worst_cost',
@@ -184,6 +191,9 @@ class RRT():
             free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
             
             if len(free_points) == 0:
+                """
+                not possible to extend the x_nearest
+                """
                 continue #go to next iteration
             
             if not all_the_way:
@@ -251,6 +261,21 @@ class RRT():
                     
                 x_new_id = last_node_id
 
+
+
+            self.viz_x_rand = x_rand
+            self.viz_x_nearest_id = x_nearest_id            
+            self.viz_x_new_id = x_new_id            
+            self.viz_x_from_id = x_min
+            #pruning might remove these nodes so store the visualization information
+            self.viz_x_nearest = tree.node[x_nearest_id]['state']
+            self.viz_x_new = tree.node[x_new_id]['state']
+            self.viz_x_from = tree.node[x_min]['state']
+            
+            self.viz_search_radius = radius
+            self.viz_change = True
+            
+            pruned_nodes = set()
             if self.goal_test(tree.node[x_new_id]):
                 print 'added point in the goal set'
                 self.goal_set_nodes.add(x_new_id)
@@ -260,17 +285,21 @@ class RRT():
                 else:
                     if tree.node[x_new_id]['cost']<self.worst_cost:
                         self.worst_cost = tree.node[x_new_id]['cost']
-                print 'Prune the tree'
-                self.prune(self.worst_cost)
+                print 'Prune the tree: ',self.worst_cost
+                pruned_nodes = self.prune(self.worst_cost)
+                print ' removed %d nodes'%len(pruned_nodes)
                 
-            self.viz_x_rand = x_rand
-            self.viz_x_nearest_id = x_nearest_id
-            self.viz_x_new_id = x_new_id
-            self.viz_x_from_id = x_min
-            self.viz_search_radius = radius
             
             do_rewire = True
             if do_rewire:
+                if x_new_id in pruned_nodes:
+                    #pruning removed x_new
+                    print 'pruning removed x_new'
+                    continue
+                #if nodes were pruned, then X_near may contain invalid nodes
+                #can re-do the query, or just remove
+                X_near = set(X_near) - pruned_nodes 
+            
                 discard_pruned_edge = not self.keep_pruned_edges
                 #rewire to see if it's cheaper to go through the new point
                 for x_near in X_near:
@@ -374,18 +403,18 @@ class RRT():
         return path[::-1]
         
     def prune(self,bound):
-        n_nodes_before = len(self.tree.nodes())
-        n_edges_before = len(self.tree.edges())
+        nodes_before = set(self.tree.nodes())
         self._prune_from(bound,self.start_node_id)
-        n_nodes_after = len(self.tree.nodes())
-        n_edges_after = len(self.tree.edges())
-        
-        print 'prune tree before nodes:%d after nodes:%d'%(n_nodes_before,n_nodes_after)
+        nodes_after = set(self.tree.nodes())
+        assert nodes_after<=nodes_before #the new nodes should be a subset of the old nodes
+        nodes_removed = nodes_before - nodes_after
+        return nodes_removed
         
     def _prune_from(self,bound,root):
         #prune the subtree rooted at root
         for this_id in self.tree.successors(root):
             if self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id]) > bound:
+                print 'removing %d with best-case cost of %f'%(this_id,self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id]))
                 self.remove_subtree(this_id)
             else:
                 self._prune_from(bound,this_id)            
