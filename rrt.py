@@ -288,8 +288,7 @@ class RRT():
                 print 'Prune the tree: ',self.worst_cost
                 pruned_nodes = self.prune(self.worst_cost)
                 print ' removed %d nodes'%len(pruned_nodes)
-                
-            
+                            
             do_rewire = True
             if do_rewire:
                 if x_new_id in pruned_nodes:
@@ -331,7 +330,8 @@ class RRT():
                         self._deep_update_cost(x_near,proposed_cost)
 
                         self.n_pruned += 1
-        
+                        
+        print 'worst costs:',self.worst_cost, tree.node[self.viz_x_new_id]['cost']
     def _deep_update_cost(self,node_id,cost):
         """
         update the cost node_id and of all the children of node_id
@@ -413,19 +413,45 @@ class RRT():
     def _prune_from(self,bound,root):
         #prune the subtree rooted at root
         for this_id in self.tree.successors(root):
-            if self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id]) > bound:
-                print 'removing %d with best-case cost of %f'%(this_id,self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id]))
+            best_possible_cost = self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id])
+            if  best_possible_cost > bound:
+                print 'removing %d with best-case cost of %f'%(this_id,best_possible_cost)
                 self.remove_subtree(this_id)
+                def node_action(node):
+                    node['cost']=10
+                #self.do_to_subtree(this_id,node_action)
             else:
                 self._prune_from(bound,this_id)            
         
     def remove_subtree(self,root_id):
-        succs = self.tree.successors(root_id)
-        
+        succs = self.tree.successors(root_id)        
         for node in succs:
             self.tree.remove_edge(root_id,node)
             self.remove_subtree(node)
             
         self.tree.remove_node(root_id)
         return
+
+    def do_to_subtree(self,root_id,node_action=None,edge_action=None):
+        """
+        call node_action(node) and edge_action(edge) on every node and edge of the
+        subtree rooted at root_id
+        """
+        succs = self.tree.successors(root_id)        
+        for node in succs:
+            if not edge_action is None: edge_action(self.tree.edge[(root_id,node)])    
+            self.do_to_subtree(node,node_action,edge_action)
+            
+        if not node_action is None: node_action(self.tree.node[root_id])
+        return
+        
+    def check_cost_consistency(self):
+        for edge in self.tree.edges_iter():
+            a,b = edge
+            dcost = self.tree.node[b]['cost']-self.tree.node[a]['cost']
+            distance = self.distance(self.tree.node[a],self.tree.node[b]['state'])
+            error = abs(dcost-distance)
+            if error > 1e-14:
+                print 'consistency check: edge: %s, dcost: %f, distance: %f'%(str(edge),dcost,distance)
+    
         

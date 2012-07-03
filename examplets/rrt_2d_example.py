@@ -86,6 +86,7 @@ def steer(x_from,x_toward):
     return (x_new,control)
     
 def distance(from_node,to_point):
+    assert len(to_point)==2
     #to_point is an array and from_point is a node
     return np.linalg.norm(to_point-from_node['state'])
 
@@ -120,6 +121,7 @@ rrt.init_search()
 if True:
     import shelve
     load_shelve = shelve.open('examplets/rrt_2d_example.shelve')
+    #load_shelve = shelve.open('node_color_bug.shelve')
     rrt.load(load_shelve)
     
 import copy
@@ -170,14 +172,14 @@ def draw_rrt(int_ax,rrt):
                                             pos=pos,
                                             ax=ani_ax,
                                             node_size=25,
-                                            node_color=nx.get_node_attributes(tree,'cost').values(),
+                                            node_color=[tree.node[n]['cost'] for n in tree.nodes()],
                                             cmap = mpl.cm.get_cmap(name='copper'),
                                             )
     
     edge_collection = nx.draw_networkx_edges(G=tree,
                                             pos=pos,
                                             ax=ani_ax,
-                                            edge_color=nx.get_edge_attributes(tree,'pruned').values(),
+                                            edge_color=[tree.edge[n1][n2]['pruned'] for (n1,n2) in tree.edges()],
                                             )
     if not edge_collection is None:
         edge_collection.set_zorder(4)
@@ -213,17 +215,29 @@ if True:
     draw_rrt(int_ax,interactive_rrt)
     
     
-    sampler = lambda : np.array([1.0,1.0])
-    interactive_rrt.set_sample(sampler)
-    interactive_rrt.search(1)
+    #sampler = lambda : np.array([1.0,1.0])
+    #interactive_rrt.set_sample(sampler)
+    #interactive_rrt.search(1)
     
-    draw_rrt(int_ax,interactive_rrt)
-        
+    #draw_rrt(int_ax,interactive_rrt)
+    
+    def rrts(xrand):
+        xrand = np.array(xrand)
+        interactive_rrt.set_sample(lambda : xrand)
+        interactive_rrt.search(1)
+        draw_rrt(int_ax,interactive_rrt)
+        interactive_rrt.viz_change = False
+        int_fig.canvas.draw()
+            
     def button_press_event_dispatcher(event):
         if int_fig.canvas.widgetlock.locked(): #matplotlib widget in use
             return
-        if event.button ==1:
+        if event.xdata is None or event.ydata is None: #make sure clicked on axes
+            return
+            
+        if event.button == 1: #sample 
             p = np.array([event.xdata,event.ydata])
+            
             sampler = lambda : p
             
             interactive_rrt.set_sample(sampler)
@@ -231,6 +245,14 @@ if True:
             draw_rrt(int_ax,interactive_rrt)
             interactive_rrt.viz_change = False
             int_fig.canvas.draw()
+        elif event.button == 3: #print node info
+            node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata])
+            state = interactive_rrt.tree.node[node_id]['state']
+            int_ax.text(*state,s=str(node_id))
+            int_fig.canvas.draw()
+            
+            print node_id, interactive_rrt.tree.node[node_id]
+            
         import sys
         sys.stdout.flush() #function is called asyncrhonously, so any print statements might not flush
             
