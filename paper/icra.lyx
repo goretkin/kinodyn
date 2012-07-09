@@ -575,6 +575,27 @@ The linearized system may be uncontrollable -- the
 is Therefore using the LQR cost metric cannot approximate the cost 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+Typical RTT* the cost metric is an underestimate of the true cost, since
+ the metric does not take into consideration obstacles.
+ The true cost, for example, might be infinite if there is no feasible path,
+ but the Euclidian metric will always be finite.
+\end_layout
+
+\begin_layout Plain Layout
+If the system is uncontrollable as is linearized by a single point, then
+ the LQR cost will be infinite while the true cost is not.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsubsection
 Indefinite Cost
 \end_layout
@@ -588,7 +609,52 @@ What if
 \begin_inset Formula $\hat{Q}$
 \end_inset
 
- is indefinite?
+ is indefinite? 
+\end_layout
+
+\begin_layout Plain Layout
+Options:
+\end_layout
+
+\begin_layout Plain Layout
+1.
+ Use sequential QP techniques like shifting eigenvalues to make 
+\begin_inset Formula $\hat{Q}$
+\end_inset
+
+ definite.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+http://www.cs.berkeley.edu/~pabbeel/cs287-fa11/slides/NonlinearOptimizationForOptim
+alControl.pdf (Page 11 bottom slide)
+\end_layout
+
+\begin_layout Plain Layout
+2.
+ LQR with indefnite weighting matrices
+\end_layout
+
+\begin_layout Plain Layout
+Chapter 9 of:
+\end_layout
+
+\begin_layout Plain Layout
+http://epubs.siam.org.libproxy.mit.edu/doi/book/10.1137/1.9781611970760
+\end_layout
+
+\begin_layout Plain Layout
+(same book) 
+\end_layout
+
+\begin_layout Plain Layout
+http://books.google.com/books?id=bD_83idGZ2cC&lpg=PA211&ots=q3U7u4rmNc&dq=indefini
+te%20LQR&pg=PA211#v=onepage&q&f=false
+\end_layout
+
+\begin_layout Plain Layout
+http://www.tandfonline.com/doi/abs/10.1080/00207178408933184#preview
 \end_layout
 
 \end_inset
@@ -596,12 +662,76 @@ What if
 
 \end_layout
 
+\begin_layout Subsubsection
+Actuation constraints
+\end_layout
+
+\begin_layout Standard
+The LQR framework does not permit actuation constraints.
+ 
+\end_layout
+
 \begin_layout Standard
 \begin_inset Note Comment
 status open
 
 \begin_layout Plain Layout
-Can we even use LQR? We cannot put actuation constraints 
+Say the LQR solution returns a control action 
+\begin_inset Formula $u\not\in\mathcal{U}$
+\end_inset
+
+ (the set of permitted actions).
+ Simply choosing an 
+\begin_inset Formula $u'=\alpha u$
+\end_inset
+
+ such that 
+\begin_inset Formula $u'\in\mathcal{U}$
+\end_inset
+
+ while minimizing 
+\begin_inset Formula $\alpha^{2}$
+\end_inset
+
+ (so that 
+\begin_inset Formula $u'$
+\end_inset
+
+ is close to 
+\begin_inset Formula $u$
+\end_inset
+
+) intuitively will not explore the space as desired -- the state won't move
+ along the same direction in general.
+\end_layout
+
+\begin_layout Plain Layout
+To clarify:
+\end_layout
+
+\begin_layout Plain Layout
+if the state of the system is 
+\begin_inset Formula $x_{k}$
+\end_inset
+
+, then the next state is 
+\begin_inset Formula $x_{k+1}=Ax_{k}+Bu$
+\end_inset
+
+, which presumably moves the system toward 
+\begin_inset Formula $x_{rand}$
+\end_inset
+
+.
+ The state 
+\begin_inset Formula $x_{k+1}'=Ax_{k}+Bu'$
+\end_inset
+
+ does not, in general, move the system directly toward 
+\begin_inset Formula $x_{rand}$
+\end_inset
+
+.
 \end_layout
 
 \end_inset
