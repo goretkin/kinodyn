@@ -4,12 +4,9 @@ Created on Thu Apr 19 04:23:47 2012
 
 @author: gustavo
 """
-try:
-    print sympy
-except(NameError):
-    print 'import sympy'
-    import sympy
-    print 'finished import sympy'
+
+import sympy
+
 from sympy.utilities.autowrap import autowrap
 import numpy as np
 
@@ -81,36 +78,70 @@ def dyn_f(x,u):
     )
 
 
-T = 1000
-state0 = np.array([0,0,0,0,0,0])
-traj = np.zeros(shape=(T,n))
-traj[0] = state0
+linearized_sym_A = symbolic_dynamics_p.jacobian(state_symbol)
+linearized_sym_B = symbolic_dynamics_p.jacobian(control_symbol)
 
-utraj = np.zeros(shape=(T,m))
-utraj[0:100,0] = 1
-utraj[500:550,0] = 1
-utraj[650:700,0] = 10
-utraj[700:800,0] = -5
+lin_A_aw = [
+                [
+                    autowrap(linearized_sym_A[i,j],language="f95",args=dynamics_symbols)
+                for i in range(n)] 
+            for j in range(n)]
 
-#rot
-utraj[500:600,1] = 1e-1
-utraj[600:610,1] = -10e-1
-utraj[800:810,1] = -10e-1
-utraj[860:870,1] = 10e-1
+lin_B_aw = [
+                [
+                    autowrap(linearized_sym_B[i,j],language="f95",args=dynamics_symbols)
+                for i in range(n)] 
+            for j in range(m)]
 
-#simulate dynamics
-for i in range(T-1):
-    traj[i+1] = dyn_f(traj[i],utraj[i])
+def linearized_A(x,u):
+    assert len(x)==n
+    assert len(u)==m
+    xu = list(x) + list(u)
 
-ship_shelve = shelve.open('ship.shelve')
-ship_shelve['T']=T
-ship_shelve['traj']=traj
-ship_shelve['utraj']=utraj
-ship_shelve.close()
+    return np.array(
+        [
+            [lin_A_aw[i][j](*xu) for i in range(n)] 
+        for j in range(n)]
+    )
+
+def linearized_B(x,u):
+    assert len(x)==n
+    assert len(u)==m
+    xu = list(x) + list(u)
+
+    return np.array(
+        [[lin_B_aw[i][j](*xu) for i in range(n)] for j in range(m)]
+    )
+
+if __name__ == 'main':
+    T = 1000
+    state0 = np.array([0,0,0,0,0,0])
+    traj = np.zeros(shape=(T,n))
+    traj[0] = state0
+
+    utraj = np.zeros(shape=(T,m))
+    utraj[0:100,0] = 1
+    utraj[500:550,0] = 1
+    utraj[650:700,0] = 10
+    utraj[700:800,0] = -5
+
+    #rot
+    utraj[500:600,1] = 1e-1
+    utraj[600:610,1] = -10e-1
+    utraj[800:810,1] = -10e-1
+    utraj[860:870,1] = 10e-1
+
+    #simulate dynamics
+    for i in range(T-1):
+        traj[i+1] = dyn_f(traj[i],utraj[i])
+
+    ship_shelve = shelve.open('ship.shelve')
+    ship_shelve['T']=T
+    ship_shelve['traj']=traj
+    ship_shelve['utraj']=utraj
+    ship_shelve.close()
 
 
-A = symbolic_dynamics.jacobian(state_symbol)
-B = symbolic_dynamics.jacobian(control_symbol)
 
 
 
