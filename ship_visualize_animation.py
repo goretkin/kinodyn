@@ -245,8 +245,8 @@ if __name__ == '__main__':
     trail_plot.set_axis_bgcolor((.9,.9,.9)) #gray background
 
     #only draw these time indices    
-    trail_indices = np.arange(0,T,20)
-    
+    #trail_indices = np.arange(0,T,20)
+    trail_indices = np.arange(0,T,1)
     max_lin_thrust = np.max(np.abs(utraj[:,0]))
     max_ang_thrust = np.max(np.abs(utraj[:,1]))
     
