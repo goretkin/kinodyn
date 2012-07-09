@@ -8,6 +8,10 @@ import numpy as np
 Q = sympy.Matrix( [[1, 0 ],
                    [0, -2] ] )
 
+Q = sympy.Matrix( [[2, 1 ],
+                   [1, 0] ] )
+
+
 def force_definite(Q):
     eigvectors, eigvalues = Q.diagonalize()
     #Q = eigvectors * eigvalues * eigvectors.inv()
@@ -23,6 +27,12 @@ sympy.var(['x','y'])
 u = sympy.Matrix([x,y])
 
 f = u.T * Qd * u
-f = f[0,0]
+g = u.T * Q * u
 
+f = f[0,0] #turn 1-by-1 matrix into a scalar
+g = g[0,0]
+
+print Q
+print Qd
 sympy.Plot(f)
+sympy.Plot(g)
