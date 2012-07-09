@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 #import networkx as nx
 
+import sys
+sys.setrecursionlimit(10000)
+
 import shelve
 
 field_shelve = shelve.open('field1.shelve')
@@ -20,6 +23,9 @@ def collision_check(state):
     does_collide = ship_sprite.collision2(obstacle_paths)
     return not does_collide
 
+#dummy test
+#def collision_check(state):
+#    return True
 
 goal = np.array([100.0,100.0,0])
 
@@ -46,7 +52,7 @@ def collision_free(from_node,to_point):
     direction = to_point-from_node['state']
     l = np.linalg.norm(direction)
     direction /= l
-    step = .01
+    step = .5
     
     free_points = []
     all_the_way = True
@@ -65,6 +71,7 @@ def collision_free(from_node,to_point):
         all_the_way = False
     return free_points, all_the_way    
 
+maximum_extension = 30
 def steer(x_from,x_toward):
     extension_direction = x_toward-x_from
     
@@ -73,9 +80,9 @@ def steer(x_from,x_toward):
         extension_direction[2] = extension_direction[2] - 2*np.pi*np.sign(extension_direction[2])
     
     norm = np.linalg.norm(extension_direction)
-    if norm > .5:
+    if norm > maximum_extension:
         extension_direction = extension_direction/norm
-        extension_direction *= .5
+        extension_direction *= maximum_extension
     control = extension_direction #steer
     
     x_new = x_from + control 
@@ -88,8 +95,19 @@ def distance(from_node,to_point):
     if abs(delta[2]) > np.pi:
         #go the other way
         delta[2] = delta[2] - 2*np.pi*np.sign(delta[2])
+    delta[2] *= 10 #penalize turning
     return np.linalg.norm(delta)
-    
+
+goal_region_radius = 1e-2
+
+def goal_test(node):
+    global goal
+    return distance(node,goal) < goal_region_radius
+
+def distance_from_goal(node):
+    global goal
+    return max(distance(node,goal)-goal_region_radius,0)
+
 start = np.array([0,0,0])
 goal = np.array([100.0,100.0,0])
 
@@ -97,7 +115,10 @@ rrt = RRT(state_ndim=3,keep_pruned_edges=False)
 
 rrt.set_distance(distance)
 rrt.set_steer(steer)
-rrt.set_goal_test(lambda state: False )
+
+rrt.set_goal_test(goal_test)
+rrt.set_distance_from_goal(distance_from_goal)
+
 rrt.set_sample(sample)
 rrt.set_collision_check(collision_check)
 rrt.set_collision_free(collision_free)
@@ -109,20 +130,41 @@ rrt.c = 1
 rrt.set_start(start)
 rrt.init_search()
 
-rrt.search(iters=5e3)
 
-xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
 
-T = xpath.shape[1]
-traj = np.zeros((T,6))
-utraj = np.zeros((T,2))
+if __name__ == 'main':
+    if False:
+        rrt.load(shelve.open('kin_rrt.shelve'))
 
-traj[:,3:6] = xpath.T
 
- 
-s = shelve.open('../kin_traj.shelve')
-s['T'] = T
-s['utraj'] = utraj
-s['traj'] = traj
-s.close()
+
+    while (not rrt.found_feasible_solution):
+        rrt.search(iters=5e1)
+        nearest_id,nearest_distance = rrt.nearest_neighbor(goal)
+        print 'nearest neighbor distance: %f, cost: %f'%(nearest_distance,rrt.tree.node[nearest_id]['cost'])
+
+    s = shelve.open('kin_rrt.shelve')
+    rrt.save(s)
+    s.close()
+
+    s = shelve.open('kin_rrt.shelve')
+    assert set(s.keys()) == set(rrt.save_vars)
+    s.close()
+
+    rrt.search(iters=5e3)
+    xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
+
+    T = xpath.shape[1]
+    traj = np.zeros((T,6))
+    utraj = np.zeros((T,2))
+
+    traj[:,3:6] = xpath.T
+
+
+
+    s = shelve.open('kin_traj.shelve')
+    s['T'] = T
+    s['utraj'] = utraj
+    s['traj'] = traj
+    s.close()
 

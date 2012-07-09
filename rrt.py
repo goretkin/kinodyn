@@ -51,13 +51,23 @@ class RRT():
                           'search_initialized','next_node_id']
                           
     def save(self,shelf_file):
+        try:
+            self.check_consistency()
+        except AssertionError as e:
+            print "Warning! saving an inconsistent RRT! ",e
+        
         for var in self.save_vars:
             shelf_file[var] = self.__dict__[var]
             
     def load(self,shelf_file):
+        if not self.search_initialized:
+            print "Warning! initializing after loading will over-write the loaded values."
         for var in self.save_vars:
+            if var not in shelf_file.keys():
+                raise AssertionError('shelf file is missing key: %s'%str(var))
             self.__dict__[var] = shelf_file[var]
-        
+        self.check_consistency()
+            
     def get_node_id(self):
         _id = self.next_node_id
         self.next_node_id += 1
@@ -138,6 +148,7 @@ class RRT():
         
     def k_nearest_neighbor(self,point,k):
         ###return list of nodes sorted by distance from point
+        k = min(k,len(self.tree.nodes())) #handles the case where k is greater than the number of nodes
         H =[]
         heapsize = 0
         for this_node in self.tree.nodes_iter():
@@ -190,11 +201,21 @@ class RRT():
             #determine who the parent of x_new should be            
             free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
             
+            extension_aggressiveness = max(1,len(tree.nodes())/10) #the number of nodes to try extension from.
             if len(free_points) == 0:
                 """
                 not possible to extend the x_nearest
                 """
-                continue #go to next iteration
+                if extension_aggressiveness <=1:
+                    continue #go to next iteration
+                else:
+                    for candidate_x_nearest_id in self.k_nearest_neighbor(x_rand,extension_aggressiveness)[1:]:
+                        free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
+                        if len(free_points) > 0:
+                            break
+                    if len(free_points) == 0:
+                        print 'aggresive extension %d still found nothing to extend from!'%(extension_aggressiveness)
+                        continue
             
             if not all_the_way:
                 x_new = free_points[-1]
@@ -280,6 +301,9 @@ class RRT():
                 print 'added point in the goal set'
                 self.goal_set_nodes.add(x_new_id)
                 if not self.found_feasible_solution:
+                    print '!!!\n'*5
+                    print 'found first solution'
+                    print '!!!\n'*5
                     self.found_feasible_solution = True
                     self.worst_cost = tree.node[x_new_id]['cost']
                 else:
@@ -331,7 +355,6 @@ class RRT():
 
                         self.n_pruned += 1
                         
-        print 'worst costs:',self.worst_cost, tree.node[self.viz_x_new_id]['cost']
     def _deep_update_cost(self,node_id,cost):
         """
         update the cost node_id and of all the children of node_id
@@ -348,7 +371,7 @@ class RRT():
         
         if node_id in self.goal_set_nodes:
             if cost<self.worst_cost:                
-                print "_deep_update_cost updated self.worst_cost from %f to %f"%(self.worst_cost,cost)
+                #print "_deep_update_cost updated self.worst_cost from %f to %f"%(self.worst_cost,cost)
                 self.worst_cost = cost
                 
         for child in tree.successors_iter(node_id):
@@ -415,7 +438,7 @@ class RRT():
         for this_id in self.tree.successors(root):
             best_possible_cost = self.tree.node[this_id]['cost'] + self.distance_from_goal(self.tree.node[this_id])
             if  best_possible_cost > bound:
-                print 'removing %d with best-case cost of %f'%(this_id,best_possible_cost)
+                #print 'removing %d with best-case cost of %f'%(this_id,best_possible_cost)
                 self.remove_subtree(this_id)
                 def node_action(node):
                     node['cost']=10
@@ -451,7 +474,21 @@ class RRT():
             dcost = self.tree.node[b]['cost']-self.tree.node[a]['cost']
             distance = self.distance(self.tree.node[a],self.tree.node[b]['state'])
             error = abs(dcost-distance)
-            if error > 1e-14:
-                print 'consistency check: edge: %s, dcost: %f, distance: %f'%(str(edge),dcost,distance)
+            if error > 1e-6:
+                raise AssertionError('consistency check: edge: %s, dcost: %f, distance: %f, error:%f'%(str(edge),dcost,distance,error))
+
+    def check_consistency(self):
+        #check validity of RRT class:
+        if not set(self.tree.nodes()) >= self.goal_set_nodes:
+            raise AssertionError("There are things in goal_set_nodes that are not in the tree.")
+
+        final_costs = [self.tree.node[s]['cost'] for s in self.goal_set_nodes]
+        if not (len(final_costs)>0) == self.found_feasible_solution:
+            raise AssertionError("There isn't actually a feasible solution.")
+        if(self.found_feasible_solution):
+            if not abs(min(final_costs) - self.worst_cost) < 1e-10:
+                raise AssertionError("Inconsistent worst_cost")
+
+        self.check_cost_consistency()
     
         

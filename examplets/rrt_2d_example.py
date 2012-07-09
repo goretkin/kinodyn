@@ -90,13 +90,14 @@ def distance(from_node,to_point):
     #to_point is an array and from_point is a node
     return np.linalg.norm(to_point-from_node['state'])
 
+goal_region_radius = .05
 def goal_test(node):
     global goal
-    return distance(node,goal)<.1
+    return distance(node,goal) < goal_region_radius
     
 def distance_from_goal(node):
     global goal
-    return distance(node,goal)
+    return max(distance(node,goal)-goal_region_radius,0)
 
 start = np.array([-1,-1])*1    
 rrt = RRT(state_ndim=2,keep_pruned_edges=False)
@@ -111,8 +112,8 @@ rrt.set_collision_free(collision_free)
 
 rrt.set_distance_from_goal(distance_from_goal)
 
-rrt.gamma_rrt = 10.0
-rrt.eta = 0.7
+rrt.gamma_rrt = 4.0
+rrt.eta = 0.5
 rrt.c = 1
 
 rrt.set_start(start)
@@ -120,8 +121,8 @@ rrt.init_search()
 
 if True:
     import shelve
-    load_shelve = shelve.open('examplets/rrt_2d_example.shelve')
-    #load_shelve = shelve.open('node_color_bug.shelve')
+    #load_shelve = shelve.open('examplets/rrt_2d_example.shelve')
+    load_shelve = shelve.open('rrt_0950.shelve')
     rrt.load(load_shelve)
     
 import copy
@@ -132,9 +133,13 @@ x = np.linspace(-1,1,1000)
 X,Y = np.meshgrid(x,x)
 obstacle_bitmap = obstacles(X,Y) #rasterize the obstacles
 
+#ugly globalness
+info_text = None
+
 def draw_rrt(int_ax,rrt):
     global obstacle_bitmap
-    
+    global info_text
+
     ani_ax = int_ax
     ani_rrt = rrt
     
@@ -202,6 +207,17 @@ def draw_rrt(int_ax,rrt):
                     fancybox=True, shadow=True,numpoints=1)
 
     plt.setp(ani_ax.get_legend().get_texts(),fontsize='small')
+
+    info = ""
+    info += "# nodes: %d\n" % (len(tree.nodes()))
+    info += "# edges: %d\n" % (len(tree.edges()))
+    info += "cost: %s\n" % (str(ani_rrt.worst_cost) if ani_rrt.found_feasible_solution else "none")
+
+    if info_text is not None:
+        info_text.set_text(info)
+    else:   
+        info_text = ani_ax.figure.text(.8, .5, info,size='small')
+    
   
     
 if True:
@@ -258,7 +274,7 @@ if True:
             
     int_fig.canvas.mpl_connect('button_press_event', button_press_event_dispatcher)    
     
-    
+   
 ani_rrt = copy.deepcopy(rrt)
 
 if False:
@@ -285,6 +301,7 @@ if False:
     plt.show()
     assert False
 
+
 if False:
     ani_fig = plt.figure(None)
     ani_ax = ani_fig.gca()
@@ -302,71 +319,30 @@ if False:
     box = ani_ax.get_position()
     ani_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
     
+    worst_costs = []
+
+    saved_frame = []
+
     def update_frame(i): 
-        print 'frame: ',i 
-        ani_ax.cla()
-        ani_ax.set_xlim(-1,1)
-        ani_ax.set_ylim(-1,1)
-        ani_ax.set_aspect('equal')    
-        ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5,zorder=1)    
-        
+        print 'frame: ',i
         ani_rrt.force_iteration()
         ani_ax.set_title('time index: %d'%(i))
+        draw_rrt(ani_ax,ani_rrt)
+
+        global worst_costs
+        worst_costs.append(ani_rrt.worst_cost)
+
+        if(i%50==0):
+            global saved_frame
+            if i not in saved_frame:
+                import shelve
+                s = shelve.open('rrt_%04d.shelve'%i)
+                ani_rrt.save(s)
+                s.close()
         
-        for l in ani_ax.lines:
-            l.remove()
-        for p in ani_ax.patches:
-            p.remove()
-            
-        tree = ani_rrt.tree
-    
-        viz_x_nearest = tree.node[ani_rrt.viz_x_nearest_id]['state']
-        viz_x_new = tree.node[ani_rrt.viz_x_new_id]['state']
-        viz_x_from = tree.node[ani_rrt.viz_x_from_id]['state']    
-        
-        xpath = np.array([tree.node[i]['state'] for i in ani_rrt.best_solution(goal)]).T
-        ani_ax.plot(xpath[0],xpath[1],ls='--',lw=10,alpha=.7,color=(.2,.2,.2,1),zorder=2,label='best path so far')
-    
-        ani_ax.plot([viz_x_from[0],viz_x_new[0]],[viz_x_from[1],viz_x_new[1]],'y',lw=5,alpha=.7,zorder=3,label='new extension')
-    
-        pos=nx.get_node_attributes(tree,'state')
-    
-        node_collection = nx.draw_networkx_nodes(G=tree,
-                                                pos=pos,
-                                                ax=ani_ax,
-                                                node_size=25,
-                                                node_color=nx.get_node_attributes(tree,'cost').values(),
-                                                cmap = mpl.cm.get_cmap(name='copper'),
-                                                )
-        
-        edge_collection = nx.draw_networkx_edges(G=tree,
-                                                pos=pos,
-                                                ax=ani_ax,
-                                                edge_color=nx.get_edge_attributes(tree,'pruned').values(),
-                                                )
-        edge_collection.set_zorder(4)
-        node_collection.set_zorder(5)
-        
-        
-        #mfc is marker face color
-    
-        ani_ax.add_patch(mpl.patches.Circle(xy=viz_x_new,radius=ani_rrt.viz_search_radius,
-                                            alpha=.3,fc='none',ec='b',label='_rewire radius'))
-    
-        ani_ax.plot(*ani_rrt.viz_x_rand,marker='*', mfc='k', mec='k', ls='None', zorder=6, label='x_rand')
-        ani_ax.plot(*viz_x_nearest,marker='p', mfc='c', mec='c', ls='None', zorder=7, ms=5, label='x_nearest')
-        ani_ax.plot(*viz_x_new, marker='x', mfc='r', mec='r', ls='None', zorder=8, label='x_new')    
-        ani_ax.plot(*viz_x_from, marker='o', mfc='g',mec='g', ls='None',alpha=.5, zorder=9, label='x_from')
-    
-        ani_ax.legend(bbox_to_anchor=(1.05,0.0),loc=3,
-                       ncol=1, borderaxespad=0.,
-                        fancybox=True, shadow=True,numpoints=1)
-    
-    #    ani_ax.legend(ncol=2)
-        plt.setp(ani_ax.get_legend().get_texts(),fontsize='small')
        
-    ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=1000,interval=500)
-    #ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
+    ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=1500,interval=500)
+    ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
     #ani.save('test.mp4', fps=20, codec='mpeg4', clear_temp=True)
     
     
