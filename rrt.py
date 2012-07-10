@@ -196,7 +196,7 @@ class RRT():
             x_rand = self.sample()
             x_nearest_id, _a  = self.nearest_neighbor(x_rand)
             x_nearest = tree.node[x_nearest_id]['state']
-            (x_new, _action) = self.steer(x_nearest,x_rand)
+            (x_new, _action) = self.steer(tree.node[x_nearest_id],x_rand)
             
             #determine who the parent of x_new should be            
             free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)

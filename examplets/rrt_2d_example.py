@@ -74,7 +74,8 @@ def collision_free(from_node,to_point):
         all_the_way = False
     return free_points, all_the_way
 
-def steer(x_from,x_toward):
+def steer(x_from_node,x_toward):
+    x_from = x_from_node['state']
     extension_direction = x_toward-x_from
     norm = np.linalg.norm(extension_direction)
     if norm > .5:

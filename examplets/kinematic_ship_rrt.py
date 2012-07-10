@@ -72,7 +72,8 @@ def collision_free(from_node,to_point):
     return free_points, all_the_way    
 
 maximum_extension = 30
-def steer(x_from,x_toward):
+def steer(x_from_node,x_toward):
+    x_from = x_from_node['state']
     extension_direction = x_toward-x_from
     
     if abs(extension_direction[2]) > np.pi:
