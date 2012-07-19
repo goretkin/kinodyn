@@ -210,8 +210,9 @@ class RRT():
                     continue #go to next iteration
                 else:
                     for candidate_x_nearest_id in self.k_nearest_neighbor(x_rand,extension_aggressiveness)[1:]:
-                        free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
+                        free_points, all_the_way = self.collision_free(tree.node[candidate_x_nearest_id],x_new)
                         if len(free_points) > 0:
+                            x_nearest_id = candidate_x_nearest_id
                             break
                     if len(free_points) == 0:
                         print 'aggresive extension %d still found nothing to extend from!'%(extension_aggressiveness)
