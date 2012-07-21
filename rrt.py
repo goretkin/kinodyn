@@ -99,7 +99,7 @@ class RRT():
         
     def set_collision_free(self,collision_free):
         """
-        collision_test(node,state) = [free states],all_the_way
+        collision_test(node,action) = [free states],all_the_way
         """
         self.collision_free = collision_free  
         
@@ -196,12 +196,14 @@ class RRT():
             x_rand = self.sample()
             x_nearest_id, _a  = self.nearest_neighbor(x_rand)
             x_nearest = tree.node[x_nearest_id]['state']
-            (x_new, _action) = self.steer(tree.node[x_nearest_id],x_rand)
+            (x_new, action) = self.steer(tree.node[x_nearest_id],x_rand)
             
-            #determine who the parent of x_new should be            
-            free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],x_new)
-            
+            #action drives from x_nearest toward x_rand, and actually lands at x_new
             extension_aggressiveness = max(1,len(tree.nodes())/10) #the number of nodes to try extension from.
+
+            #determine who the parent of x_new should be
+            free_points, all_the_way = self.collision_free(tree.node[x_nearest_id],action)
+            
             if len(free_points) == 0:
                 """
                 not possible to extend the x_nearest
@@ -210,7 +212,7 @@ class RRT():
                     continue #go to next iteration
                 else:
                     for candidate_x_nearest_id in self.k_nearest_neighbor(x_rand,extension_aggressiveness)[1:]:
-                        free_points, all_the_way = self.collision_free(tree.node[candidate_x_nearest_id],x_new)
+                        free_points, all_the_way = self.collision_free(tree.node[candidate_x_nearest_id],action)
                         if len(free_points) > 0:
                             x_nearest_id = candidate_x_nearest_id
                             break
@@ -245,7 +247,8 @@ class RRT():
                     this_cost = tree.node[x_near]['cost'] + c*self.distance(tree.node[x_near],x_new) 
                     
                     #cheaper to check first condition
-                    if this_cost < c_min and self.collision_free(tree.node[x_near],x_new)[1]:
+                    _x, aaction = self.steer(tree.node[x_near],x_new)
+                    if this_cost < c_min and self.collision_free(tree.node[x_near],aaction)[1]:
                         x_min = x_near
                         c_min = this_cost
             
@@ -262,7 +265,8 @@ class RRT():
 
                 tree.add_edge(x_min,x_new_id,attr_dict={'pruned':0})
             else:
-                path,all_the_way = self.collision_free(tree.node[x_min],x_new)
+                _x, aaction = self.steer(tree.node[x_min],x_new)
+                path,all_the_way = self.collision_free(tree.node[x_min],aaction)
                 assert all_the_way #it was just true when we called
                 
                 last_node_id = x_min

@@ -40,17 +40,16 @@ def sample():
     else: #goal bias
         return goal
 
-def collision_free(from_node,to_point):
+def collision_free(from_node,action):
     """
     check that the line in between is free
     """
     #print from_node,to_point,'collision_free'
     (x,y) = from_node['state']
-    (x1,y1) = to_point
-    #endpoints_free = obstacles(x,y) and obstacles(x1,y1)
+    (x1,y1) = from_node['state'] + action
     if not obstacles(x,y):
         return [],False
-    direction = to_point-from_node['state']
+    direction = action
     l = np.linalg.norm(direction)
     
     if not l<1e-10:
@@ -67,9 +66,11 @@ def collision_free(from_node,to_point):
             all_the_way = False
             break
     
-    #add the to_point if it's not in an obstacle and the line was free
+    #add the final point if it's not in an obstacle and the line was free
     if all_the_way and obstacles(x1,y1):
-        free_points.append(np.array(to_point))
+        print from_node['state']
+        print action
+        free_points.append(np.array([x1,y1]))
     else:
         all_the_way = False
     return free_points, all_the_way
@@ -120,7 +121,7 @@ rrt.c = 1
 rrt.set_start(start)
 rrt.init_search()
 
-if True:
+if False:
     import shelve
     #load_shelve = shelve.open('examplets/rrt_2d_example.shelve')
     load_shelve = shelve.open('rrt_0950.shelve')
