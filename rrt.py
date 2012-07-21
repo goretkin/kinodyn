@@ -212,7 +212,7 @@ class RRT():
                     continue #go to next iteration
                 else:
                     for candidate_x_nearest_id in self.k_nearest_neighbor(x_rand,extension_aggressiveness)[1:]:
-                        (_x, action) = self.steer(tree.node[x_nearest_id],x_rand)
+                        (_x, action) = self.steer(tree.node[x_nearest_id],x_new)
                         free_points, all_the_way = self.collision_free(tree.node[candidate_x_nearest_id],action)
                         if len(free_points) > 0:
                             x_nearest_id = candidate_x_nearest_id
@@ -227,6 +227,8 @@ class RRT():
             else:
                 if not np.linalg.norm(np.array(free_points[-1]) - x_new) < 1e-5:
                     print np.linalg.norm(np.array(free_points[-1]) - x_new)
+                    print 'x_new',x_new
+                    print '
                     raise AssertionError()
 
             cardinality = len(tree.node)
