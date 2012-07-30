@@ -6,6 +6,23 @@ Created on Wed Mar 28 11:33:30 2012
 """
 import numpy as np
 
+def lqr_dim(A,B,Q,R):
+    for x in [A,B,Q,R]:
+        if not len(x.shape)==2:
+            raise ValueError('LQR Matrix is not two-dimensional')
+
+    n=A.shape[0]
+    m=B.shape[1]
+
+    assert n==A.shape[1]
+    assert B.shape[0]==n
+    assert Q.shape[0]==n
+    assert Q.shape[1]==n
+    assert R.shape[0]==m
+    assert R.shape[1]==m
+    return (n,m)
+
+
 def dtfh_lqr(A,B,Q,R,N,Q_terminal=None):
     """
     returns (Fs,Ps) where, for i in [0,N-1], 
@@ -16,16 +33,7 @@ def dtfh_lqr(A,B,Q,R,N,Q_terminal=None):
     B = np.matrix(B)
     Q = np.matrix(Q)
     R = np.matrix(R)
-    for x in [A,B,Q,R]:
-        assert len(x.shape)==2
-    n=A.shape[0]
-    assert n==A.shape[1]
-    m=B.shape[1]
-    assert B.shape[0]==n
-    assert Q.shape[0]==n
-    assert Q.shape[1]==n
-    assert R.shape[0]==m
-    assert R.shape[1]==m
+    (n,m) = lqr_dim(A,B,Q,R)
     
     if(Q_terminal is None):
         Q_terminal = Q
@@ -61,17 +69,9 @@ def _ftdlqr(A,B,Q,R,N,Q_terminal=None):
     B = np.matrix(B)
     Q = np.matrix(Q)
     R = np.matrix(R)
-    for x in [A,B,Q,R]:
-        assert len(x.shape)==2
-    n=A.shape[0]
-    assert n==A.shape[1]
-    m=B.shape[1]
-    assert B.shape[0]==n
-    assert Q.shape[0]==n
-    assert Q.shape[1]==n
-    assert R.shape[0]==m
-    assert R.shape[1]==m
-    
+
+    (n,m) = lqr_dim(A,B,Q,R)    
+
     if(Q_terminal is None):
         Q_terminal = Q
     assert Q_terminal.shape[0]==Q_terminal.shape[1]==n
@@ -97,16 +97,8 @@ def dtfh_lqr_dual(A,B,Q,R,N,Q_terminal_inv=None):
     B = np.matrix(B)
     Q = np.matrix(Q)
     R = np.matrix(R)
-    for x in [A,B,Q,R]:
-        assert len(x.shape)==2
-    n=A.shape[0]
-    assert n==A.shape[1]
-    m=B.shape[1]
-    assert B.shape[0]==n
-    assert Q.shape[0]==n
-    assert Q.shape[1]==n
-    assert R.shape[0]==m
-    assert R.shape[1]==m
+
+    (n,m) = lqr_dim(A,B,Q,R)
     
     if(Q_terminal_inv is None):
         Q_terminal_inv = Q.I
@@ -144,20 +136,16 @@ def AQR(A,B,c,Q,q,R,r,ctdt='dt'):
     B = np.matrix(B)
     Q = np.matrix(Q)
     R = np.matrix(R)
-    for x in [A,B,Q,R]:
-        assert len(x.shape)==2
+
+    (n,m) = lqr_dim(A,B,Q,R)
         
     c = np.matrix(c)
     q = np.matrix(q)
     r = np.matrix(r)
     
-    n=A.shape[0]    #state dimension
-    assert n==A.shape[1]
-    m=B.shape[1]    #control dimension
-    assert n == B.shape[0] == Q.shape[0] == Q.shape[1]
-    assert m == R.shape[0] == R.shape[1] == r.shape[0]
+    assert m == r.shape[0]
     assert n == c.shape[0] == q.shape[0]
-    
+    assert 1 == r.shape[1] == c.shape[1] == q.shape[1]
     nh = n + 1
     
     Ah = np.zeros(shape=(nh,nh))
@@ -177,7 +165,7 @@ def AQR(A,B,c,Q,q,R,r,ctdt='dt'):
     Qh[0:n,0:n]=Q
     Qh[n,0:n] = q.T
     Qh[0:n,n] = q.T
-    Qh[n,n] = 10 #arbitrary
+    Qh[n,n] = 0 #arbitrary as far as the gain matrix goes -- affects cost-to-go
     
     Rh = R
     
@@ -201,7 +189,7 @@ def closed_loop_dynamics(dynamics,feedback):
         
     return dxdt
      
-def simulate_lti_fb(A,B,x0,ts,gain_schedule,gain_schedule_ts=None):
+def simulate_lti_fb(A,B,x0,ts,gain_schedule,gain_schedule_ts=None,setpoint=None):
     """
     gain_schdule is either one gain matrix or a sequence of gain matrices
     
@@ -240,23 +228,27 @@ def simulate_lti_fb(A,B,x0,ts,gain_schedule,gain_schedule_ts=None):
         
         K = scipy.interpolate.interp1d(gain_schedule_ts,gain_schedule,axis=0,
                                        fill_value = gain_schedule[-1],
-                                        bounds_error=False)
-        
+                                        bounds_error=False)            
     else:
         def K(t):
             return gain_schedule
+
+    if setpoint == None:
+        setpoint = np.zeros_like(x0)
+    else:
+        assert setpoint.shape == x0.shape
     
     def feedback(x,t):
         #print 'in feedback'
         #print '     K of',t
         assert t >= ts[0]
-        return np.dot(K(t),x)
+        return np.dot(K(t),(x-setpoint))
         
     dxdt = closed_loop_dynamics(dynamics,feedback)
     
-    #should be equivalent     
+    #should be equivalent
     def dxdt1(x,t):
-        return np.dot(A + np.dot(B,K(t)),x)
+        return np.dot(A + np.dot(B,K(t)),x) - np.dot(np.dot(B,K(t)),setpoint)
         
     traj = scipy.integrate.odeint(func=dxdt,y0=x0,t=ts)
     return traj
@@ -305,81 +297,78 @@ import cvxopt
 import cvxopt.solvers
 
 def LQR_QP(A,B,Q,R,T,x0,xT=None):
-        """
-        T number of time steps
-        """
-        n = A.shape[0]
-        m = B.shape[1]
-        assert n == A.shape[1] == B.shape[0] == Q.shape[0] == Q.shape[1]
-        assert m == R.shape[0] ==R.shape[1]
-        assert n == x0.size
-        if(xT is not None):
-            assert n == xT.size
-        
-        D = (n+m)*(T-1) + n #dimension of QP variables
-        
-        fvc = 0 if xT is None else 1
-        Dq = (n)*(T+fvc) #dimension of equality constraints (number of equality constraints)
-        """
-        QP_var = [x[0],u[0],x[1],u[1],...,x[T-1],u[T-1],x[T]].T
-        """
-        QP_P = np.zeros(shape=(D,D))
-        
-        QP_A = np.zeros(shape=(Dq,D))
-        QP_B = np.zeros(shape=(Dq,1))
-        
-        QP_q = np.zeros(shape=(D))
+    """
+    T number of time steps
+    """
+    (n,m) = lqr_dim(A,B,Q,R)
+    assert n == x0.size
+    if(xT is not None):
+        assert n == xT.size
+    
+    D = (n+m)*(T-1) + n #dimension of QP variables
+    
+    fvc = 0 if xT is None else 1
+    Dq = (n)*(T+fvc) #dimension of equality constraints (number of equality constraints)
+    """
+    QP_var = [x[0],u[0],x[1],u[1],...,x[T-1],u[T-1],x[T]].T
+    """
+    QP_P = np.zeros(shape=(D,D))
+    
+    QP_A = np.zeros(shape=(Dq,D))
+    QP_B = np.zeros(shape=(Dq,1))
+    
+    QP_q = np.zeros(shape=(D))
 
-        for i in range(T):
-            ul = i*(n+m)
+    for i in range(T):
+        ul = i*(n+m)
+        
+        QP_P[ul:ul+n,ul:ul+n]=Q
+        if i < T-1: #there is no control at the last time step
+            QP_P[ul+n:ul+n+m,ul+n:ul+n+m]=R
+    
+    for i in range(T-1):
+        r = (i+1)*n         #row start      
+        c = i*(n+m)     #column start
+        #dynamic constraint
+        
+        QP_A[r:r+n,c:c+n] = A #+ 10*np.ones_like(A)
+        QP_A[r:r+n,c+n:c+n+m] = B #+ 20*np.ones_like(B)
+        QP_A[r:r+n,c+n+m:c+n+m+n] = -np.eye(n)
+        
+    #initial value constraint
+    QP_A[0:n,0:n] = np.eye(n)
+    QP_B[0:n,0] = x0
+    
+    #final value constraint
+    if xT is not None:
+        QP_A[Dq-n:Dq,D-n:D] = np.eye(n)
+        QP_B[Dq-n:Dq,0] = xT
+    
+    if(False):
+        import matplotlib.pyplot as plt
+        #plt.figure(None)
+        #plt.title("P")
+        #plt.spy(QP_P)
+        #plt.imshow(QP_P,interpolation='nearest')
+        
+        plt.figure(None)
+        plt.title("A")
+        plt.spy(QP_A)
+        plt.imshow(QP_A,interpolation='nearest')
+    
+    cQP_P = cvxopt.matrix(QP_P)
+    cQP_q = cvxopt.matrix(QP_q)
+    cQP_A = cvxopt.matrix(QP_A)
+    cQP_B = cvxopt.matrix(QP_B)
             
-            QP_P[ul:ul+n,ul:ul+n]=Q
-            if i < T-1: #there is no control at the last time step
-                QP_P[ul+n:ul+n+m,ul+n:ul+n+m]=R
-        
-        for i in range(T-1):
-            r = (i+1)*n         #row start      
-            c = i*(n+m)     #column start
-            #dynamic constraint
-            
-            QP_A[r:r+n,c:c+n] = A #+ 10*np.ones_like(A)
-            QP_A[r:r+n,c+n:c+n+m] = B #+ 20*np.ones_like(B)
-            QP_A[r:r+n,c+n+m:c+n+m+n] = -np.eye(n)
-            
-        #initial value constraint
-        QP_A[0:n,0:n] = np.eye(n)
-        QP_B[0:n,0] = x0
-        
-        #final value constraint
-        if xT is not None:
-            QP_A[Dq-n:Dq,D-n:D] = np.eye(n)
-            QP_B[Dq-n:Dq,0] = xT
-        
-        if(False):
-            import matplotlib.pyplot as plt
-            #plt.figure(None)
-            #plt.title("P")
-            #plt.spy(QP_P)
-            #plt.imshow(QP_P,interpolation='nearest')
-            
-            plt.figure(None)
-            plt.title("A")
-            plt.spy(QP_A)
-            plt.imshow(QP_A,interpolation='nearest')
-        
-        cQP_P = cvxopt.matrix(QP_P)
-        cQP_q = cvxopt.matrix(QP_q)
-        cQP_A = cvxopt.matrix(QP_A)
-        cQP_B = cvxopt.matrix(QP_B)
-                
-        sol = cvxopt.solvers.coneqp(P=cQP_P,q=cQP_q,A=cQP_A,b=cQP_B)
-        qp_sol = np.array(sol['x'],dtype=np.float32)    
-        from numpy.lib.stride_tricks import as_strided
-        
-        dbyte = 4 #4 bytes in float32    
-        xs = as_strided(qp_sol,shape=(n,T),strides=(dbyte,dbyte*(n+m)))
-        us = as_strided(qp_sol[n:],shape=(m,T-1),strides=(dbyte,dbyte*(n+m)))
-        return sol,(QP_P,QP_q,QP_A,QP_B),xs,us
+    sol = cvxopt.solvers.coneqp(P=cQP_P,q=cQP_q,A=cQP_A,b=cQP_B)
+    qp_sol = np.array(sol['x'],dtype=np.float32)    
+    from numpy.lib.stride_tricks import as_strided
+    
+    dbyte = 4 #4 bytes in float32    
+    xs = as_strided(qp_sol,shape=(n,T),strides=(dbyte,dbyte*(n+m)))
+    us = as_strided(qp_sol[n:],shape=(m,T-1),strides=(dbyte,dbyte*(n+m)))
+    return sol,(QP_P,QP_q,QP_A,QP_B),xs,us
             
             
             

@@ -8,10 +8,12 @@ Created on Wed Mar 21 13:05:03 2012
 import numpy as np
 import scipy.integrate 
 import matplotlib.pyplot as plt
-from lqr_tools import AQR,simulate_lti_fb
+from lqr_tools import AQR,simulate_lti_fb, lqr_dim
 
 def ctfh_lqr(A,B,Q,R,Qf,ts):
-    n = A.shape[0]
+    (n,m) = lqr_dim(A,B,Q,R)
+    assert Qf.shape == (n,n)
+
     def matrix_to_state(m):
         return np.array(m).flatten()
     
@@ -33,7 +35,9 @@ def ctfh_lqr(A,B,Q,R,Qf,ts):
     return Ss
     
 def ctfh_lqr_dual(A,B,Q,R,Qf_inv,ts):
-    n = A.shape[0]
+    (n,m) = lqr_dim(A,B,Q,R)
+    assert Qf_inv.shape == (n,n)
+    
     def matrix_to_state(m):
         return np.array(m).flatten()
     
@@ -54,7 +58,63 @@ def ctfh_lqr_dual(A,B,Q,R,Qf_inv,ts):
         Ss[i] = state_to_matrix(S_ts[len(ts)-i-1])
     return Ss    
 
-if __name__=='__main__':
+
+if __name__=='__main__' :
+    #continuous-time dynamics. 
+    # x = [vel,pos].T
+    
+    d= -0e-1    #damping
+
+    k  = 0      #spring
+    A = np.matrix([[d,-k],
+                     [1,0]])
+    
+    B = np.matrix([[1],
+                   [0]])
+                   
+    Q = np.matrix([[1,0],
+                   [0,1]])
+
+    R = np.matrix([[1]]) *1e2
+    
+    
+    T = 5 #time horizon for LQR
+    ts = np.linspace(0,T,8000)
+    
+
+    #final-value constrained LQR
+    Qdualfinal = np.zeros_like(Q)
+    cost_to_go_dual = ctfh_lqr_dual(A,B,Q,R,Qdualfinal,ts)
+   
+    cost_to_go_dual_inv = np.empty_like(cost_to_go_dual)
+
+    for i in range(cost_to_go_dual.shape[0]):
+        print np.linalg.cond(cost_to_go_dual[i])
+        cost_to_go_dual_inv[i] = np.linalg.pinv(cost_to_go_dual[i])
+    
+
+    #drive LTI CT finite-horizon LQR
+    n_ts = cost_to_go_dual_inv.shape[0]
+    n,m = lqr_dim(A,B,Q,R)
+    gain_schedule = np.zeros(shape=(n_ts,m,n))
+    for i in range(n_ts):
+         gain_schedule[i] = -np.dot((R.I * B.T), cost_to_go_dual_inv[i])
+    
+    ts_sim = np.linspace(0,T,1000)
+    x0 = np.array([1,0])
+    desired = np.array([2,-2])
+
+    traj =simulate_lti_fb(A,B,x0=x0,ts=ts_sim,
+                          gain_schedule=gain_schedule,
+                          gain_schedule_ts=ts,
+                          setpoint = desired)    
+    
+    print traj[-1]
+    plt.plot(ts_sim,traj[:,0])
+    plt.plot(ts_sim,traj[:,1])
+
+
+if __name__=='__main__' and False:
     #continuous-time affine dynamics. 
     # x = [vel,pos].T
     
@@ -72,6 +132,7 @@ if __name__=='__main__':
                    
     Q = np.matrix([[1,0],
                [0,1]])
+
     R = np.eye(1)*1e2
     
     desired = np.matrix([[0],
