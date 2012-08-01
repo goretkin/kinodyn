@@ -70,8 +70,31 @@ linguistics
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\newcommand{\at}[1]{}
+\renewcommand{\at}[1]{}
 {\left.#1\right|}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+To print with comments: http://wiki.lyx.org/Tips/ExportWithCommentsIncluded:
+ 
+\end_layout
+
+\begin_layout Plain Layout
+In LyX >= 2.0.0 you can convert all notes by pressing Alt-X to get a little
+ command window and running the function
+\end_layout
+
+\begin_layout Plain Layout
+inset-forall Note inset-modify note Note Greyedout 
+\end_layout
+
 \end_inset
 
 
@@ -94,8 +117,29 @@ Introduction
 \end_layout
 
 \begin_layout Standard
-Describe the state of the art.
- Needs to be very accessible
+Recently, RRT, a sampling-based, probablistically complete motion planning
+ algorithm was extended to RRT* which provides probabilistic optimality.
+ It is straightforward to apply RRT* to kinematic motion planning problems
+ and the this is typically the state-of-the-art solution.
+ For problems with differential constraints the application is not so straightfo
+rward -- some of the primitives require domain-specific design.
+ We present a method that works well across many domains with differential
+ constraints.
+ Contribution also includes code
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+Explain the distinction between general differential constraints and kinodynamic
+ constraints
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
@@ -103,15 +147,148 @@ Background
 \end_layout
 
 \begin_layout Subsection
-RRT*
+Related Work
 \end_layout
 
 \begin_layout Subsection
-LQR-RRT*
+RRT*
+\end_layout
+
+\begin_layout Standard
+RRT* needs the following primitives:
+\end_layout
+
+\begin_layout Standard
+Steer: (state,state)->action
+\end_layout
+
+\begin_layout Standard
+Distance (state,state)->cost
+\end_layout
+
+\begin_layout Standard
+CollisionFree (state,state)->array of states
+\end_layout
+
+\begin_layout Standard
+Sample ()->state
+\end_layout
+
+\begin_layout Subsection
+Modifications to Primitives
+\end_layout
+
+\begin_layout Standard
+Cost: (State,action)->cost
+\end_layout
+
+\begin_layout Standard
+CollisionFree (state,action)->array of states
+\end_layout
+
+\begin_layout Standard
+Necessary since in general, not possible or practical for steer function
+ to be exact.
+ 
+\end_layout
+
+\begin_layout Standard
+Logically equivalent to common formulation of RRT*, but easier to plug in
+ the primitives.
+\end_layout
+
+\begin_layout Standard
+Algorithm detailing the different structure here 
 \end_layout
 
 \begin_layout Section
-Locally approximating the cost function
+Application to a constrainted Linear System with Quadratic Cost 
+\end_layout
+
+\begin_layout Standard
+For this class of systems, the LQR method is the standard way to find optimal
+ solution.
+ LQR, though, cannot handle constaints on the state nor on actuation.
+\end_layout
+
+\begin_layout Standard
+We can use LQR in the distance metric calculation.
+\end_layout
+
+\begin_layout Subsection
+Augmenting State with Time
+\end_layout
+
+\begin_layout Standard
+Augmenting time in the RRT* state space allows us to set explicit time goals
+ and allows us to apply the LQR heuristic.
+ Without this, it's not clear what the cost between two states should be.
+ Penalizing time is not correct.
+ Lowest cost over all possible time horizons not correct.
+ These are crucial points.
+\end_layout
+
+\begin_layout Standard
+Many scenarios include time in the state anyway.
+ For example: time-varying dynamics or obstacles and constraints.
+ 
+\end_layout
+
+\begin_layout Standard
+Introduce notation especially with time dimension.
+ For LQR math to look good, need easy notational access to state-space component
+ and time component of the RRT state vector.
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $\left\langle x,k\right\rangle \in\mathbb{R}^{n}\times\mathbb{Z}_{0+}$
+\end_inset
+
+ be the space of the RRT state.
+\end_layout
+
+\begin_layout Subsubsection
+Primitives
+\end_layout
+
+\begin_layout Standard
+Algorithm for all primitives
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $Steer(s_{1},s_{2})$
+\end_inset
+
+ 
+\begin_inset Formula $T=k\left(s_{2}\right)-k\left(s_{1}\right)$
+\end_inset
+
+ LQR around 
+\begin_inset Formula $x\left(s_{1}\right)$
+\end_inset
+
+ with goal 
+\begin_inset Formula $x\left(s_{2}\right)$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+Explain what happens if 
+\begin_inset Formula $T\leq0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+Optimality Proof Sketch
+\end_layout
+
+\begin_layout Section
+Application to General Dynamical Systems
 \end_layout
 
 \begin_layout Standard
@@ -211,7 +388,7 @@ The real cost of moving from point
 \begin_inset Formula 
 \begin{multline*}
 C\left(x,x'\right)=\min_{\mathbf{u}}J\left(\mathbf{u},\mathbf{x}\right)\\
-\mbox{subject to (\ref{eq:dynamics}), \ensuremath{x_{0}=x}, \ensuremath{x_{T}=x'}}
+\mbox{subject to (\ensuremath{\ref{eq:dynamics}}), \ensuremath{x_{0}=x}, \ensuremath{x_{T}=x'}}
 \end{multline*}
 
 \end_inset
@@ -224,7 +401,7 @@ Note that the minimization happens over control sequences
 \begin_inset Formula $\mathbf{u}$
 \end_inset
 
- of different time lengths.
+ of a fixed time lengths, according to 
 \end_layout
 
 \begin_layout Standard
@@ -389,6 +566,44 @@ reference "eq:cost_approx"
  must be twice-differentiable.
 \end_layout
 
+\begin_layout Subsection
+Reduction to the Previous Problem
+\end_layout
+
+\begin_layout Standard
+It is possible to transform the problem specified with 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:dynamics_approx"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:cost_approx"
+
+\end_inset
+
+ into LQR form (where there is only an 
+\begin_inset Formula $A$
+\end_inset
+
+, 
+\begin_inset Formula $B$
+\end_inset
+
+, 
+\begin_inset Formula $Q$
+\end_inset
+
+, 
+\begin_inset Formula $R$
+\end_inset
+
+ matrix) using the following:
+\end_layout
+
 \begin_layout Standard
 
 \family roman
@@ -413,7 +628,7 @@ reference "eq:cost_approx"
 \end{matrix}\right]}_{\hat{x}_{k}}+\underbrace{\left(\begin{matrix}B\\
 0
 \end{matrix}\right)}_{\hat{B}}\hat{u}_{k}\\
-C\left(\mathbf{u},\mathbf{x}\right) & =\sum_{k=0}^{T}\hat{x}_{k}^{T}\hat{Q}\hat{x}_{k}+\hat{u}_{k}^{T}\hat{R}\hat{u}_{k}
+C\left(\mathbf{u},\mathbf{x}\right) & =\sum_{k=0}^{T}\hat{x}_{k}^{T}\hat{Q}\hat{x}_{k}+\hat{u}_{k}^{T}R\hat{u}_{k}
 \end{align*}
 
 \end_inset
@@ -440,17 +655,12 @@ with
 \color none
 
 \begin_inset Formula $\hat{Q}=\left(\begin{matrix}Q & q\\
-q^{T} & \eta_{1}
+q^{T} & d
 \end{matrix}\right)$
 \end_inset
 
-.
+ .
  
-\begin_inset Formula $\eta_{1}$
-\end_inset
-
- is arbitrarily chosen -- it produces a constant offset in the the cost
- function at each time step.
 \end_layout
 
 \begin_layout Standard
@@ -468,27 +678,10 @@ q^{T} & \eta_{1}
 1
 \end{matrix}\right)^{T}\left(\begin{matrix}Qx+q\\
 q^{T}x+\eta_{1}
-\end{matrix}\right)=x^{T}Qx+x^{T}q+q^{T}x+\eta_{1}$
+\end{matrix}\right)=x^{T}Qx+x^{T}q+q^{T}x+d$
 \end_inset
 
 
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Note Comment
-status open
-
-\begin_layout Plain Layout
-How to choose 
-\begin_inset Formula $\eta_{1}$
-\end_inset
-
-?
 \end_layout
 
 \end_inset
@@ -531,7 +724,15 @@ The
 \end_layout
 
 \begin_layout Subsection
-Problems
+Nuances and Subtleties
+\end_layout
+
+\begin_layout Subsubsection
+Non-exact steering
+\end_layout
+
+\begin_layout Standard
+rewiring and propagating dynamics
 \end_layout
 
 \begin_layout Subsubsection
@@ -663,12 +864,11 @@ http://www.tandfonline.com/doi/abs/10.1080/00207178408933184#preview
 \end_layout
 
 \begin_layout Subsubsection
-Actuation constraints
+Actuation Constraints
 \end_layout
 
 \begin_layout Standard
 The LQR framework does not permit actuation constraints.
- 
 \end_layout
 
 \begin_layout Standard
@@ -681,7 +881,7 @@ Say the LQR solution returns a control action
 \end_inset
 
  (the set of permitted actions).
- Simply choosing an 
+ Simply choosing a 
 \begin_inset Formula $u'=\alpha u$
 \end_inset
 
@@ -739,56 +939,67 @@ if the state of the system is
 
 \end_layout
 
-\begin_layout Section
-Example Implementation / Domain
-\end_layout
-
-\begin_layout Subsection
-Derivation of LQR dynamics and cost matrices
-\end_layout
-
-\begin_layout Subsection
-Performance / Results
+\begin_layout Subsubsection
+Asymmetric Cost
 \end_layout
 
 \begin_layout Standard
-Picture of tree, cost over iteration
-\end_layout
+\begin_inset Note Comment
+status open
 
-\begin_layout Section
-Related Work
+\begin_layout Plain Layout
+http://math.stackexchange.com/a/23397/2256
 \end_layout
-
-\begin_layout Section
-Discussion and Conlcusion
-\end_layout
-
-\begin_layout Section
-Problem Statement
-\end_layout
-
-\begin_layout Section
-LQR Formulation
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray*}
-x_{k+1} & \approx & \at{\frac{\partial f\left(x,u\right)}{\partial x}}_{\bar{x},\bar{u}}\left(x_{k}-\bar{x}\right)+\at{\frac{\partial f\left(x,u\right)}{\partial u}}_{\bar{x},\bar{u}}\left(u_{k}-\bar{u}\right)+f\left(\bar{x},\bar{u}\right)\\
-\end{eqnarray*}
 
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
-With some manipulations, it is possible to find matrices 
-\begin_inset Formula $A,B,Q,R$
-\end_inset
+\begin_layout Section
+Results
+\end_layout
 
- such that the state evolution equations locally approximate the dynamics
- and the cost.
+\begin_layout Subsection
+Linear Domain
+\end_layout
+
+\begin_layout Standard
+space ship no orientation
+\end_layout
+
+\begin_layout Subsection
+Non-linear Domain
+\end_layout
+
+\begin_layout Standard
+space ship orientation
+\end_layout
+
+\begin_layout Subsection
+Results
+\end_layout
+
+\begin_layout Standard
+Quick mention of performance (or not).
+ Picture of tree, cost over iteration
+\end_layout
+
+\begin_layout Section
+Discussion and Conclusion and Future Work
+\end_layout
+
+\begin_layout Standard
+Code available.
+ Spatial Data structure future
+\end_layout
+
+\begin_layout Section
+Acknowledgments
+\end_layout
+
+\begin_layout Section
+References
 \end_layout
 
 \end_body
