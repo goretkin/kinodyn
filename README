@@ -12,14 +12,20 @@ python packages needed:
       python setup.py install
 
   * NetworkX http://networkx.lanl.gov/
+    apt-get install python-networkx
+
   * shapely (can be easily avoided) https://github.com/sgillies/shapely
+    apt-get install python-shapely
     * have installed libgeos for speedup
+      apt-get install libgeos-dev
 
   * cvxopt 
     Won't install with pip or easy_install since setup.py is in the wrong place. 
     Still, use pip to download the build files, navigate to python/build/cvxopt/src and run python setup.py install
+    (or try apt-get install python-cvxopt)
 
   * SciPy/NumPy/Matplotlib
+    apt-get install python-matplotlib
 
 to use IPython's graphical console
 Installing PyQt: http://problemssol.blogspot.com/2010/12/compile-and-install-pyqt4-for-python27.html
