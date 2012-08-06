@@ -70,7 +70,7 @@ linguistics
 
 \begin_layout Standard
 \begin_inset FormulaMacro
-\renewcommand{\at}[1]{}
+\newcommand{\at}[1]{}
 {\left.#1\right|}
 \end_inset
 
@@ -147,31 +147,65 @@ Background
 \end_layout
 
 \begin_layout Subsection
-Related Work
-\end_layout
-
-\begin_layout Subsection
 RRT*
 \end_layout
 
 \begin_layout Standard
-RRT* needs the following primitives:
+The RRT* algorithm is a sample-based motion planner to finds probabalistically
+ optimal solutions.
+ It requires the following algorithmic primitives:
 \end_layout
 
 \begin_layout Standard
-Steer: (state,state)->action
+Steer: 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Action }a$
+\end_inset
+
+ where 
+\begin_inset Formula $a$
+\end_inset
+
+ is an action that can be applied in 
+\begin_inset Formula $s_{\mbox{from}}$
+\end_inset
+
+ in order to get to 
+\begin_inset Formula $s_{\mbox{to}}$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-Distance (state,state)->cost
+Distance: 
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Cost }c$
+\end_inset
+
+ where 
+\begin_inset Formula $c$
+\end_inset
+
+ is the cost of getting from 
+\begin_inset Formula $s_{\mbox{from}}$
+\end_inset
+
+ to 
+\begin_inset Formula $s_{\mbox{to}}$
+\end_inset
+
+ without obstacles
 \end_layout
 
 \begin_layout Standard
-CollisionFree (state,state)->array of states
-\end_layout
+CollisionFree: 
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{StateTraj }\left\langle s_{1},\cdots,s_{T}\right\rangle $
+\end_inset
 
-\begin_layout Standard
-Sample ()->state
+
 \end_layout
 
 \begin_layout Subsection
@@ -179,11 +213,443 @@ Modifications to Primitives
 \end_layout
 
 \begin_layout Standard
-Cost: (State,action)->cost
+Modification
 \end_layout
 
 \begin_layout Standard
-CollisionFree (state,action)->array of states
+Steer: 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Action }a$
+\end_inset
+
+ where 
+\begin_inset Formula $a$
+\end_inset
+
+ is an action that can be applied in 
+\begin_inset Formula $s_{\mbox{from}}$
+\end_inset
+
+ in order to get to 
+\begin_inset Formula $s_{\mbox{to}}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Distance: 
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Cost }c$
+\end_inset
+
+ where 
+\begin_inset Formula $c$
+\end_inset
+
+ is the cost of getting from 
+\begin_inset Formula $s_{\mbox{from}}$
+\end_inset
+
+ to 
+\begin_inset Formula $s_{\mbox{to}}$
+\end_inset
+
+ without obstacles
+\end_layout
+
+\begin_layout Standard
+CollisionFree: 
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{Action}\, a\right)\mapsto\mbox{StateTraj }\left\langle s_{1},\cdots,s_{T}\right\rangle ,\mbox{ActionTraj }\left\langle a_{0},\cdots,a_{T-1}\right\rangle $
+\end_inset
+
+ where 
+\begin_inset Formula $ $
+\end_inset
+
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\left\langle s_{1},\cdots,s_{T}\right\rangle $
+\end_inset
+
+ is a trajectory of states arising from taking 
+\begin_inset Formula $a$
+\end_inset
+
+ from 
+\begin_inset Formula $s_{\mbox{from}}$
+\end_inset
+
+ until hitting an obstacle or completing the action and 
+\begin_inset Formula $\left\langle a_{0},\cdots,a_{T-1}\right\rangle $
+\end_inset
+
+ is a decomposition of 
+\begin_inset Formula $a$
+\end_inset
+
+ that corresponds to the state trajectory.
+ 
+\end_layout
+
+\begin_layout Standard
+Cost: 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{Action}\, a\right)\mapsto\mbox{Cost }c$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+extend(x_rand):
+\end_layout
+
+\begin_layout Plain Layout
+
+	x_nearest = argmin over all nodes n Distance(n,x_rand)
+\end_layout
+
+\begin_layout Plain Layout
+
+	d = Distance(x_near,x_rand)
+\end_layout
+
+\begin_layout Plain Layout
+
+	if d is infinite: return
+\end_layout
+
+\begin_layout Plain Layout
+
+	action = Steer(x_nearest,x_rand)
+\end_layout
+
+\begin_layout Plain Layout
+
+	x_path = CollisionFree(x_nearest,action)
+\end_layout
+
+\begin_layout Plain Layout
+
+	x_new = last state in x_path list
+\end_layout
+
+\begin_layout Plain Layout
+
+	X_near = nodes within ball centered at x_new (according to Distance)
+\end_layout
+
+\begin_layout Plain Layout
+
+	for x in X_near:
+\end_layout
+
+\begin_layout Plain Layout
+
+		action = Steer(x,x_new)
+\end_layout
+
+\begin_layout Plain Layout
+
+		x_path,u_path = CollisionFree(x,action)
+\end_layout
+
+\begin_layout Plain Layout
+
+		this_cost = sum(Cost(x,u) for (x,u) in (x_path,u_path))
+\end_layout
+
+\begin_layout Plain Layout
+
+		find cheapest this_cost
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+		
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The changes to the primitives do not logically change the RRT* algorithm,
+ but instead make it easier to plug-in the contributed components.
+\end_layout
+
+\begin_layout Subsection
+Math Tools
+\end_layout
+
+\begin_layout Standard
+Linear Quadratic Regulator (LQR) is an optimal control technique which determine
+s the policy (mapping from state to action) for a linear dynamical system
+ which minimizes a quadratic functional on the state and action.
+\end_layout
+
+\begin_layout Standard
+LQR is used to solve the following problem: 
+\end_layout
+
+\begin_layout Standard
+Find 
+\begin_inset Formula $\left\langle u_{0},\cdots u_{T-1}\right\rangle $
+\end_inset
+
+ such that 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+x_{k+1}=Ax_{k}+Bu_{k}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+minimizing 
+\begin_inset Formula 
+\[
+J\left(x,u\right)=\sum_{k=0}^{T-1}\left(x_{k}^{T}Qx_{k}+u_{k}^{T}Ru_{k}\right)+x_{T}^{T}Q_{T}x_{T}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+given 
+\begin_inset Formula $A$
+\end_inset
+
+, 
+\begin_inset Formula $B$
+\end_inset
+
+, 
+\begin_inset Formula $Q$
+\end_inset
+
+, 
+\begin_inset Formula $R$
+\end_inset
+
+, 
+\begin_inset Formula $x_{0}$
+\end_inset
+
+,
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+ 
+\begin_inset Formula $x_{T}$
+\end_inset
+
+, and 
+\begin_inset Formula $T$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+We can enforce that LQR policies obey the final-value constraint on 
+\begin_inset Formula $x_{T}$
+\end_inset
+
+ by placing very high cost (practically infinite) on the 
+\begin_inset Formula $Q_{T}$
+\end_inset
+
+ fed to the finite-horizon LQR solver.
+ The textbook LQR problem statement requires that the quadratic bowl 
+\begin_inset Formula $x^{T}Qx$
+\end_inset
+
+ be centered at 
+\begin_inset Formula $x=0$
+\end_inset
+
+.
+ A shift of coordinates can change the center of all bowls, which is not
+ what we want.
+\end_layout
+
+\begin_layout Standard
+We can enrich the class of LQR problems to have arbitrary second-order penalty
+ (along with first-order dynamics, which will be essential later) by considering
+ the follwing transformation:
+\end_layout
+
+\begin_layout Standard
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+\begin_inset Formula 
+\begin{align*}
+\underbrace{\left[\begin{matrix}x_{k+1}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k+1}} & =\underbrace{\left(\begin{matrix}A & c-R^{-1}r\\
+0 & 1
+\end{matrix}\right)}_{\hat{A}}\underbrace{\left[\begin{matrix}x_{k}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k}}+\underbrace{\left(\begin{matrix}B\\
+0
+\end{matrix}\right)}_{\hat{B}}\hat{u}_{k}\\
+J\left(x,u\right) & =\sum_{k=0}^{T-1}\hat{x}_{k}^{T}\hat{Q}\hat{x}_{k}+\hat{u}_{k}^{T}R\hat{u}_{k}+\hat{x}_{T}^{T}\hat{Q}_{T}\hat{x}_{T}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with 
+\begin_inset Formula $\hat{u}_{k}=u_{k}+R^{-1}r$
+\end_inset
+
+ and 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\hat{Q}=\left(\begin{matrix}Q & q\\
+q^{T} & d
+\end{matrix}\right)$
+\end_inset
+
+ .
+ 
+\end_layout
+
+\begin_layout Standard
+Here we augment the state vector with an additional dimension whose value
+ is constrained by the dynamics to remain constant.
+ As long as this additional dimension is unity in 
+\begin_inset Formula $x_{0}$
+\end_inset
+
+ , then it will be unity along all trajectories.
+\end_layout
+
+\begin_layout Standard
+In addition to allowing first-order dynamics (increasing the class of systems
+ from linear to affine), this transformation also allows an arbitrary second-ord
+er function on 
+\begin_inset Formula $x$
+\end_inset
+
+ and 
+\begin_inset Formula $u$
+\end_inset
+
+.
+ For example, say we want the following bowl:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(x-x_{0}\right)^{T}Q\left(x-x_{0}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then choose 
+\begin_inset Formula $\hat{Q}=\left(\begin{array}{cc}
+Q & Qx_{0}\\
+x_{0}^{T}Q & x_{0}^{T}Qx_{0}
+\end{array}\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Application to a constrainted Linear System with Quadratic Cost 
 \end_layout
 
 \begin_layout Standard
@@ -199,10 +665,6 @@ Logically equivalent to common formulation of RRT*, but easier to plug in
 
 \begin_layout Standard
 Algorithm detailing the different structure here 
-\end_layout
-
-\begin_layout Section
-Application to a constrainted Linear System with Quadratic Cost 
 \end_layout
 
 \begin_layout Standard
@@ -957,6 +1419,14 @@ http://math.stackexchange.com/a/23397/2256
 \end_layout
 
 \begin_layout Section
+Related Work
+\end_layout
+
+\begin_layout Standard
+vdB 
+\end_layout
+
+\begin_layout Section
 Results
 \end_layout
 
@@ -965,7 +1435,7 @@ Linear Domain
 \end_layout
 
 \begin_layout Standard
-space ship no orientation
+spaceship no orientation
 \end_layout
 
 \begin_layout Subsection
@@ -973,7 +1443,7 @@ Non-linear Domain
 \end_layout
 
 \begin_layout Standard
-space ship orientation
+spaceship orientation
 \end_layout
 
 \begin_layout Subsection
