@@ -14,6 +14,8 @@ import matplotlib.animation as animation
 import matplotlib as mpl
 import networkx as nx
 
+import itertools
+
 def obstacles(x,y):
     #return true for if point is not in collision
     out_ball = (x-0)**2 + (y-0)**2 > .5**2
@@ -42,38 +44,43 @@ def sample():
 
 def collision_free(from_node,action):
     """
-    check that the line in between is free
+    check that taking action from from_node produces a collision free trajectory
+    if not, return a partial trajectory for the state (x_path) and control (u_path)
     """
-    #print from_node,to_point,'collision_free'
-    (x,y) = from_node['state']
-    (x1,y1) = from_node['state'] + action
-    if not obstacles(x,y):
-        return [],False
-    direction = action
-    l = np.linalg.norm(direction)
-    
-    if not l<1e-10:
-        direction /= l #if l is that tiny, then throws division warning
-    step = .01
-    
-    free_points = []
-    all_the_way = True
-    for i in range(int(l/step)):
-        (x,y) = direction*step*(i+1)+from_node['state']
-        if( obstacles(x,y)):
-            free_points.append(np.array([x,y]))
-        else:
-            all_the_way = False
-            break
-    
-    #add the final point if it's not in an obstacle and the line was free
-    if all_the_way and obstacles(x1,y1):
-        print from_node['state']
-        print action
-        free_points.append(np.array([x1,y1]))
-    else:
-        all_the_way = False
-    return free_points, all_the_way
+
+    action = np.array(action)
+    x_path = [from_node['state']]       #initialize this with the from_node, but when return, make sure to take it out.
+    u_path = []
+    all_the_way = False
+
+    if isStateValid(from_node['state']):
+        #x_path.append(from_node['state'])
+        x_final = from_node['state'] + action
+
+        step = .1
+
+        for i in itertools.count():
+            u = x_final - x_path[i] #actuation to go to x_final
+            if np.linalg.norm(u) < 1e-6:
+                all_the_way = True
+                break
+            
+            if np.linalg.norm(u) > step:
+                u = u / np.linalg.norm(u) * step
+            x_next = x_path[i] + u
+
+            if not isStateValid(x_next):
+                break
+            u_path.append(u)
+            x_path.append(x_next)
+        
+    return x_path[1:], u_path, all_the_way    
+
+def cost(x_from,action):
+    #cost is the Euclidian length of the path.
+    assert len(x_from) == 2
+    assert len(action) == 2
+    return np.linalg.norm(action)
 
 def steer(x_from_node,x_toward):
     x_from = x_from_node['state']
@@ -102,9 +109,10 @@ def distance_from_goal(node):
     return max(distance(node,goal)-goal_region_radius,0)
 
 start = np.array([-1,-1])*1    
-rrt = RRT(state_ndim=2,keep_pruned_edges=False)
+rrt = RRT(state_ndim=2)
 
 rrt.set_distance(distance)
+rrt.set_cost(cost)
 rrt.set_steer(steer)
 
 rrt.set_goal_test(goal_test)
@@ -186,7 +194,7 @@ def draw_rrt(int_ax,rrt):
     edge_collection = nx.draw_networkx_edges(G=tree,
                                             pos=pos,
                                             ax=ani_ax,
-                                            edge_color=[tree.edge[n1][n2]['pruned'] for (n1,n2) in tree.edges()],
+                                            edge_color='b',
                                             )
     if not edge_collection is None:
         edge_collection.set_zorder(4)
@@ -266,7 +274,7 @@ if True:
         elif event.button == 3: #print node info
             node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata])
             state = interactive_rrt.tree.node[node_id]['state']
-            int_ax.text(*state,s=str(node_id))
+            int_ax.text(*state,s=str(node_id),zorder=30)    #text on top
             int_fig.canvas.draw()
             
             print node_id, interactive_rrt.tree.node[node_id]
@@ -301,7 +309,6 @@ if False:
     ax.plot(xpath[0],xpath[1],'g--',lw=10,alpha=.7)
 
     plt.show()
-    assert False
 
 
 if False:

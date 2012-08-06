@@ -12,6 +12,8 @@ sys.setrecursionlimit(10000)
 
 import shelve
 
+import itertools
+
 field_shelve = shelve.open('field1.shelve')
 obstacle_paths = field_shelve['obstacle_paths']
 
@@ -40,38 +42,47 @@ def sample():
     else: #goal bias
         return goal
 
-def collision_free(from_node,to_point):
+def collision_free(from_node,action):
     """
-    check that the line in between is free
+    check that taking action from from_node produces a collision free trajectory
+    if not, return a partial trajectory for the state (x_path) and control (u_path)
     """
-    #print from_node,to_point,'collision_free'
-    (x,y,t) = from_node['state']
-    (x1,y1,t1) = to_point
-    if not collision_check((x,y,t)):
-        return [],False
-    direction = to_point-from_node['state']
-    l = np.linalg.norm(direction)
-    direction /= l
-    step = .5
-    
-    free_points = []
-    all_the_way = True
-    for i in range(int(l/step)):
-        inter = direction*step*(i+1)+from_node['state']
-        if( collision_check(inter)):
-            free_points.append(np.array(inter))
-        else:
-            all_the_way = False
-            break
-    
-    #add the to_point if it's not in an obstacle and the line was free
-    if all_the_way and collision_check(to_point):
-        free_points.append(np.array(to_point))
-    else:
-        all_the_way = False
-    return free_points, all_the_way    
 
-maximum_extension = 30
+    action = np.array(action)
+    x_path = [from_node['state']]       #initialize this with the from_node, but when return, make sure to take it out.
+    u_path = []
+    all_the_way = False
+
+    if collision_check(from_node['state']):
+        #x_path.append(from_node['state'])
+        x_final = from_node['state'] + action
+
+        step = 1.5
+
+        for i in itertools.count():
+            u = x_final - x_path[i] #actuation to go to x_final
+            if np.linalg.norm(u) < 1e-6:
+                all_the_way = True
+                break
+            
+            if np.linalg.norm(u) > step:
+                u = u / np.linalg.norm(u) * step
+            x_next = x_path[i] + u
+
+            if not collision_check(x_next):
+                break
+            u_path.append(u)
+            x_path.append(x_next)
+        
+    return x_path[1:], u_path, all_the_way    
+
+def cost(x_from,action):
+    #cost is the Euclidian length of the path.
+    assert len(x_from) == 3
+    assert len(action) == 3
+    return np.linalg.norm(action)
+
+maximum_extension = 10
 def steer(x_from_node,x_toward):
     x_from = x_from_node['state']
     extension_direction = x_toward-x_from
@@ -109,12 +120,14 @@ def distance_from_goal(node):
     global goal
     return max(distance(node,goal)-goal_region_radius,0)
 
+
 start = np.array([0,0,0])
 goal = np.array([100.0,100.0,0])
 
-rrt = RRT(state_ndim=3,keep_pruned_edges=False)
+rrt = RRT(state_ndim=3)
 
 rrt.set_distance(distance)
+rrt.set_cost(cost)
 rrt.set_steer(steer)
 
 rrt.set_goal_test(goal_test)
@@ -131,18 +144,15 @@ rrt.c = 1
 rrt.set_start(start)
 rrt.init_search()
 
-
-
-if __name__ == 'main':
+if __name__ == '__main__':
     if False:
         rrt.load(shelve.open('kin_rrt.shelve'))
-
-
 
     while (not rrt.found_feasible_solution):
         rrt.search(iters=5e1)
         nearest_id,nearest_distance = rrt.nearest_neighbor(goal)
         print 'nearest neighbor distance: %f, cost: %f'%(nearest_distance,rrt.tree.node[nearest_id]['cost'])
+        
 
     s = shelve.open('kin_rrt.shelve')
     rrt.save(s)
@@ -160,8 +170,6 @@ if __name__ == 'main':
     utraj = np.zeros((T,2))
 
     traj[:,3:6] = xpath.T
-
-
 
     s = shelve.open('kin_traj.shelve')
     s['T'] = T
