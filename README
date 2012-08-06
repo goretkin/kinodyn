@@ -27,14 +27,29 @@ python packages needed:
   * SciPy/NumPy/Matplotlib
     apt-get install python-matplotlib
 
-to use IPython's graphical console
-Installing PyQt: http://problemssol.blogspot.com/2010/12/compile-and-install-pyqt4-for-python27.html
-need libpyside-dev package to install for python2.7 in 10.04:
+not needed, but this is what I use to run python
+  * IPython
+    apt-get install ipython
+    
+    (to use IPython's graphical console if you have problems)
+    Installing PyQt: http://problemssol.blogspot.com/2010/12/compile-and-install-pyqt4-for-python27.html
+    need libpyside-dev package to install for python2.7 in 10.04:
+    
+    https://launchpad.net/~pyside/+archive/ppa 
+    (there is a nicer way to do this. just follow the instuctions on the ppa website)
+    * add the sources to /etc/apt/source.list
+    * sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 073700C1
+    * sudo apt-get update
+    
+    (still not sure how to get libpyside-python2.7.so)
 
-https://launchpad.net/~pyside/+archive/ppa 
-(there is a nicer way to do this. just follow the instuctions on the ppa website)
-* add the sources to /etc/apt/source.list
-* sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 073700C1
-* sudo apt-get update
+to run an example:
+git clone git://github.com/goretkin/kinodyn.git
 
-(still not sure how to get libpyside-python2.7.so)
+bash> cd kinodyn
+bash> ipython --pylab
+ipython> %run examplets/rrt_2d_example.py
+ipython> plt.show()
+
+click on the plot to force extensions
+
