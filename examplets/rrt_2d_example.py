@@ -212,6 +212,11 @@ def draw_rrt(int_ax,rrt):
         ani_ax.plot(*viz_x_new, marker='x', mfc='r', mec='r', ls='None', zorder=8, label='x_new')    
         ani_ax.plot(*viz_x_from, marker='o', mfc='g',mec='g', ls='None',alpha=.5, zorder=9, label='x_from')
 
+        if ani_rrt.viz_x_near is not None and len(ani_rrt.viz_x_near)>0:
+            x_near = np.array(ani_rrt.viz_x_near)
+            ani_ax.plot(x_near[:,0],x_near[:,1], marker='o', mfc='none',mec='r', mew=1 ,ls='None',alpha=.5, zorder=10, label='X_near')
+
+
     ani_ax.legend(bbox_to_anchor=(1.05,0.0),loc=3,
                    ncol=1, borderaxespad=0.,
                     fancybox=True, shadow=True,numpoints=1)

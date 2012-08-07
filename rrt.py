@@ -44,13 +44,16 @@ class RRT():
         self.viz_x_nearest_id = None #point nearest to x_rand
         self.viz_x_new_id = None #extend till        
         self.viz_x_from_id = None #point to extend from
+        self.viz_x_near_id = None #list of nodes that are within the search radius
         
         self.viz_x_nearest = None
         self.viz_x_new = None
         self.viz_x_from  = None
+        self.viz_x_near_id = None #list of states that are within the search radius
         
         self.viz_search_radius = None
-        
+
+
         self.save_vars = ['tree','found_feasible_solution','n_pruned','n_rewired','goal_set_nodes','worst_cost',
                           'search_initialized','next_node_id','cheapest_goal']
 
@@ -186,7 +189,7 @@ class RRT():
         self.tree.add_node(self.start_node_id,
           attr_dict={'state':self.state0,'action':None,'hops':0,'cost':0})
 
-    def force_iteration(self):
+    def force_iteration(self,quiet=True):
         """
         sometimes during an iteration of RRT, a sampled state is such that
         no extensions are feasible, and so no new points are added.
@@ -194,6 +197,7 @@ class RRT():
         """
         n = len(self.tree.node)
         while(True):
+            if not quiet: print 'attempt force_iteration'
             self.search(iters=1)
             if len(self.tree.node)>n:
                 return
@@ -285,7 +289,9 @@ class RRT():
                                                                                                 #can't simply do self.cost(tree.node[x_nearest_id]['state'],action) because action might cause a collision
 
         if do_find_cheapest_parent or do_rewire:
-            X_near = self.near(x_new,radius) 
+            X_near = self.near(x_new,radius)
+        else:
+            X_near = None
     
         if do_find_cheapest_parent:        
             #consider all nodes in X_near as potential parents for x_new
@@ -341,12 +347,22 @@ class RRT():
         self.viz_x_nearest_id = x_nearest_id            
         self.viz_x_new_id = x_new_id            
         self.viz_x_from_id = x_min
+
         #pruning might remove these nodes so store the visualization information
         self.viz_x_nearest = tree.node[x_nearest_id]['state']
         self.viz_x_new = tree.node[x_new_id]['state']
         self.viz_x_from = tree.node[x_min]['state']
         
         self.viz_search_radius = radius
+
+        if X_near is not None:
+            self.viz_x_near_id = X_near
+            self.viz_x_near = [tree.node[i]['state'] for i in X_near]
+        else:
+            self.viz_x_near_id = None
+            self.viz_x_near = None
+
+
         self.viz_change = True
         
         pruned_nodes = set()    #keep track of nodes that were pruned
