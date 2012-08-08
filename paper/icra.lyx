@@ -6,6 +6,7 @@
 \begin_preamble
 \usepackage[T1]{fontenc}
 \usepackage{pslatex}
+\usepackage[vlined,linesnumbered,ruled]{algorithm2e}
 \end_preamble
 \options letterpaper, 10pt, conference
 \use_default_options true
@@ -326,73 +327,265 @@ Cost:
 \end_layout
 
 \begin_layout Standard
-\begin_inset listings
-inline false
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
 status open
 
 \begin_layout Plain Layout
 
-extend(x_rand):
+
+\backslash
+begin{center}
 \end_layout
 
 \begin_layout Plain Layout
 
-	x_nearest = argmin over all nodes n Distance(n,x_rand)
+
+\backslash
+begin{algorithm}
 \end_layout
 
 \begin_layout Plain Layout
 
-	d = Distance(x_near,x_rand)
+
+\backslash
+For {$i =1, 
+\backslash
+ldots, N$} {
 \end_layout
 
 \begin_layout Plain Layout
 
-	if d is infinite: return
+    $x_
+\backslash
+mathrm{rand} 
+\backslash
+leftarrow {
+\backslash
+tt Sample}$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-	action = Steer(x_nearest,x_rand)
+    ($x_
+\backslash
+mathrm{nearest}, c_
+\backslash
+mathrm{nearest}) 
+\backslash
+leftarrow 
+\backslash
+mathtt{Nearest}(V ,x_
+\backslash
+mathrm{rand})$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-	x_path = CollisionFree(x_nearest,action)
+    
+\backslash
+If {$c_
+\backslash
+mathrm{nearest} 
+\backslash
+neq 
+\backslash
+infty$} {
 \end_layout
 
 \begin_layout Plain Layout
 
-	x_new = last state in x_path list
+        $a_
+\backslash
+text{nearest} 
+\backslash
+leftarrow {
+\backslash
+tt GetAction}(x_
+\backslash
+mathrm{nearest}, x_
+\backslash
+mathrm{rand})$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-	X_near = nodes within ball centered at x_new (according to Distance)
+        ($
+\backslash
+sigma, x_
+\backslash
+text{new}) 
+\backslash
+leftarrow {
+\backslash
+tt CollisionFree}(x_
+\backslash
+mathrm{nearest}, a_
+\backslash
+mathrm{nearest})$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-	for x in X_near:
+        
+\backslash
+If {$
+\backslash
+sigma 
+\backslash
+neq 
+\backslash
+emptyset$}{
 \end_layout
 
 \begin_layout Plain Layout
 
-		action = Steer(x,x_new)
+            $X_
+\backslash
+mathrm{near} 
+\backslash
+leftarrow 
+\backslash
+mathtt{Near}(V ,x_
+\backslash
+mathrm{new})$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-		x_path,u_path = CollisionFree(x,action)
+            $x_
+\backslash
+mathrm{min},u_
+\backslash
+mathrm{min} 
+\backslash
+leftarrow {
+\backslash
+tt ChooseParent}(X_
+\backslash
+mathrm{near}, x_
+\backslash
+mathrm{new})$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-		this_cost = sum(Cost(x,u) for (x,u) in (x_path,u_path))
+            $x_
+\backslash
+mathrm{new} 
+\backslash
+leftarrow {
+\backslash
+tt SimForward}(x_
+\backslash
+mathrm{min}, u_
+\backslash
+mathrm{min})$
+\backslash
+;
 \end_layout
 
 \begin_layout Plain Layout
 
-		find cheapest this_cost
+            $X 
+\backslash
+leftarrow X 
+\backslash
+cup 
+\backslash
+{ x_
+\backslash
+mathrm{new} 
+\backslash
+}$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+            $E 
+\backslash
+leftarrow E 
+\backslash
+cup 
+\backslash
+{ (x_
+\backslash
+mathrm{min}, x_
+\backslash
+mathrm{new})$
+\backslash
+}
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+            $(V,E) 
+\backslash
+leftarrow {
+\backslash
+tt Rewire}(
+\backslash
+,(V,E), X_
+\backslash
+mathrm{near}, x_
+\backslash
+mathrm{new} 
+\backslash
+,)$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+Return {$G = (V,E)$}
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+caption{${
+\backslash
+tt ALG}^* ((V,E), N)$}
 \end_layout
 
 \begin_layout Plain Layout
@@ -401,17 +594,422 @@ extend(x_rand):
 
 \begin_layout Plain Layout
 
-		
+
+\backslash
+end{algorithm}
 \end_layout
 
 \begin_layout Plain Layout
 
-	
+
+\backslash
+end{center}
 \end_layout
 
 \begin_layout Plain Layout
 
-	
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{center}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{algorithm}
+\end_layout
+
+\begin_layout Plain Layout
+
+$
+\backslash
+mathrm{minCost} 
+\backslash
+leftarrow 
+\backslash
+infty$;
+\backslash
+,
+\end_layout
+
+\begin_layout Plain Layout
+
+$x_
+\backslash
+mathrm{min} 
+\backslash
+leftarrow {
+\backslash
+tt NULL}$;
+\end_layout
+
+\begin_layout Plain Layout
+
+$
+\backslash
+sigma_
+\backslash
+mathrm{min} 
+\backslash
+leftarrow {
+\backslash
+tt NULL}$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+For{$x_
+\backslash
+mathrm{near} 
+\backslash
+in X_
+\backslash
+mathrm{near}$}{
+\end_layout
+
+\begin_layout Plain Layout
+
+    $a 
+\backslash
+leftarrow {
+\backslash
+tt GetAction}(x_
+\backslash
+mathrm{near}, x_
+\backslash
+mathrm{new})$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    ($
+\backslash
+sigma, x^{
+\backslash
+prime}) 
+\backslash
+leftarrow {
+\backslash
+tt CollisionFree}(x_
+\backslash
+mathrm{near}, a)$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    
+\backslash
+If {${
+\backslash
+tt Cost}(x_
+\backslash
+mathrm{near}) + {
+\backslash
+tt Cost}(
+\backslash
+sigma) < 
+\backslash
+mathrm{minCost} $} {
+\end_layout
+
+\begin_layout Plain Layout
+
+        $
+\backslash
+mathrm{minCost} 
+\backslash
+leftarrow {
+\backslash
+tt Cost}(x_
+\backslash
+mathrm{near}) + {
+\backslash
+tt Cost}(
+\backslash
+sigma)$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+        $x_
+\backslash
+mathrm{min} 
+\backslash
+leftarrow x_
+\backslash
+mathrm{near}$;
+\end_layout
+
+\begin_layout Plain Layout
+
+        $
+\backslash
+sigma_
+\backslash
+mathrm{min} 
+\backslash
+leftarrow 
+\backslash
+sigma$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+Return{$(x_
+\backslash
+mathrm{min},
+\backslash
+sigma_
+\backslash
+mathrm{min})$}
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+caption{${
+\backslash
+tt ChooseParent}(X_
+\backslash
+mathrm{near}, x_
+\backslash
+mathrm{new})$}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{algorithm}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{center}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{center}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{algorithm}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+For{$x_
+\backslash
+mathrm{near} 
+\backslash
+in X_
+\backslash
+mathrm{near}$} {
+\end_layout
+
+\begin_layout Plain Layout
+
+    $
+\backslash
+sigma 
+\backslash
+leftarrow {
+\backslash
+tt LQRSteer}(x_
+\backslash
+mathrm{new}, x_
+\backslash
+mathrm{near})$ 
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    
+\backslash
+If{${
+\backslash
+tt Cost}(x_
+\backslash
+mathrm{new}) + {
+\backslash
+tt Cost}(
+\backslash
+sigma) < {
+\backslash
+tt Cost}(x_
+\backslash
+mathrm{near})$}{
+\end_layout
+
+\begin_layout Plain Layout
+
+        
+\backslash
+If {${
+\backslash
+tt CollisionFree}(
+\backslash
+sigma)$}{   
+\end_layout
+
+\begin_layout Plain Layout
+
+            $x_
+\backslash
+mathrm{parent} 
+\backslash
+leftarrow {
+\backslash
+tt Parent}(x_
+\backslash
+mathrm{near})$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+            $E 
+\backslash
+leftarrow E 
+\backslash
+setminus 
+\backslash
+{ x_
+\backslash
+mathrm{parent}, x_
+\backslash
+mathrm{near}
+\backslash
+}$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+            $E 
+\backslash
+leftarrow E 
+\backslash
+cup 
+\backslash
+{ x_
+\backslash
+mathrm{new}, x_
+\backslash
+mathrm{near}
+\backslash
+}$
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+Return{$(V,E)$}
+\backslash
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+caption{${
+\backslash
+tt Rewire}( 
+\backslash
+, (V,E), X_
+\backslash
+mathrm{near}, x_
+\backslash
+mathrm{new} 
+\backslash
+, )$}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{algorithm}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{center}
 \end_layout
 
 \end_inset
