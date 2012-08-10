@@ -210,7 +210,7 @@ class RRT():
 
     def extend(self,x_rand):
         #this is what gives RRT* optimality. Set to False for vanilla RRT.                        
-        do_find_cheapest_parent = self.found_feasible_solution or not self.rrt_until_feasible #do RRT until found a until a solution is found, then proceed as RRT*
+        do_find_cheapest_parent = self.found_feasible_solution or not self.rrt_until_feasible #do RRT until a solution is found, then proceed as RRT*
 
         #doesn't give optimality, but speeds up convergence.
         do_rewire = self.found_feasible_solution or not self.rrt_until_feasible
@@ -218,7 +218,7 @@ class RRT():
         #when adding an extension, add intermediate points
         add_intermediate_nodes = True    
 
-        do_pruning = True
+        do_pruning = False
 
         extension_attempts = 1 #number of attempts of aggressive extension
 
@@ -366,21 +366,22 @@ class RRT():
         self.viz_change = True
         
         pruned_nodes = set()    #keep track of nodes that were pruned
-        if do_pruning:
-            if self.goal_test(tree.node[x_new_id]):
-                print 'added point in the goal set'
-                self.goal_set_nodes.add(x_new_id)
-                if not self.found_feasible_solution:
-                    print '!!!\n'*5
-                    print 'found first solution'
-                    print '!!!\n'*5
-                    self.found_feasible_solution = True
+
+        if self.goal_test(tree.node[x_new_id]):
+            print 'added point in the goal set'
+            self.goal_set_nodes.add(x_new_id)
+            if not self.found_feasible_solution:
+                print '!!!\n'*5
+                print 'found first solution'
+                print '!!!\n'*5
+                self.found_feasible_solution = True
+                self.worst_cost = tree.node[x_new_id]['cost']
+                self.cheapest_goal = x_new_id
+            else:
+                if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
                     self.worst_cost = tree.node[x_new_id]['cost']
                     self.cheapest_goal = x_new_id
-                else:
-                    if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
-                        self.worst_cost = tree.node[x_new_id]['cost']
-                        self.cheapest_goal = x_new_id
+            if do_pruning:
                 print 'Prune the tree: ',self.worst_cost
                 pruned_nodes = self.prune(self.worst_cost)
                 print ' removed %d nodes'%len(pruned_nodes)
