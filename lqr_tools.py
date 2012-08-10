@@ -121,7 +121,7 @@ def dtfh_lqr_dual(A,B,Q,R,N,Q_terminal_inv=None):
     return (Fs,Ps)
 
 
-def AQR(A,B,c,Q,q,R,r,ctdt='dt'):
+def AQR(A,B,Q,R,ctdt='dt',c=None,q=None,r=None,d=None):
     """
     given the following LQR problem
     xdot = Ax + Bu + c  or x_k+1 = Ax_k + Bu_k + c
@@ -138,7 +138,16 @@ def AQR(A,B,c,Q,q,R,r,ctdt='dt'):
     R = np.matrix(R)
 
     (n,m) = lqr_dim(A,B,Q,R)
-        
+
+    if c is None:
+        c=np.zeros(shape=(n,1))
+    if q is None:
+        q=np.zeros(shape=(n,1))
+    if r is None:
+        r=np.zeros(m)
+    if d is None:
+        d = 0
+
     c = np.matrix(c)
     q = np.matrix(q)
     r = np.matrix(r)
@@ -165,7 +174,7 @@ def AQR(A,B,c,Q,q,R,r,ctdt='dt'):
     Qh[0:n,0:n]=Q
     Qh[n,0:n] = q.T
     Qh[0:n,n] = q.T
-    Qh[n,n] = 0 #arbitrary as far as the gain matrix goes -- affects cost-to-go
+    Qh[n,n] = d #arbitrary as far as the gain matrix goes -- affects cost-to-go
     
     Rh = R
     
@@ -362,10 +371,10 @@ def LQR_QP(A,B,Q,R,T,x0,xT=None):
     cQP_B = cvxopt.matrix(QP_B)
             
     sol = cvxopt.solvers.coneqp(P=cQP_P,q=cQP_q,A=cQP_A,b=cQP_B)
-    qp_sol = np.array(sol['x'],dtype=np.float32)    
+    qp_sol = np.array(sol['x'],dtype=np.float64)    
     from numpy.lib.stride_tricks import as_strided
     
-    dbyte = 4 #4 bytes in float32    
+    dbyte = 8 #8 bytes in float64
     xs = as_strided(qp_sol,shape=(n,T),strides=(dbyte,dbyte*(n+m)))
     us = as_strided(qp_sol[n:],shape=(m,T-1),strides=(dbyte,dbyte*(n+m)))
     return sol,(QP_P,QP_q,QP_A,QP_B),xs,us
