@@ -236,6 +236,8 @@ def draw_rrt(int_ax,rrt):
   
     
 if True:
+    frame_counter = 0
+
     int_fig = plt.figure(None)
     int_ax = int_fig.add_subplot(111)
     
@@ -252,6 +254,12 @@ if True:
     
     #draw_rrt(int_ax,interactive_rrt)
     
+    def save_frame(fig):
+        global frame_counter
+        s ='int_rrt_2d_%03d.png'%(frame_counter)
+        fig.savefig(s)
+        frame_counter += 1
+
     def rrts(xrand):
         xrand = np.array(xrand)
         interactive_rrt.set_sample(lambda : xrand)
@@ -276,6 +284,8 @@ if True:
             draw_rrt(int_ax,interactive_rrt)
             interactive_rrt.viz_change = False
             int_fig.canvas.draw()
+            save_frame(int_fig)
+
         elif event.button == 3: #print node info
             node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata])
             state = interactive_rrt.tree.node[node_id]['state']
