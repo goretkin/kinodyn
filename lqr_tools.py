@@ -185,6 +185,44 @@ def AQR(A,B,Q,R,ctdt='dt',c=None,q=None,r=None,d=None):
     
     return (Ah,Bh,Qh,Rh,-R.I*r)
 
+
+def final_value_LQR(A,B,Q,R,x_toward,T):
+    """
+    get to x_toward in T time steps.
+    returns (n+1)-by-(n+1) ctg matrices
+    """
+    (n,m) = lqr_dim(A,B,Q,R)
+    assert x_toward.size == n
+
+    assert T-int(T) == 0 #discrete time
+    T=int(T)
+    
+    assert T > 0 
+
+    desired = np.matrix(x_toward).T
+    Qf = np.eye(n) * 1e8
+    qf = np.dot(Qf,desired)
+
+    Qhf = np.zeros(shape=(n+1,n+1))
+    Qhf[0:n,0:n] = Qf
+    Qhf[0:n,[n]] = qf
+    Qhf[[n],0:n] = qf.T
+    Qhf[n,n] = np.dot(desired.T,np.dot(Qf,desired))
+
+    (Ah,Bh,Qh,Rh,pk) = AQR(     A=A,
+                                B=B,
+                                Q=Q,
+                                R=R,
+                                ctdt='dt')
+    #pk should be zeros since system is Affine
+    assert np.allclose(pk,np.zeros(m))
+
+    Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
+    return Fs, Ps
+
+
+
+
 import scipy.integrate
 import scipy.interpolate 
 
