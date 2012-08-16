@@ -144,7 +144,7 @@ def AQR(A,B,Q,R,ctdt='dt',c=None,q=None,r=None,d=None):
     if q is None:
         q=np.zeros(shape=(n,1))
     if r is None:
-        r=np.zeros(m)
+        r=np.zeros(shape=(m,1))
     if d is None:
         d = 0
 
