@@ -273,7 +273,7 @@ def distance(from_node,to_point):
     #we want the final bowl to be centered at desired:
     #(x-x_d)^T * Qf * (x-x_d)
     #xT*Qf*x -x_dT * Qf * x - xT *Qf *x_d * x_dT * Qf * x_d
-    Qf = np.eye(2) * 1e6
+    Qf = np.eye(2) * 1e8
     qf = np.dot(Qf,desired)
 
     Qhf = np.zeros(shape=(3,3))
@@ -290,10 +290,11 @@ def distance(from_node,to_point):
     assert np.allclose(pk,np.zeros(1))
     #pk should be zeros. 
 
+    T = T+1
     Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
 
     x_from_homo = np.zeros(3)
-    x_from_homo[0:2] = x_from[0:2] - x_toward[0:2]
+    x_from_homo[0:2] = x_from[0:2]
     x_from_homo[2] = 1
     #assert False
     return np.dot(x_from_homo,np.dot(Ps[0],x_from_homo.T))
