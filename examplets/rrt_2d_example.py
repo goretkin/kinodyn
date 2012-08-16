@@ -146,6 +146,37 @@ obstacle_bitmap = obstacles(X,Y) #rasterize the obstacles
 #ugly globalness
 info_text = None
 
+def draw_voronoi(ax,rrt):
+    xr = ax.get_xlim()
+    yr = ax.get_xlim()
+    
+    xres = 500
+    yres = 500
+
+    xs= np.linspace(xr[0],xr[1],xres)
+    ys= np.linspace(yr[0],yr[1],yres)
+    
+    grid = np.array(np.meshgrid(xs,ys))
+    grid = grid.reshape((2,-1))
+    grid = grid.T
+    #grid is a 2-by-(xres * yres) array. we want the nearest node for each of those (xres*yres) points
+
+    from sklearn.neighbors import NearestNeighbors
+    nn = NearestNeighbors(algorithm='kd_tree',n_neighbors=1)
+    nodes = np.array(rrt.tree.nodes())
+    states = np.array([rrt.tree.node[i]['state'] for i in nodes])
+    nn.fit(states,nodes)
+    nn_res = nn.kneighbors(grid,return_distance=False)
+    nn_res = nn_res.reshape((xres,yres))
+    nn_res = np.array(nn_res,dtype=np.float)
+    
+    #ns_res is an xres-by-yres array and contains the node-id of the nearest neighbor at each [i,j]
+    print 'regions' , np.unique(nn_res)
+    if np.max(nn_res)> 0: nn_res /= float(np.max(nn_res))   #normalize for color map. this is a stupid way to assign colors to regions
+    ax.imshow(nn_res,origin='lower',extent=[xr[0],xr[1],yr[0],yr[1]],alpha=.5,zorder=2,cmap=mpl.cm.get_cmap(name='prism'))    
+    ax.figure.canvas.draw()
+
+
 def draw_rrt(int_ax,rrt):
     global obstacle_bitmap
     global info_text
@@ -286,7 +317,8 @@ if True:
             int_fig.canvas.draw()
             save_frame(int_fig)
 
-        elif event.button == 3: #print node info
+        elif event.button == 3: #print node info / draw voronoi regions
+            draw_voronoi(int_ax,interactive_rrt)
             node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata])
             state = interactive_rrt.tree.node[node_id]['state']
             int_ax.text(*state,s=str(node_id),zorder=30)    #text on top
