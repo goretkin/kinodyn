@@ -27,6 +27,9 @@ python packages needed:
   * SciPy/NumPy/Matplotlib
     apt-get install python-matplotlib
 
+  * scikit-learn
+    pip install -U scikit-learn (only use for nearest-neighbor queries in Euclidean distance -- for drawing Voronoi bias in RRT example
+
 not needed, but this is what I use to run python
   * IPython
     apt-get install ipython
