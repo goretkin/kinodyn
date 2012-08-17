@@ -201,7 +201,7 @@ def final_value_LQR(A,B,Q,R,x_toward,T):
 
     desired = np.matrix(x_toward).T
     Qf = np.eye(n) * 1e8
-    qf = np.dot(Qf,desired)
+    qf = -np.dot(Qf,desired)
 
     Qhf = np.zeros(shape=(n+1,n+1))
     Qhf[0:n,0:n] = Qf

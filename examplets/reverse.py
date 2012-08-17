@@ -50,7 +50,8 @@ Br = -A.I * B
 def steer(A,B,x_from,x_toward):
     assert len(x_from) == 5
     T = x_toward[4] - x_from[4] #how much time to do the steering
-
+    assert T == int(T)
+    T = int(T)
     if T<=0:
         return (x_from,np.zeros(shape=(0,1)))   #stay here
 
@@ -61,7 +62,7 @@ def steer(A,B,x_from,x_toward):
     xs[0] = x_from
 
     for i in range(T):
-        us[i] = -1 * np.dot(Fs[i,:,0:4],xs[i,0:4]) + Fs[i,:,4]
+        us[i] = -1 * (np.dot(Fs[i,:,0:4],xs[i,0:4]) + Fs[i,:,4])
         xs[i+1,0:4] = np.dot(A,xs[i,0:4].T) + np.dot(B,us[i].T)
         xs[i+1,4] = xs[i,4] + 1
     x_actual = xs[-1]    
@@ -103,10 +104,24 @@ def cost(A,B,x_from,action):
                             ) 
     return cost
 
+def actg(Qhat,x):
+    #affine cost-to-go
+    n = Qhat.shape[0]-1
+    assert Qhat.shape[1] == n+1
+    x = x.reshape((-1,1))
+    assert x.size == n
+    assert np.allclose(Qhat,Qhat.T)
+    Q = Qhat[0:n,0:n]
+    q = Qhat[n,0:n]
+    d = Qhat[n,n]
+    
+    return np.dot(x.T,np.dot(Q,x)) + 2*np.dot(q,x) + d
 
 
-x0 = np.array([0,0,0,0,0])
-xf = np.array([0,0,1,2,500])
+
+#velx vely posx posy
+x0 = np.array([-1,4,0,2,0])
+xf = np.array([3,1,2,1,50])
 
 _,us = steer(A,B,x0,xf)
 
@@ -144,14 +159,17 @@ plt.plot(xs_forward[:,0:4])
 plt.subplot(3,1,2)
 plt.plot(xs_backward[:,0:4])
 plt.subplot(3,1,3)
-plt.plot(us)
-
+plt.plot(us_backward)
 
 T = xf[4]-x0[4] + 1
+T = int(T)
 Fs, Ps = final_value_LQR(A,B,Q,R,xf[0:4],T)
 #Ps[T] is the cost-to-go given zero time steps -- 
 #Ps[T-1] is the cost-to-go given 1 time step
 #Ps[0] is the cost-to-go given T time steps
+
+
+
 
 x0m = x0[0:4].reshape(4,1)
 x0m = np.vstack([x0m,[[1]]])
@@ -173,5 +191,10 @@ l = [direct_cost_forward,cost_to_go_forward,direct_cost_backward,cost_to_go_back
 print l
 print 'std dev ', np.std(l)
 
+xs_last_homo = np.array(xs_forward[-1]).reshape((5,1))
+xs_last_homo[4] = 1
+
+#cost_final_value_constraint = np.squeeze(np.dot(xs_last_homo.T,np.dot(Ps[-1],xs_last_homo[-1])))
+#print cost_final_value_constraint
 
 
