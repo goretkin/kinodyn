@@ -16,7 +16,7 @@ import networkx as nx
 
 import itertools
 
-from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR
+from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR, final_value_LQR
 
 A = np.matrix([ [1,0],
                 [1e-1,1] ])
@@ -63,7 +63,7 @@ def run_forward_fb(x0,gain_schedule):
         xs[i,2] = xs[i-1,2] + 1
     return xs[1:],us
 
-no_obstacles_test = False
+no_obstacles_test = True
 def obstacles(x,y):
     if no_obstacles_test: return True
     #return true for if point is not in collision
@@ -83,10 +83,10 @@ def isStateValid(state):
     return bool(obstacles(x,y))
 
 def isActionValid(action):
-    return abs(action[0]) < .5
+    return abs(action[0]) < .1
 
 max_time_horizon = 100
-goal = np.array([1.0,1.0,100])
+goal = np.array([.8,.8,70])
 def sample():
     if np.random.rand()<.9:
         statespace = np.random.rand(2)*2-1
@@ -119,18 +119,21 @@ def collision_free(from_node,action):
     return x_path, u_path, all_the_way        
  
 def cost(x_from,action):
-    #this does not include the cost of being in x_from
+    #this does not include the cost of being in at the state arrived by taking the last action
     global Q
     global R
     assert len(x_from) == 3
     assert action.shape[1] == 1
+
     x_path = run_forward(x_from,action)
     cost = 0
+
     for i in range(action.shape[0]):
-        x = x_path[[i],0:2].T #don't include time
+        #x_path does not include x_from
+        x = x_path[[i-1],0:2].T if i>0 else x_from[0:2] #don't include time
         u = action[[i],:].T
-        cost += np.squeeze( np.dot(x.T,np.dot(Q,x))  + 
-                            np.dot(u.T,np.dot(R,u))
+        cost += np.squeeze( np.dot(u.T,np.dot(R,u))
+                            +np.dot(x.T,np.dot(Q,x))
                             ) 
     return cost
 
@@ -156,7 +159,7 @@ def steer(x_from_node,x_toward):
                          [x_toward[1]]])                     
 
     Qf = np.eye(2) * 1e8
-    qf = np.dot(Qf,desired)
+    qf = -np.dot(Qf,desired)
 
     Qhf = np.zeros(shape=(3,3))
     Qhf[0:2,0:2] = Qf
@@ -181,7 +184,7 @@ def steer(x_from_node,x_toward):
     xs[0] = x_from
 
     for i in range(T):
-        us[i] = -1 * np.dot(Fs[i,:,0:2],xs[i,0:2]) + Fs[i,:,2]
+        us[i] = -1 * (np.dot(Fs[i,:,0:2],xs[i,0:2]) + Fs[i,:,2])
         xs[i+1,0:2] = np.dot(A,xs[i,0:2].T) + np.dot(B,us[i].T)
         xs[i+1,2] = xs[i,2] + 1
     x_actual = xs[-1]    
@@ -221,8 +224,7 @@ def steer_QP(x_from_node,x_toward):
                                     [x_from[2]+us.shape[0]]
                             ))
     return (x_actual, us)
-
-
+                                          
     
 def distance_direct(from_node,to_point):
     #print from_node['state'], to_point
@@ -274,7 +276,7 @@ def distance(from_node,to_point):
     #(x-x_d)^T * Qf * (x-x_d)
     #xT*Qf*x -x_dT * Qf * x - xT *Qf *x_d * x_dT * Qf * x_d
     Qf = np.eye(2) * 1e8
-    qf = np.dot(Qf,desired)
+    qf = -np.dot(Qf,desired)
 
     Qhf = np.zeros(shape=(3,3))
     Qhf[0:2,0:2] = Qf
@@ -297,8 +299,67 @@ def distance(from_node,to_point):
     x_from_homo[0:2] = x_from[0:2]
     x_from_homo[2] = 1
     #assert False
-    return np.dot(x_from_homo,np.dot(Ps[0],x_from_homo.T))
+    return np.dot(x_from_homo.T,np.dot(Ps[0],x_from_homo))
 
+def distance_cache(from_node,to_point):
+    #to_point is an array and from_point is a node
+
+    global A
+    global B
+    global Q
+    global R
+    global max_time_horizon
+
+    x_from = from_node['state']
+    x_toward = to_point
+    assert len(x_toward)==3
+
+    T = x_toward[2] - x_from[2] #how much time to do the steering
+
+    assert T-int(T) == 0 #discrete time
+
+    T=int(T)
+    
+    if T<0:
+        return np.inf
+    elif T==0:
+        return 0 if np.allclose(x_from,x_toward) else np.inf
+    
+    if 'ctg' not in from_node:
+        print 'calculate ctg for', from_node
+        
+        #reverse system
+        Ar = A.I
+        Br = -A.I * B
+        kmax = max_time_horizon - x_from[2] +1
+        assert kmax > 0
+
+        Fs, Ps = final_value_LQR(Ar,Br,Q,R,x_from[0:2],kmax)
+        from_node['ctg'] = Ps[::-1] #storing in reverse order is easier to think about.
+        
+
+    #ctg[0] is cost-to-go zero steps -- very sharp quadratic
+    #so ctg[k] with k = max_time_horizon - from_node['state'][2] is time to go
+    
+    ctg = from_node['ctg'][T]
+
+    x_to_homo = np.zeros(3)
+    x_to_homo[0:2] = x_toward[0:2]
+    x_to_homo[2] = 1
+     
+    return np.dot(x_to_homo,np.dot(ctg,x_to_homo.T))
+
+def check_cache_distances(rrt,to_point):
+    for node in rrt.tree.nodes():
+        from_node = rrt.tree.node[node]
+        d1 = distance(from_node,to_point)
+        d2 = distance_cache(from_node,to_point)
+        d3 = distance_direct(from_node,to_point)
+        d4 = distance_direct_qp(from_node,to_point)
+        T = to_point[2] - from_node['state'][2] 
+        print d1,d2,d3,d4,T
+#        if not (a == np.inf and b == np.inf):
+#            print a,b,abs(a-b)/(abs(a)+abs(b))
 
 goal_region_radius = .01
 def goal_test(node):
@@ -313,7 +374,9 @@ def distance_from_goal(node):
 start = np.array([0,-1,0])
 rrt = RRT(state_ndim=3)
 
-rrt.set_distance(distance)
+#rrt.set_distance(distance)
+rrt.set_distance(distance_cache)
+
 rrt.set_cost(cost)
 rrt.set_steer(steer)
 
@@ -359,7 +422,7 @@ if __name__ == '__main__':
         
         ani_ax.cla()
         ani_ax.set_xlim(-1,1)
-        ani_ax.set_ylim(-1,1)
+        ani_ax.set_ylim(-1.5,1)
         #ani_ax.set_aspect('equal')
         #ani_ax.set_aspect('auto')
         if not no_obstacles_test: ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5,zorder=1,aspect='auto')    
@@ -448,7 +511,7 @@ if __name__ == '__main__':
         else:   
             info_text = ani_ax.figure.text(.8, .5, info,size='small')
 
-    if True:
+    if False:
         int_fig = plt.figure(None)
         int_ax = int_fig.add_subplot(1,1,1)
         plt.subplots_adjust(left=.15,bottom=.35,right=.8)
@@ -554,7 +617,7 @@ if __name__ == '__main__':
         assert False
 
 
-    if False:
+    if True:
         ani_fig = plt.figure(None)
         ani_ax = ani_fig.add_subplot(1,1,1)
         plt.subplots_adjust(left=.15,bottom=.35,right=.8)
@@ -570,7 +633,7 @@ if __name__ == '__main__':
     #    ani_ax.set_ylim(-1,1)
     #    ani_ax.set_aspect('equal')
         
-        ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5,aspect='auto')    
+        #ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5,aspect='auto')    
         
         #import copy
         
