@@ -13,6 +13,7 @@ import matplotlib as mpl
     
 class RRT():
     def __init__(self,state_ndim):
+
         self.tree = tree = nx.DiGraph()
         self.state_ndim = state_ndim
         self.next_node_id = 0
@@ -28,14 +29,19 @@ class RRT():
         
         self.n_pruned = 0   #nodes removed due to pruning
         self.n_rewired = 0  #edges removed due to rewiring
+        self.n_extensions = 0 #number of times an extension was attempted
+        self.n_iters = 0
         
         self.found_feasible_solution = False
         self.worst_cost = None      #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
+
         self.cheapest_goal = None   #the goal corresponding with the upper-bound cost
         self.goal_set_nodes = set() #a set of node ids that are within the goal set
 
+        self.cost_history = []
+        self.sample_history = []
         #check that whenever a node's cost is updated, it's not increased.
-        self.check_cost_decreasing = False
+        self.check_cost_decreasing = True
         
         #visualization
         self.viz_change = False #did any of these data members get updated 
@@ -204,11 +210,14 @@ class RRT():
             
     def search(self,iters=5e2):
         for i in xrange(int(iters)):
+            self.n_iters += 1
             x_rand = self.sample()
             self.extend(x_rand)
             print 'iter:',i,' n_pruned:',self.n_pruned, 'n_rewired:', self.n_rewired, 'nodes in tree:', len(self.tree.node)
 
     def extend(self,x_rand):
+        self.n_extensions += 1
+        self.sample_history.append(x_rand)
         #this is what gives RRT* optimality. Set to False for vanilla RRT.                        
         do_find_cheapest_parent = self.found_feasible_solution or not self.rrt_until_feasible #do RRT until a solution is found, then proceed as RRT*
 
@@ -377,10 +386,12 @@ class RRT():
                 self.found_feasible_solution = True
                 self.worst_cost = tree.node[x_new_id]['cost']
                 self.cheapest_goal = x_new_id
+                self.cost_history.append((self.n_iters,self.worst_cost))
             else:
                 if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
                     self.worst_cost = tree.node[x_new_id]['cost']
                     self.cheapest_goal = x_new_id
+                    self.cost_history.append((self.n_iters,self.worst_cost))
             if do_pruning:
                 print 'Prune the tree: ',self.worst_cost
                 pruned_nodes = self.prune(self.worst_cost)
@@ -434,7 +445,14 @@ class RRT():
                 print 'updating dynamics removed tree rooted at ',child
                 self.remove_subtree(child)
             else:
-                self.tree.node[child]['state'] = x_path[-1]
+                state_orig = self.tree.node[child]['state']
+                if len(x_path) == 0:
+                    self.tree.node[child]['state'] = self.tree.node[node_id]['state']
+                    print 'redundant node' #fixme
+                else:    
+                    self.tree.node[child]['state'] = x_path[-1]
+                if not np.allclose(state_orig,self.tree.node[child]['state']):
+                    print 'node ', child, 'wiggle from', state_orig, ' to ', self.tree.node[child]['state']
                 self._deep_enforce_dynamics(child)
 
     def _deep_update_cost(self,node_id,cost):
@@ -454,7 +472,8 @@ class RRT():
             if cost<self.worst_cost:                
                 #print "_deep_update_cost updated self.worst_cost from %f to %f"%(self.worst_cost,cost)
                 self.worst_cost = cost
-                
+                self.cheapest_goal = node_id
+                self.cost_history.append((self.n_iters,self.worst_cost))
         for child in tree.successors_iter(node_id):
             #new_cost = tree.node[node_id]['cost'] + self.distance(tree.node[node_id],tree.node[child]['state'])
             new_cost = tree.node[node_id]['cost'] + self.cost(tree.node[node_id]['state'],tree.node[child]['action'])
@@ -565,6 +584,9 @@ class RRT():
 
         if not set(self.tree.nodes()) >= self.goal_set_nodes:
             raise AssertionError("There are things in goal_set_nodes that are not in the tree.")
+        for goal in self.goal_set_nodes:
+            if not self.goal_test(self.tree.node[goal]): 
+                raise AssertionError("There is a node in goal_set_nodes that does not pass the goal test.")
 
         final_costs = [self.tree.node[s]['cost'] for s in self.goal_set_nodes]
         if not (len(final_costs)>0) == self.found_feasible_solution:

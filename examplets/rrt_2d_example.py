@@ -331,6 +331,10 @@ if True:
             
     int_fig.canvas.mpl_connect('button_press_event', button_press_event_dispatcher)    
     
+    import shelve
+    plt.show()
+    for s in shelve.open('kin2d_rewire_bug.shelve')['sample_history']:
+        rrts(s)
    
 ani_rrt = copy.deepcopy(rrt)
 
