@@ -103,6 +103,7 @@ class RRT():
         goal_distance(node) = distance
         
         needed since goal is typically a set, not a single point.
+        this is used for pruning, and pruning will break if this distance is an overestimate. 
         """
         self.distance_from_goal = distance_from_goal
         
@@ -428,10 +429,10 @@ class RRT():
                             tree.node[x_near]['action'] = action
                             tree.add_edge(x_new_id,x_near)
 
-                    #x_near has a new parent, so in general we need to propagate the new cost and the new dynamics.
-                    #enforce dynamics might wiggle the states around a little bit, changing the cost evaluation, so do that first.
-                    self._deep_enforce_dynamics(x_near)
-                    self._deep_update_cost(x_near,proposed_cost)
+                            #x_near has a new parent, so in general we need to propagate the new cost and the new dynamics.
+                            #enforce dynamics might wiggle the states around a little bit, changing the cost evaluation, so do that first.
+                            self._deep_enforce_dynamics(x_near)
+                            self._deep_update_cost(x_near,proposed_cost)
 
                     self.n_rewired += 1
         
