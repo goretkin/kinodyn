@@ -26,7 +26,7 @@
 \begin{document}
 \global\long\def\at#1{}
 
-
+\newcommand{\rrtstar}{RRT$^*$}
 
 
 
@@ -35,7 +35,7 @@
 \begin{abstract}
 We propose a method for finding probabilistically optimal control
 trajectories for dynamical systems with differentiable dynamics and
-differentiable cost function. The method consists of the RRT{*} sample-based
+differentiable cost function. The method consists of the \rrtstar sample-based
 motion planning algorithm with a heuristic motivated by linear control
 system theory.
 \end{abstract}
@@ -43,8 +43,8 @@ system theory.
 \section{Introduction}
 
 Recently, RRT, a sampling-based, probablistically complete motion
-planning algorithm was extended to RRT{*} which provides probabilistic
-optimality. It is straightforward to apply RRT{*} to kinematic motion
+planning algorithm was extended to \rrtstar which provides probabilistic
+optimality. It is straightforward to apply \rrtstar to kinematic motion
 planning problems and this is typically the state-of-the-art solution.
 For problems with differential constraints the application is not
 so straightforward -- some of the primitives require domain-specific
@@ -179,7 +179,7 @@ $\sigma_\mathrm{min} \leftarrow {\tt NULL}$\;
 \end{algorithm}
 \end{center}
 
-The changes to the primitives do not logically change the RRT{*} algorithm,
+The changes to the primitives do not logically change the \rrtstar algorithm,
 but instead make it easier to plug-in the contributed components.
 
 
@@ -262,7 +262,7 @@ Q & -Qx_{0}\\
 Necessary since in general, not possible or practical for steer function
 to be exact. 
 
-Logically equivalent to common formulation of RRT{*}, but easier to
+Logically equivalent to common formulation of \rrtstar, but easier to
 plug in the primitives.
 
 Algorithm detailing the different structure here 
@@ -276,7 +276,7 @@ We can use LQR in the distance metric calculation.
 
 \subsection{Augmenting State with Time}
 
-Augmenting time in the RRT{*} state space allows us to set explicit
+Augmenting time in the \rrtstar state space allows us to set explicit
 time goals and allows us to apply the LQR heuristic. Without this,
 it's not clear what the cost between two states should be. Penalizing
 time may not be the metric we want to optimize for. Choosing the lowest
