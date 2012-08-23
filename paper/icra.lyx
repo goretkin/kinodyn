@@ -102,7 +102,7 @@ inset-forall Note inset-modify note Note Greyedout
 \end_layout
 
 \begin_layout Title
-Generalized Motion Planning for Dynamical Systems
+Sample Based Planning for Dynamical Systems
 \end_layout
 
 \begin_layout Abstract
@@ -121,12 +121,11 @@ Introduction
 Recently, RRT, a sampling-based, probablistically complete motion planning
  algorithm was extended to RRT* which provides probabilistic optimality.
  It is straightforward to apply RRT* to kinematic motion planning problems
- and the this is typically the state-of-the-art solution.
+ and this is typically the state-of-the-art solution.
  For problems with differential constraints the application is not so straightfo
 rward -- some of the primitives require domain-specific design.
  We present a method that works well across many domains with differential
  constraints.
- Contribution also includes code
 \end_layout
 
 \begin_layout Standard
@@ -218,12 +217,12 @@ Modification
 \end_layout
 
 \begin_layout Standard
-Steer: 
+SteerApprox: 
 \begin_inset Formula $ $
 \end_inset
 
 
-\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Action }a$
+\begin_inset Formula $\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto u$
 \end_inset
 
  where 
@@ -231,10 +230,10 @@ Steer:
 \end_inset
 
  is an action that can be applied in 
-\begin_inset Formula $s_{\mbox{from}}$
+\begin_inset Formula $x_{\mbox{from}}$
 \end_inset
 
- in order to get to 
+ in order to get toward 
 \begin_inset Formula $s_{\mbox{to}}$
 \end_inset
 
@@ -242,8 +241,32 @@ Steer:
 \end_layout
 
 \begin_layout Standard
+SimForward: 
+\begin_inset Formula $ $
+\end_inset
+
+
+\begin_inset Formula $\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}}$
+\end_inset
+
+ where 
+\begin_inset Formula $u$
+\end_inset
+
+ is an action that when applied in 
+\begin_inset Formula $x_{\mbox{from}}$
+\end_inset
+
+ brings the system to 
+\begin_inset Formula $x_{\mbox{final}}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 Distance: 
-\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Cost }c$
+\begin_inset Formula $\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto c$
 \end_inset
 
  where 
@@ -262,8 +285,12 @@ Distance:
 \end_layout
 
 \begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
 CollisionFree: 
-\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{Action}\, a\right)\mapsto\mbox{StateTraj }\left\langle s_{1},\cdots,s_{T}\right\rangle ,\mbox{ActionTraj }\left\langle a_{0},\cdots,a_{T-1}\right\rangle $
+\begin_inset Formula $\left(x_{\mbox{from}},u\right)\mapsto\left\langle x_{1},\cdots,x_{T}\right\rangle ,\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
 \end_inset
 
  where 
@@ -283,27 +310,90 @@ CollisionFree:
 \noun off
 \color none
 
-\begin_inset Formula $\left\langle s_{1},\cdots,s_{T}\right\rangle $
+\begin_inset Formula $\left\langle x_{1},\cdots,x_{T}\right\rangle $
 \end_inset
 
  is a trajectory of states arising from taking 
-\begin_inset Formula $a$
+\begin_inset Formula $u$
 \end_inset
 
  from 
-\begin_inset Formula $s_{\mbox{from}}$
+\begin_inset Formula $x_{\mbox{from}}$
 \end_inset
 
  until hitting an obstacle or completing the action and 
-\begin_inset Formula $\left\langle a_{0},\cdots,a_{T-1}\right\rangle $
+\begin_inset Formula $\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
 \end_inset
 
  is a decomposition of 
-\begin_inset Formula $a$
+\begin_inset Formula $u$
 \end_inset
 
  that corresponds to the state trajectory.
  
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+CollisionFree: 
+\begin_inset Formula $\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}},u'$
+\end_inset
+
+ where 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $x_{\mbox{final}}=x_{\mbox{from}}$
+\end_inset
+
+ and 
+\begin_inset Formula $u=u'$
+\end_inset
+
+ if the trajectory gotten from taking 
+\begin_inset Formula $u$
+\end_inset
+
+ in 
+\begin_inset Formula $x_{\mbox{from }}$
+\end_inset
+
+ is entirely collision free.
+ If the trajectory is partially collision free, then 
+\begin_inset Formula $x_{\mbox{final}}$
+\end_inset
+
+ is the the last state collision-free state along the trajectory before
+ which all states are also collision free and 
+\begin_inset Formula $u'$
+\end_inset
+
+ is the part of 
+\begin_inset Formula $u$
+\end_inset
+
+ that brings 
+\begin_inset Formula $x_{\mbox{from }}$
+\end_inset
+
+ to 
+\begin_inset Formula $x_{\mbox{final}}$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
@@ -320,13 +410,34 @@ Cost:
 \noun off
 \color none
 
-\begin_inset Formula $\left(\mbox{State}\, s_{\mbox{from}},\mbox{Action}\, a\right)\mapsto\mbox{Cost }c$
+\begin_inset Formula $\left(x_{\mbox{from}},u\right)\mapsto\mbox{Cost }c$
 \end_inset
 
+ where 
+\begin_inset Formula $c$
+\end_inset
 
+ is the cost of the trajectory from taking 
+\begin_inset Formula $u$
+\end_inset
+
+ in 
+\begin_inset Formula $x_{\mbox{from}}$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
+\begin_inset Note Comment
+status open
+
+\begin_layout Plain Layout
+Include in code adding points along an extension?
+\end_layout
+
+\end_inset
+
 
 \end_layout
 
@@ -402,13 +513,13 @@ infty$} {
 
 \begin_layout Plain Layout
 
-        $a_
+        $u_
 \backslash
 text{nearest} 
 \backslash
 leftarrow {
 \backslash
-tt GetAction}(x_
+tt SteerApprox}(x_
 \backslash
 mathrm{nearest}, x_
 \backslash
@@ -429,7 +540,7 @@ leftarrow {
 \backslash
 tt CollisionFree}(x_
 \backslash
-mathrm{nearest}, a_
+mathrm{nearest}, u_
 \backslash
 mathrm{nearest})$
 \backslash
@@ -678,11 +789,11 @@ mathrm{near}$}{
 
 \begin_layout Plain Layout
 
-    $a 
+    $u 
 \backslash
 leftarrow {
 \backslash
-tt GetAction}(x_
+tt SteerApprox}(x_
 \backslash
 mathrm{near}, x_
 \backslash
@@ -693,9 +804,9 @@ mathrm{new})$
 
 \begin_layout Plain Layout
 
-    ($
+    ($x^{
 \backslash
-sigma, x^{
+prime},u^{
 \backslash
 prime}) 
 \backslash
@@ -703,7 +814,7 @@ leftarrow {
 \backslash
 tt CollisionFree}(x_
 \backslash
-mathrm{near}, a)$
+mathrm{near}, u)$
 \backslash
 ;
 \end_layout
@@ -1227,7 +1338,7 @@ er function on
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\left(x-x_{0}\right)^{T}Q\left(x-x_{0}\right)
+\left(x-x_{0}\right)^{T}Q\left(x-x_{0}\right)=x^{T}Qx+-2x_{0}^{T}Qx+x_{0}^{T}Qx_{0}
 \]
 
 \end_inset
@@ -1238,8 +1349,8 @@ er function on
 \begin_layout Standard
 Then choose 
 \begin_inset Formula $\hat{Q}=\left(\begin{array}{cc}
-Q & Qx_{0}\\
-x_{0}^{T}Q & x_{0}^{T}Qx_{0}
+Q & -Qx_{0}\\
+-x_{0}^{T}Q & x_{0}^{T}Qx_{0}
 \end{array}\right)$
 \end_inset
 
@@ -1247,7 +1358,7 @@ x_{0}^{T}Q & x_{0}^{T}Qx_{0}
 \end_layout
 
 \begin_layout Section
-Application to a constrainted Linear System with Quadratic Cost 
+Application to a constrained Linear System with Quadratic Cost 
 \end_layout
 
 \begin_layout Standard
@@ -1283,8 +1394,9 @@ Augmenting State with Time
 Augmenting time in the RRT* state space allows us to set explicit time goals
  and allows us to apply the LQR heuristic.
  Without this, it's not clear what the cost between two states should be.
- Penalizing time is not correct.
- Lowest cost over all possible time horizons not correct.
+ Penalizing time may not be the metric we want to optimize for.
+ Choosing the lowest cost over all possible time horizons does not guarantee
+ completeness.
  These are crucial points.
 \end_layout
 
@@ -1295,14 +1407,8 @@ Many scenarios include time in the state anyway.
 \end_layout
 
 \begin_layout Standard
-Introduce notation especially with time dimension.
- For LQR math to look good, need easy notational access to state-space component
- and time component of the RRT state vector.
-\end_layout
-
-\begin_layout Standard
 Let 
-\begin_inset Formula $\left\langle x,k\right\rangle \in\mathbb{R}^{n}\times\mathbb{Z}_{0+}$
+\begin_inset Formula $\left\langle x,k\right\rangle \in\mathbb{R}^{n}\times\mathbb{R}_{0+}$
 \end_inset
 
  be the space of the RRT state.
@@ -1313,18 +1419,29 @@ Primitives
 \end_layout
 
 \begin_layout Standard
-Algorithm for all primitives
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula $Steer(s_{1},s_{2})$
 \end_inset
 
- 
+
+\end_layout
+
+\begin_layout Standard
 \begin_inset Formula $T=k\left(s_{2}\right)-k\left(s_{1}\right)$
 \end_inset
 
- LQR around 
+
+\end_layout
+
+\begin_layout Standard
+if 
+\begin_inset Formula $T\leq0$
+\end_inset
+
+, return NullAction
+\end_layout
+
+\begin_layout Standard
+follow LQR gain matrices around 
 \begin_inset Formula $x\left(s_{1}\right)$
 \end_inset
 
@@ -1332,19 +1449,33 @@ Algorithm for all primitives
 \begin_inset Formula $x\left(s_{2}\right)$
 \end_inset
 
- 
+ , time horizon 
+\begin_inset Formula $T$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-Explain what happens if 
-\begin_inset Formula $T\leq0$
+\begin_inset Formula $Distance(s_{1},s_{2})$
 \end_inset
 
-.
+
+\end_layout
+
+\begin_layout Standard
+use LQR cost-to-go
 \end_layout
 
 \begin_layout Subsubsection
 Optimality Proof Sketch
+\end_layout
+
+\begin_layout Standard
+LQR solves a relaxed version of the problem -- no obstacle and no actuation
+ constraints.
+ This is directly analogous to a Euclidean distance metric being a relaxed
+ version of the shortest path in the kinematic case.
 \end_layout
 
 \begin_layout Section
@@ -2021,7 +2152,7 @@ Related Work
 \end_layout
 
 \begin_layout Standard
-vdB 
+vdB, Glassman, Perez
 \end_layout
 
 \begin_layout Section

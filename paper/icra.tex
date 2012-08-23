@@ -1,0 +1,546 @@
+%% LyX 2.0.0 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[twocolumn,english,letterpaper, 10pt, conference]{IEEEtran}
+\usepackage{lmodern}
+\renewcommand{\sfdefault}{lmss}
+\renewcommand{\ttdefault}{lmtt}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage{geometry}
+\geometry{verbose}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{verbatim}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+\usepackage[vlined,linesnumbered,ruled]{algorithm2e}
+
+\makeatother
+
+\usepackage{babel}
+\begin{document}
+\global\long\def\at#1{}
+
+
+
+
+
+\title{Sample Based Planning for Dynamical Systems}
+\maketitle
+\begin{abstract}
+We propose a method for finding probabilistically optimal control
+trajectories for dynamical systems with differentiable dynamics and
+differentiable cost function. The method consists of the RRT{*} sample-based
+motion planning algorithm with a heuristic motivated by linear control
+system theory.
+\end{abstract}
+
+\section{Introduction}
+
+Recently, RRT, a sampling-based, probablistically complete motion
+planning algorithm was extended to RRT{*} which provides probabilistic
+optimality. It is straightforward to apply RRT{*} to kinematic motion
+planning problems and this is typically the state-of-the-art solution.
+For problems with differential constraints the application is not
+so straightforward -- some of the primitives require domain-specific
+design. We present a method that works well across many domains with
+differential constraints.
+
+\begin{comment}
+Explain the distinction between general differential constraints and
+kinodynamic constraints
+\end{comment}
+
+
+
+\section{Background}
+
+
+\subsection{RRT{*}}
+
+The RRT{*} algorithm is a sample-based motion planner to finds probabalistically
+optimal solutions. It requires the following algorithmic primitives:
+
+Steer: $ $$\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Action }a$
+where $a$ is an action that can be applied in $s_{\mbox{from}}$
+in order to get to $s_{\mbox{to}}$
+
+Distance: $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Cost }c$
+where $c$ is the cost of getting from $s_{\mbox{from}}$ to $s_{\mbox{to}}$
+without obstacles
+
+CollisionFree: $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{StateTraj }\left\langle s_{1},\cdots,s_{T}\right\rangle $
+
+
+\subsection{Modifications to Primitives}
+
+Modification
+
+SteerApprox: $ $$\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto u$
+where $a$ is an action that can be applied in $x_{\mbox{from}}$
+in order to get toward $s_{\mbox{to}}$
+
+SimForward: $ $$\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}}$
+where $u$ is an action that when applied in $x_{\mbox{from}}$ brings
+the system to $x_{\mbox{final}}$
+
+Distance: $\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto c$ where
+$c$ is the cost of getting from $s_{\mbox{from}}$ to $s_{\mbox{to}}$
+without obstacles
+
+\begin{comment}
+CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto\left\langle x_{1},\cdots,x_{T}\right\rangle ,\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
+where $ $$\left\langle x_{1},\cdots,x_{T}\right\rangle $ is a trajectory
+of states arising from taking $u$ from $x_{\mbox{from}}$ until hitting
+an obstacle or completing the action and $\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
+is a decomposition of $u$ that corresponds to the state trajectory. 
+\end{comment}
+
+
+CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}},u'$
+where $x_{\mbox{final}}=x_{\mbox{from}}$ and $u=u'$ if the trajectory
+gotten from taking $u$ in $x_{\mbox{from }}$ is entirely collision
+free. If the trajectory is partially collision free, then $x_{\mbox{final}}$
+is the the last state collision-free state along the trajectory before
+which all states are also collision free and $u'$ is the part of
+$u$ that brings $x_{\mbox{from }}$ to $x_{\mbox{final}}$.
+
+Cost: $\left(x_{\mbox{from}},u\right)\mapsto\mbox{Cost }c$ where
+$c$ is the cost of the trajectory from taking $u$ in $x_{\mbox{from}}$.
+
+\begin{comment}
+Include in code adding points along an extension?
+\end{comment}
+
+
+\begin{center}
+\begin{algorithm}
+\For {$i =1, \ldots, N$} {
+    $x_\mathrm{rand} \leftarrow {\tt Sample}$\;
+    ($x_\mathrm{nearest}, c_\mathrm{nearest}) \leftarrow \mathtt{Nearest}(V ,x_\mathrm{rand})$\;
+    \If {$c_\mathrm{nearest} \neq \infty$} {
+        $u_\text{nearest} \leftarrow {\tt SteerApprox}(x_\mathrm{nearest}, x_\mathrm{rand})$\;
+        ($\sigma, x_\text{new}) \leftarrow {\tt CollisionFree}(x_\mathrm{nearest}, u_\mathrm{nearest})$\;
+        \If {$\sigma \neq \emptyset$}{
+            $X_\mathrm{near} \leftarrow \mathtt{Near}(V ,x_\mathrm{new})$\;
+            $x_\mathrm{min},u_\mathrm{min} \leftarrow {\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{new})$\;
+            $x_\mathrm{new} \leftarrow {\tt SimForward}(x_\mathrm{min}, u_\mathrm{min})$\;
+            $X \leftarrow X \cup \{ x_\mathrm{new} \}$\;
+            $E \leftarrow E \cup \{ (x_\mathrm{min}, x_\mathrm{new})$\}\;
+            $(V,E) \leftarrow {\tt Rewire}(\,(V,E), X_\mathrm{near}, x_\mathrm{new} \,)$\;
+}
+}
+}
+\Return {$G = (V,E)$}\;
+\caption{${\tt ALG}^* ((V,E), N)$}
+
+\end{algorithm}
+\end{center}
+
+\begin{center}
+\begin{algorithm}
+$\mathrm{minCost} \leftarrow \infty$;\,
+$x_\mathrm{min} \leftarrow {\tt NULL}$;
+$\sigma_\mathrm{min} \leftarrow {\tt NULL}$\;
+\For{$x_\mathrm{near} \in X_\mathrm{near}$}{
+    $u \leftarrow {\tt SteerApprox}(x_\mathrm{near}, x_\mathrm{new})$\;
+    ($x^{\prime},u^{\prime}) \leftarrow {\tt CollisionFree}(x_\mathrm{near}, u)$\;
+    \If {${\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma) < \mathrm{minCost} $} {
+        $\mathrm{minCost} \leftarrow {\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma)$\;
+        $x_\mathrm{min} \leftarrow x_\mathrm{near}$;
+        $\sigma_\mathrm{min} \leftarrow \sigma$\;
+    }
+}
+\Return{$(x_\mathrm{min},\sigma_\mathrm{min})$}\;
+\caption{${\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{new})$}
+
+\end{algorithm}
+\end{center}
+
+\begin{center}
+\begin{algorithm}
+\For{$x_\mathrm{near} \in X_\mathrm{near}$} {
+    $\sigma \leftarrow {\tt LQRSteer}(x_\mathrm{new}, x_\mathrm{near})$ \;
+    \If{${\tt Cost}(x_\mathrm{new}) + {\tt Cost}(\sigma) < {\tt Cost}(x_\mathrm{near})$}{
+        \If {${\tt CollisionFree}(\sigma)$}{   
+            $x_\mathrm{parent} \leftarrow {\tt Parent}(x_\mathrm{near})$\;
+            $E \leftarrow E \setminus \{ x_\mathrm{parent}, x_\mathrm{near}\}$\;
+            $E \leftarrow E \cup \{ x_\mathrm{new}, x_\mathrm{near}\}$\;
+}
+    }
+}
+\Return{$(V,E)$}\;
+\caption{${\tt Rewire}( \, (V,E), X_\mathrm{near}, x_\mathrm{new} \, )$}
+\end{algorithm}
+\end{center}
+
+The changes to the primitives do not logically change the RRT{*} algorithm,
+but instead make it easier to plug-in the contributed components.
+
+
+\subsection{Math Tools}
+
+Linear Quadratic Regulator (LQR) is an optimal control technique which
+determines the policy (mapping from state to action) for a linear
+dynamical system which minimizes a quadratic functional on the state
+and action.
+
+LQR is used to solve the following problem: 
+
+Find $\left\langle u_{0},\cdots u_{T-1}\right\rangle $ such that 
+
+\[
+x_{k+1}=Ax_{k}+Bu_{k}
+\]
+
+
+minimizing 
+\[
+J\left(x,u\right)=\sum_{k=0}^{T-1}\left(x_{k}^{T}Qx_{k}+u_{k}^{T}Ru_{k}\right)+x_{T}^{T}Q_{T}x_{T}
+\]
+
+
+given $A$, $B$, $Q$, $R$, $x_{0}$, $x_{T}$, and $T$.
+
+We can enforce that LQR policies obey the final-value constraint on
+$x_{T}$ by placing very high cost (practically infinite) on the $Q_{T}$
+fed to the finite-horizon LQR solver. The textbook LQR problem statement
+requires that the quadratic bowl $x^{T}Qx$ be centered at $x=0$.
+A shift of coordinates can change the center of all bowls, which is
+not what we want.
+
+We can enrich the class of LQR problems to have arbitrary second-order
+penalty (along with first-order dynamics, which will be essential
+later) by considering the follwing transformation:
+
+\begin{align*}
+\underbrace{\left[\begin{matrix}x_{k+1}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k+1}} & =\underbrace{\left(\begin{matrix}A & c-R^{-1}r\\
+0 & 1
+\end{matrix}\right)}_{\hat{A}}\underbrace{\left[\begin{matrix}x_{k}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k}}+\underbrace{\left(\begin{matrix}B\\
+0
+\end{matrix}\right)}_{\hat{B}}\hat{u}_{k}\\
+J\left(x,u\right) & =\sum_{k=0}^{T-1}\hat{x}_{k}^{T}\hat{Q}\hat{x}_{k}+\hat{u}_{k}^{T}R\hat{u}_{k}+\hat{x}_{T}^{T}\hat{Q}_{T}\hat{x}_{T}
+\end{align*}
+
+
+with $\hat{u}_{k}=u_{k}+R^{-1}r$ and $\hat{Q}=\left(\begin{matrix}Q & q\\
+q^{T} & d
+\end{matrix}\right)$ . 
+
+Here we augment the state vector with an additional dimension whose
+value is constrained by the dynamics to remain constant. As long as
+this additional dimension is unity in $x_{0}$ , then it will be unity
+along all trajectories.
+
+In addition to allowing first-order dynamics (increasing the class
+of systems from linear to affine), this transformation also allows
+an arbitrary second-order function on $x$ and $u$. For example,
+say we want the following bowl:
+
+\[
+\left(x-x_{0}\right)^{T}Q\left(x-x_{0}\right)=x^{T}Qx+-2x_{0}^{T}Qx+x_{0}^{T}Qx_{0}
+\]
+
+
+Then choose $\hat{Q}=\left(\begin{array}{cc}
+Q & -Qx_{0}\\
+-x_{0}^{T}Q & x_{0}^{T}Qx_{0}
+\end{array}\right)$.
+
+
+\section{Application to a constrained Linear System with Quadratic Cost }
+
+Necessary since in general, not possible or practical for steer function
+to be exact. 
+
+Logically equivalent to common formulation of RRT{*}, but easier to
+plug in the primitives.
+
+Algorithm detailing the different structure here 
+
+For this class of systems, the LQR method is the standard way to find
+optimal solution. LQR, though, cannot handle constaints on the state
+nor on actuation.
+
+We can use LQR in the distance metric calculation.
+
+
+\subsection{Augmenting State with Time}
+
+Augmenting time in the RRT{*} state space allows us to set explicit
+time goals and allows us to apply the LQR heuristic. Without this,
+it's not clear what the cost between two states should be. Penalizing
+time may not be the metric we want to optimize for. Choosing the lowest
+cost over all possible time horizons does not guarantee completeness.
+These are crucial points.
+
+Many scenarios include time in the state anyway. For example: time-varying
+dynamics or obstacles and constraints. 
+
+Let $\left\langle x,k\right\rangle \in\mathbb{R}^{n}\times\mathbb{R}_{0+}$
+be the space of the RRT state.
+
+
+\subsubsection{Primitives}
+
+$Steer(s_{1},s_{2})$
+
+$T=k\left(s_{2}\right)-k\left(s_{1}\right)$
+
+if $T\leq0$, return NullAction
+
+follow LQR gain matrices around $x\left(s_{1}\right)$ with goal $x\left(s_{2}\right)$
+, time horizon $T$
+
+$Distance(s_{1},s_{2})$
+
+use LQR cost-to-go
+
+
+\subsubsection{Optimality Proof Sketch}
+
+LQR solves a relaxed version of the problem -- no obstacle and no
+actuation constraints. This is directly analogous to a Euclidean distance
+metric being a relaxed version of the shortest path in the kinematic
+case.
+
+
+\section{Application to General Dynamical Systems}
+
+Consider a discrete-time dynamical system in the form 
+\begin{equation}
+x_{k+1}=f\left(x_{k},u_{k}\right)\label{eq:dynamics}
+\end{equation}
+
+
+with additive cost function
+\begin{equation}
+J\left(\mathbf{u},\mathbf{x}\right)=\sum_{k=0}^{T}g\left(x_{k},u_{k}\right)\label{eq:cost_functional}
+\end{equation}
+
+
+and starting point $x_{0}$. The state vector, $x$, is $n$-dimensional
+and the control vector, $u$, is $m$-dimensional. We aim to find
+a sequence $ $$\mathbf{u}=\left\{ u_{0},\cdots,u_{T}\right\} $ which
+induces a trajectory $\mathbf{x}=\left\{ x_{1},\cdots,x_{T}\right\} $
+satisfying the dynamics (\ref{eq:dynamics}) such that $ $$C$ is
+minimized according to (\ref{eq:cost_functional}).
+
+The real cost of moving from point $x'$ to $x''$ is
+\begin{multline*}
+C\left(x,x'\right)=\min_{\mathbf{u}}J\left(\mathbf{u},\mathbf{x}\right)\\
+\mbox{subject to (\ensuremath{\ref{eq:dynamics}}), \ensuremath{x_{0}=x}, \ensuremath{x_{T}=x'}}
+\end{multline*}
+
+
+Note that the minimization happens over control sequences $\mathbf{u}$
+of a fixed time lengths, according to 
+
+We approximate $C\left(x',x''\right)$ by taking a first-order approximation
+of the dynamics and a second-order approximation of the cost and applying
+LQR control. In general, the approximated dynamics and cost are of
+the following form
+
+\begin{align}
+x_{k+1} & \approx Ax_{k}+Bu_{k}+c\label{eq:dynamics_approx}\\
+J\left(\mathbf{u},\mathbf{x}\right) & \approx\sum_{k=0}^{T}x_{k}^{T}Qx_{k}+u_{k}^{T}Ru_{k}+2q^{T}x_{k}+2r^{T}u_{k}+d\label{eq:cost_approx}
+\end{align}
+
+
+$A$ and $Q$ are $n\times n$, $B$ is $m\times n$, $R$ is $n\times n$.
+$c$ and $q$ are $n\times1$, $r$ is $m\times1$ and $d$ is a scalar.
+
+\begin{align*}
+A & =\left.\frac{\partial f}{\partial x}\right|_{x^{*},u^{*}}\\
+B & =\left.\frac{\partial f}{\partial u}\right|_{x^{*},u^{*}}\\
+c & =-Ax^{*}-Bu^{*}+f\left(x^{*},u^{*}\right)
+\end{align*}
+
+
+$x^{*}$, $u^{*}$ is the point about which the linearization is performed.
+Typically $u^{*}$ is taken to be $\mathbf{0}$ and $x^{*}=x'$
+
+Equations \ref{eq:dynamics_approx} and \ref{eq:cost_approx} are
+the truncated Taylor expansions of $f$ and $g$. The dynamics $f$
+must be once-differentiable and addition cost $g$ must be twice-differentiable.
+
+
+\subsection{Reduction to the Previous Problem}
+
+It is possible to transform the problem specified with \ref{eq:dynamics_approx}
+and \ref{eq:cost_approx} into LQR form (where there is only an $A$,
+$B$, $Q$, $R$ matrix) using the following:
+
+\begin{align*}
+\underbrace{\left[\begin{matrix}x_{k+1}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k+1}} & =\underbrace{\left(\begin{matrix}A & c-R^{-1}r\\
+0 & 1
+\end{matrix}\right)}_{\hat{A}}\underbrace{\left[\begin{matrix}x_{k}\\
+1
+\end{matrix}\right]}_{\hat{x}_{k}}+\underbrace{\left(\begin{matrix}B\\
+0
+\end{matrix}\right)}_{\hat{B}}\hat{u}_{k}\\
+C\left(\mathbf{u},\mathbf{x}\right) & =\sum_{k=0}^{T}\hat{x}_{k}^{T}\hat{Q}\hat{x}_{k}+\hat{u}_{k}^{T}R\hat{u}_{k}
+\end{align*}
+
+
+with $\hat{u}_{k}=u_{k}+R^{-1}r$ and $\hat{Q}=\left(\begin{matrix}Q & q\\
+q^{T} & d
+\end{matrix}\right)$ . 
+
+\begin{comment}
+$\left(\begin{matrix}x\\
+1
+\end{matrix}\right)^{T}\left(\begin{matrix}Q & q\\
+q^{T} & \eta_{1}
+\end{matrix}\right)\left(\begin{matrix}x\\
+1
+\end{matrix}\right)=\left(\begin{matrix}x\\
+1
+\end{matrix}\right)^{T}\left(\begin{matrix}Qx+q\\
+q^{T}x+\eta_{1}
+\end{matrix}\right)=x^{T}Qx+x^{T}q+q^{T}x+d$
+\end{comment}
+
+
+The $\hat{A}$, $\hat{B}$, $\hat{Q}$, and $R$ matrices specify
+a linear dynamical system with quadratic costs to which an optimal
+solution can be found with LQR. 
+
+
+\subsection{Nuances and Subtleties}
+
+
+\subsubsection{Non-exact steering}
+
+rewiring and propagating dynamics
+
+
+\subsubsection{Uncontrollable Dynamics}
+
+The linearized system may be uncontrollable -- the $A$ and $B$ matrices
+are such that it's not possible to control all the modes of the system.
+This is the case, for example, for a cart with two inverted pendulums
+of the same length linearized about the upward-pointing fixed point.
+The control input to the system affects both linearized pendulums
+in the same way, so it's not possible to independently stabilize them.
+For the infinite-horizon LQR control problem, there is no solution.
+For the finite-horizon problem, there is a solution, though it might
+not be possible to go to any arbitrary location. If the system linearized
+at $x'$ cannot reach $x''$, then $C\left(x',x''\right)$ needs to
+be defined in another way.
+
+is Therefore using the LQR cost metric cannot approximate the cost 
+
+\begin{comment}
+Typical RTT{*} the cost metric is an underestimate of the true cost,
+since the metric does not take into consideration obstacles. The true
+cost, for example, might be infinite if there is no feasible path,
+but the Euclidian metric will always be finite.
+
+If the system is uncontrollable as is linearized by a single point,
+then the LQR cost will be infinite while the true cost is not.
+\end{comment}
+
+
+
+\subsubsection{Indefinite Cost}
+
+\begin{comment}
+What if $\hat{Q}$ is indefinite? 
+
+Options:
+
+1. Use sequential QP techniques like shifting eigenvalues to make
+$\hat{Q}$ definite. 
+
+http://www.cs.berkeley.edu/\textasciitilde{}pabbeel/cs287-fa11/slides/NonlinearOptimizationForOptimalControl.pdf
+(Page 11 bottom slide)
+
+2. LQR with indefnite weighting matrices
+
+Chapter 9 of:
+
+http://epubs.siam.org.libproxy.mit.edu/doi/book/10.1137/1.9781611970760
+
+(same book) 
+
+http://books.google.com/books?id=bD\_83idGZ2cC\&lpg=PA211\&ots=q3U7u4rmNc\&dq=indefinite\%20LQR\&pg=PA211\#v=onepage\&q\&f=false
+
+http://www.tandfonline.com/doi/abs/10.1080/00207178408933184\#preview
+\end{comment}
+
+
+
+\subsubsection{Actuation Constraints}
+
+The LQR framework does not permit actuation constraints.
+
+\begin{comment}
+Say the LQR solution returns a control action $u\not\in\mathcal{U}$
+(the set of permitted actions). Simply choosing a $u'=\alpha u$ such
+that $u'\in\mathcal{U}$ while minimizing $\alpha^{2}$ (so that $u'$
+is close to $u$) intuitively will not explore the space as desired
+-- the state won't move along the same direction in general.
+
+To clarify:
+
+if the state of the system is $x_{k}$, then the next state is $x_{k+1}=Ax_{k}+Bu$,
+which presumably moves the system toward $x_{rand}$. The state $x_{k+1}'=Ax_{k}+Bu'$
+does not, in general, move the system directly toward $x_{rand}$.
+\end{comment}
+
+
+
+\subsubsection{Asymmetric Cost}
+
+\begin{comment}
+http://math.stackexchange.com/a/23397/2256
+\end{comment}
+
+
+
+\section{Related Work}
+
+vdB, Glassman, Perez
+
+
+\section{Results}
+
+
+\subsection{Linear Domain}
+
+spaceship no orientation
+
+
+\subsection{Non-linear Domain}
+
+spaceship orientation
+
+
+\subsection{Results}
+
+Quick mention of performance (or not). Picture of tree, cost over
+iteration
+
+
+\section{Discussion and Conclusion and Future Work}
+
+Code available. Spatial Data structure future
+
+
+\section{Acknowledgments}
+
+
+\section{References}
+\end{document}
