@@ -65,6 +65,7 @@ def run_forward_fb(x0,gain_schedule):
 
 no_obstacles_test = True
 def obstacles(x,y):
+    return abs(x)<.2 #velocity limit
     if no_obstacles_test: return True
     #return true for if point is not in collision
     out_ball = (x-0)**2 + (y-0)**2 > .5**2
@@ -83,19 +84,27 @@ def isStateValid(state):
     return bool(obstacles(x,y))
 
 def isActionValid(action):
-    return abs(action[0]) < .1
+    return True
+    r = abs(action[0]) < 1e6
+    if not r: print 'action constraint!',action
+    return r
 
 max_time_horizon = 100
-goal = np.array([.8,.8,70])
+goal = np.array([0,.8,70])
 def sample():
     if np.random.rand()<.9:
-        statespace = np.random.rand(2)*2-1
-        #time = np.random.randint(0,max_time_horizon,size=1) + 1
-        time = np.array(min(np.random.geometric(.06,size=1),max_time_horizon))
+        statespace = np.random.rand(2)*np.array([.4,2])-np.array([.2,1])
+        time = np.random.randint(0,max_time_horizon,size=1) + 1
+        #time = np.array(min(np.random.geometric(.06,size=1),max_time_horizon))
         time = np.reshape(time,newshape=(1,))
         return np.concatenate((statespace,time))
     else: #goal bias
-        return goal
+        statespace = goal[0:2]
+        time = np.random.randint(0,max_time_horizon,size=1) + 1
+        #time = np.array(min(np.random.geometric(.06,size=1),max_time_horizon))
+        time = np.reshape(time,newshape=(1,))
+        return np.concatenate((statespace,time))
+
 
 def collision_free(from_node,action):
     """
@@ -136,6 +145,32 @@ def cost(x_from,action):
                             +np.dot(x.T,np.dot(Q,x))
                             ) 
     return cost
+
+def node_cache_ctg(node):
+    global A
+    global B
+    global Q
+    global R
+    global max_time_horizon
+
+    print 'calculate ctg for', node
+    x = node['state']        
+    #reverse system
+    Ar = A.I
+    Br = -A.I * B
+    kmax = max_time_horizon - x[2] +1
+    assert kmax > 0
+
+    #ctg[0] is cost-to-go zero steps -- very sharp quadratic
+    #so ctg[k] with k = max_time_horizon - from_node['state'][2] is time to go
+
+
+    Fs, Ps = final_value_LQR(Ar,Br,Q,R,x[0:2],kmax)
+    #storing in reverse order is easier to think about.
+    #node['gain'][i] is what you should do with i steps left to go.
+    node['ctg'] = Ps[::-1] 
+    node['gain'] = Fs[::-1]
+
 
 def steer(x_from_node,x_toward):
     global A
@@ -178,7 +213,7 @@ def steer(x_from_node,x_toward):
     #pk should be zeros. 
 
     Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
-
+    print Fs
     xs = np.zeros(shape=(T+1,3))
     us = np.zeros(shape=(T,1))
     xs[0] = x_from
@@ -187,9 +222,60 @@ def steer(x_from_node,x_toward):
         us[i] = -1 * (np.dot(Fs[i,:,0:2],xs[i,0:2]) + Fs[i,:,2])
         xs[i+1,0:2] = np.dot(A,xs[i,0:2].T) + np.dot(B,us[i].T)
         xs[i+1,2] = xs[i,2] + 1
+
     x_actual = xs[-1]    
-    
     return (x_actual, us)
+
+def steer_cache(x_from_node,x_toward):
+    global A
+    global B
+
+    x_from = x_from_node['state']
+    assert len(x_from) == 3
+    T = x_toward[2] - x_from[2] #how much time to do the steering
+
+    assert T-int(T) == 0 #discrete time
+
+    T=int(T)
+    
+    if T <= 0:
+        return (x_from,np.zeros(shape=(0,1)))   #stay here
+
+    if T < 5:
+        #this technique isn't too accurate for short times due to slack in the final-value constraint
+        #so do something else.
+        return steer(x_from_node,x_toward)
+
+    desired = np.matrix([[x_toward[0]],
+                         [x_toward[1]]])                     
+
+    if 'gain' not in x_from_node:
+        node_cache_ctg(x_from_node)
+
+    Fs = x_from_node['gain']
+
+    #reverse system
+    Ar = A.I
+    Br = -A.I * B
+
+    xs = np.zeros(shape=(T+1,3))
+    us = np.zeros(shape=(T,1))
+
+    #we're driving backwards. start at x_toward.
+    xs[0] = x_toward
+
+    for i in range(T):
+        j = T - i-1 #gain matrices Fs[j] is what you should do with j steps remaining
+        us[i] = -1 * (np.dot(Fs[j,:,0:2],xs[i,0:2]) + Fs[j,:,2])
+        xs[i+1,0:2] = np.dot(Ar,xs[i,0:2].T) + np.dot(Br,us[i].T)
+        xs[i+1,2] = xs[i,2] - 1 #reverse time
+
+    xs = xs[::-1]
+    us = us[::-1]
+    x_actual = xs[-1]    
+    #print 'error',(x_from - xs[0])
+    return (x_actual, us)
+
 
 def steer_QP(x_from_node,x_toward):
     global A
@@ -301,6 +387,8 @@ def distance(from_node,to_point):
     #assert False
     return np.dot(x_from_homo.T,np.dot(Ps[0],x_from_homo))
 
+
+    
 def distance_cache(from_node,to_point):
     #to_point is an array and from_point is a node
 
@@ -326,21 +414,8 @@ def distance_cache(from_node,to_point):
         return 0 if np.allclose(x_from,x_toward) else np.inf
     
     if 'ctg' not in from_node:
-        print 'calculate ctg for', from_node
-        
-        #reverse system
-        Ar = A.I
-        Br = -A.I * B
-        kmax = max_time_horizon - x_from[2] +1
-        assert kmax > 0
+        node_cache_ctg(from_node)
 
-        Fs, Ps = final_value_LQR(Ar,Br,Q,R,x_from[0:2],kmax)
-        from_node['ctg'] = Ps[::-1] #storing in reverse order is easier to think about.
-        
-
-    #ctg[0] is cost-to-go zero steps -- very sharp quadratic
-    #so ctg[k] with k = max_time_horizon - from_node['state'][2] is time to go
-    
     ctg = from_node['ctg'][T]
 
     x_to_homo = np.zeros(3)
@@ -349,6 +424,16 @@ def distance_cache(from_node,to_point):
      
     return np.dot(x_to_homo,np.dot(ctg,x_to_homo.T))
 
+def distance_direct_steer_cache(from_node,to_point):
+    #print from_node['state'], to_point
+    #to_point is an array and from_point is a node
+    assert len(to_point)==3
+    x_actual,action = steer_cache(from_node,to_point)
+    if np.allclose(x_actual,to_point,atol=1e-4): #if actually drove there:
+        return cost(from_node['state'],action)
+    else:
+        return np.inf
+
 def check_cache_distances(rrt,to_point):
     for node in rrt.tree.nodes():
         from_node = rrt.tree.node[node]
@@ -356,10 +441,13 @@ def check_cache_distances(rrt,to_point):
         d2 = distance_cache(from_node,to_point)
         d3 = distance_direct(from_node,to_point)
         d4 = distance_direct_qp(from_node,to_point)
+        d5 = distance_direct_steer_cache(from_node,to_point)
         T = to_point[2] - from_node['state'][2] 
-        print d1,d2,d3,d4,T
+        print d1,d2,d3,d4,d5,T
 #        if not (a == np.inf and b == np.inf):
 #            print a,b,abs(a-b)/(abs(a)+abs(b))
+
+
 
 goal_region_radius = .01
 def goal_test(node):
@@ -378,7 +466,7 @@ rrt = RRT(state_ndim=3)
 rrt.set_distance(distance_cache)
 
 rrt.set_cost(cost)
-rrt.set_steer(steer)
+rrt.set_steer(steer_cache)
 
 rrt.set_goal_test(goal_test)
 rrt.set_sample(sample)
@@ -388,17 +476,47 @@ rrt.set_collision_free(collision_free)
 rrt.set_distance_from_goal(distance_from_goal)
 
 rrt.gamma_rrt = 4.0
-rrt.eta = 0.5
+rrt.eta = 0.2
 rrt.c = 1
 
 rrt.set_start(start)
 rrt.init_search()
 
+def plot_tree(rrt):
+    tree = rrt.tree
+    leafs = [i for i in tree.nodes() if len(tree.successors(i)) == 0]
+    accounted = set()
+    paths = []
+
+    for leaf in leafs:
+        this_node = leaf
+        this_path = []
+        paths.append(this_path)
+        while True:
+            this_path.append(this_node)
+            accounted.add(this_node)
+            p = tree.predecessors(this_node)
+            if len(p) == 0:
+                break
+            assert len(p) == 1
+            this_node = p[0]
+            if this_node in accounted:
+                this_path.append(this_node) #repeat branching node
+                break
+
+    from mayavi import mlab
+    for p in paths:
+        s = np.array([rrt.tree.node[i]['state'] for i in p])
+        c = np.array([rrt.tree.node[i]['cost'] for i in p])
+        mlab.plot3d(s[:,0],s[:,1],s[:,2]/50,c,tube_radius=0.002,colormap='Spectral')
+
 if __name__ == '__main__':
     if False:
         import shelve
-        #load_shelve = shelve.open('examplets/rrt_2d_example.shelve')
-        load_shelve = shelve.open('rrt_0950.shelve')
+        import os.path
+        p = 'di_rrt_66k.shelve'
+        assert os.path.exists(p)
+        load_shelve = shelve.open(p)
         rrt.load(load_shelve)
         
     import copy
@@ -617,7 +735,7 @@ if __name__ == '__main__':
         assert False
 
 
-    if True:
+    if False:
         ani_fig = plt.figure(None)
         ani_ax = ani_fig.add_subplot(1,1,1)
         plt.subplots_adjust(left=.15,bottom=.35,right=.8)
