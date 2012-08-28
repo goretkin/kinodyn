@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  28 AUG 2012 14:07
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  28 AUG 2012 14:59
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -479,49 +479,49 @@ LaTeX Warning: No \author given.
 
 LaTeX Warning: No \author given.
 
-LaTeX Font Info:    Try loading font information for OT1+ptmcm on input line 38
+LaTeX Font Info:    Try loading font information for OT1+ptmcm on input line 41
 .
 (/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/ot1ptmcm.fd
 File: ot1ptmcm.fd 2000/01/03 Fontinst v1.801 font definitions for OT1/ptmcm.
 )
-LaTeX Font Info:    Try loading font information for OML+ptmcm on input line 38
+LaTeX Font Info:    Try loading font information for OML+ptmcm on input line 41
 .
 
 (/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omlptmcm.fd
 File: omlptmcm.fd 2000/01/03 Fontinst v1.801 font definitions for OML/ptmcm.
 )
-LaTeX Font Info:    Try loading font information for OMX+psycm on input line 38
+LaTeX Font Info:    Try loading font information for OMX+psycm on input line 41
 .
 
 (/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omxpsycm.fd
 File: omxpsycm.fd 2000/01/03 Fontinst v1.801 font definitions for OMX/psycm.
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 38.
+LaTeX Font Info:    Try loading font information for U+msa on input line 41.
 
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2009/06/22 v3.00 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 38.
+LaTeX Font Info:    Try loading font information for U+msb on input line 41.
 
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 )
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7.4> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 46.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 68.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 46.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 68.
 
-Underfull \hbox (badness 10000) in paragraph at lines 77--78
+Underfull \hbox (badness 10000) in paragraph at lines 102--103
 []\T1/ptm/m/n/10 CollisionFree: $[] \OMS/pzccm/m/n/10 7!
  []
 
 
-Underfull \hbox (badness 7116) in paragraph at lines 105--112
+Underfull \hbox (badness 7116) in paragraph at lines 130--137
 []\T1/ptm/m/n/10 CollisionFree: $[] \OMS/pzccm/m/n/10 7! \OML/ptmcm/m/it/10 x[]
 ; u[]$ \T1/ptm/m/n/10 where
  []
 
-LaTeX Font Info:    Try loading font information for OT1+lmtt on input line 138
+LaTeX Font Info:    Try loading font information for OT1+lmtt on input line 163
 .
 (/usr/local/texlive/2011/texmf-dist/tex/latex/lm/ot1lmtt.fd
 File: ot1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
@@ -529,17 +529,18 @@ File: ot1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
 
 
 ] [2]
-Underfull \hbox (badness 3989) in paragraph at lines 331--337
+Underfull \hbox (badness 3989) in paragraph at lines 356--362
 []$ \T1/ptm/m/n/10 which in-duces a tra-jec-tory $\OT1/ptm/b/n/10 x \OT1/ptmcm/
 m/n/10 =
  []
 
 [3]
-Underfull \hbox (badness 3375) in paragraph at lines 431--442
+Underfull \hbox (badness 3375) in paragraph at lines 456--467
  \T1/ptm/m/it/10 2) Un-con-trol-lable Dy-nam-ics: [][] \T1/ptm/m/n/10 The lin-e
 arized
  []
 
+(./icra.bbl)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -553,11 +554,11 @@ Before submitting the final camera ready copy, remember to:
 
 [4] (./icra.aux) ) 
 Here is how much of TeX's memory you used:
- 4540 strings out of 493633
- 62235 string characters out of 3143378
- 148933 words of memory out of 3000000
- 7754 multiletter control sequences out of 15000+200000
- 139042 words of font info for 172 fonts, out of 3000000 for 9000
+ 4556 strings out of 493633
+ 62471 string characters out of 3143378
+ 148923 words of memory out of 3000000
+ 7766 multiletter control sequences out of 15000+200000
+ 140178 words of font info for 173 fonts, out of 3000000 for 9000
  831 hyphenation exceptions out of 8191
  29i,21n,43p,236b,512s stack positions out of 5000i,500n,10000p,200000b,50000s
 {/usr/local/texlive/2011/texmf-dist/fonts/enc/dvips/lm/lm-rmt
@@ -573,7 +574,7 @@ dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2011/texmf-dist/fonts
 /type1/urw/times/utmbi8a.pfb></usr/local/texlive/2011/texmf-dist/fonts/type1/ur
 w/times/utmr8a.pfb></usr/local/texlive/2011/texmf-dist/fonts/type1/urw/times/ut
 mri8a.pfb>
-Output written on icra.pdf (4 pages, 132700 bytes).
+Output written on icra.pdf (4 pages, 135883 bytes).
 PDF statistics:
  63 PDF objects out of 1000 (max. 8388607)
  45 compressed objects within 1 object stream

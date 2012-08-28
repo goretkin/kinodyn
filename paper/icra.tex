@@ -1,6 +1,6 @@
 %% LyX 2.0.0 created this file.  For more info, see http://www.lyx.org/.
 %% Do not edit unless you really know what you are doing.
-\documentclass[twocolumn,english,letterpaper, 10pt, conference]{IEEEtran}
+\documentclass[twocolumn,english,letterpaper, conference]{IEEEtran}
 \usepackage{lmodern}
 \renewcommand{\sfdefault}{lmss}
 \renewcommand{\ttdefault}{lmtt}
@@ -31,16 +31,41 @@
 
 
 \title{Sample Based Planning for Dynamical Systems}
+
 \maketitle
+
 \begin{abstract}
 We propose a method for finding probabilistically optimal control
 trajectories for dynamical systems with differentiable dynamics and
-differentiable cost function. The method consists of the \rrtstar sample-based
-motion planning algorithm with a heuristic motivated by linear control
-system theory.
+twice differentiable cost functions. We first introduce a 
+version of the \rrtstar algorithm that uses an affine quadratic regulator 
+extension to
+plan for problems with affine dynamics and second order costs. 
+We prove that this method almost surely
+converges to the optimal plan.
+We then show how to automatically derive an
+extension method for problems with nonlinear dynamics and
+non-quadratic costs by locally approximating both functions. This
+allows us to automatically derive an extension method for 
+general domains, provided their dynamics are locally differentiable  and
+their cost function locally twice differentiable. This 
+removes the need for
+domain-specific  extension methods, which are a major
+obstacle to the general applicability of \rrtstar. 
+We demonstrate
+our method's application in a few standard benchmark domains. 
 \end{abstract}
 
 \section{Introduction}
+
+intro: rrtstar is great.
+offers probabilistically complete motion planning algorithm
+using a sampling based method based on the popular
+RRT algorithm \cite{lavalle.kuffner.ijrr01}. Yada yada.
+
+however, we require a 
+
+\rrtstar  \cite{karaman.frazzoli.ijrr11}
 
 Recently, RRT, a sampling-based, probablistically complete motion
 planning algorithm was extended to \rrtstar which provides probabilistic
@@ -543,4 +568,6 @@ Code available. Spatial Data structure future
 
 
 \section{References}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 \end{document}
