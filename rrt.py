@@ -27,13 +27,15 @@ class RRT():
         self.rrt_until_feasible = True      #do RRT until you can start pruning, then so RRT*
         self.search_initialized = False 
         
+
         self.n_pruned = 0   #nodes removed due to pruning
         self.n_rewired = 0  #edges removed due to rewiring
         self.n_extensions = 0 #number of times an extension was attempted
         self.n_iters = 0
         
         self.found_feasible_solution = False
-        self.worst_cost = None      #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
+        self.worst_cost = None          #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
+        self.can_prune = False          #if True, then worst_cost has decreased since last time we did a prune.
 
         self.cheapest_goal = None   #the goal corresponding with the upper-bound cost
         self.goal_set_nodes = set() #a set of node ids that are within the goal set
@@ -216,6 +218,60 @@ class RRT():
             self.extend(x_rand)
             print 'iter:',i,' n_pruned:',self.n_pruned, 'n_rewired:', self.n_rewired, 'nodes in tree:', len(self.tree.node)
 
+    def check_goal(self,node_id):
+        x_new_id = node_id
+        tree = self.tree
+        
+        if self.goal_test(tree.node[x_new_id]):
+                print 'added point in the goal set'
+                self.goal_set_nodes.add(x_new_id)
+                if not self.found_feasible_solution:
+                    print '!!!\n'*5
+                    print 'found first solution'
+                    print '!!!\n'*5
+                    self.found_feasible_solution = True
+                    self.worst_cost = tree.node[x_new_id]['cost']
+                    self.cheapest_goal = x_new_id
+                    self.cost_history.append((self.n_iters,self.worst_cost))
+                    self.can_prune = True
+                else:
+                    if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
+                        self.worst_cost = tree.node[x_new_id]['cost']
+                        self.cheapest_goal = x_new_id
+                        self.cost_history.append((self.n_iters,self.worst_cost))
+                        self.can_prune = True
+
+    def prune(self):
+        pruned_nodes = set()
+        if self.do_pruning and self.can_prune:
+            print 'Prune the tree: ',self.worst_cost
+            pruned_nodes = self.prune_at_bound(self.worst_cost)
+            print ' removed %d nodes'%len(pruned_nodes)
+            self.n_pruned += len(pruned_nodes)
+            if self.cheapest_goal in pruned_nodes:
+                raise AssertionError("Pruning removed the best goal, which is used to set the pruning cost bound.")
+        return pruned_nodes
+            
+    def extend_from(self,node_id,to_state):
+        tree = self.tree
+
+        x_actual,action = self.steer(tree.node[node_id],to_state)
+        x_path, u_path, all_the_way  = self.collision_free(tree.node[node_id], action)
+
+        new_id = self.get_node_id()
+        if len(x_path) == 0:
+            return None
+
+        tree.add_node(new_id,attr_dict={  'state': x_path[-1],
+                                            'action':u_path,
+                                            'hops':1+tree.node[node_id]['hops'],
+                                            'cost':tree.node[node_id]['cost']+self.cost(tree.node[node_id]['state'],u_path)
+                                         }
+        )
+        tree.add_edge(node_id,new_id)
+        return new_id
+
+    
     def extend(self,x_rand):
         self.n_extensions += 1
         self.sample_history.append(x_rand)
@@ -228,7 +284,7 @@ class RRT():
         #when adding an extension, add intermediate points
         add_intermediate_nodes = True    
 
-        do_pruning = False
+        self.do_pruning = True
 
         extension_attempts = 1 #number of attempts of aggressive extension
 
@@ -280,11 +336,11 @@ class RRT():
         if not all_the_way:
             x_new = x_path[-1]
         else:
-            if not np.allclose(x_path[-1],x_new):
+            if not np.allclose(x_path[-1],x_new,atol=1e-4): #fixme bring out this parameter
                 print 'error',np.linalg.norm(np.array(x_path[-1]) - x_new)
                 print 'expected x_new',x_new
                 print 'actual x_new',x_path[-1]
-                raise AssertionError()
+                raise AssertionError('steer function or collision_free function is inaccurate')
 
         #by this point, we have an x_new that is collision-free reachable from at least one node in the tree (namely x_nearest_id)
         #determine who the parent of x_new should be
@@ -295,11 +351,13 @@ class RRT():
         candidate_action_min = action       #action that drives x_min toward candidate_x_new, but might collide
         x_path_min = x_path                 #state trajectory from x_min to candidate_x_new
         u_path_min = u_path                 #control trajectory from x_min to candidate_x_new
-        c_min = tree.node[x_min]['cost']  + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_nearest_id]['state']]+list(x_path_min[1:]),u_path_min)])      #cost of candidate_x_new_min. 
+#        c_min = tree.node[x_min]['cost']  + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_nearest_id]['state']]+list(x_path_min[1:]),u_path_min)])      #cost of candidate_x_new_min. 
                                                                                                 #can't simply do self.cost(tree.node[x_nearest_id]['state'],action) because action might cause a collision
+        c_min = tree.node[x_min]['cost'] + self.cost(tree.node[x_nearest_id]['state'],u_path_min)
 
         if do_find_cheapest_parent or do_rewire:
             X_near = self.near(x_new,radius)
+            print 'nodes in ball:',len(X_near)
         else:
             X_near = None
     
@@ -311,8 +369,9 @@ class RRT():
                 candidate_x_new, candidate_action = self.steer(tree.node[x_near],x_new)
                 x_path, u_path, all_the_way = self.collision_free(tree.node[x_near],candidate_action) #would be great if didn't need to perform this step in order to compute the cost.
 
-                if all_the_way:
-                    this_cost = tree.node[x_near]['cost'] + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_near]['state']]+list(x_path[1:]),u_path)])
+                if all_the_way and np.allclose(candidate_x_new,x_new):  #fixme allclose should have some greater tolerance for systems for which it is hard to steer
+                    #this_cost = tree.node[x_near]['cost'] + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_near]['state']]+list(x_path[1:]),u_path)])
+                    this_cost = tree.node[x_near]['cost'] + self.cost(tree.node[x_near]['state'],u_path)
                     if this_cost < c_min:                
                         x_min = x_near
                         c_min = this_cost
@@ -340,7 +399,9 @@ class RRT():
         else:
             #segment the extension into tiny parts, as given by the collision_free function
             last_node_id = x_min
-            for (x,u) in zip(x_path_min,u_path_min):
+            for i in range(len(x_path_min)):
+                x = x_path_min[i]
+                u = u_path_min[[i]] #preserve the dimensionality
                 assert len(x_new) == self.state_ndim 
                 this_node_id = self.get_node_id()
                 tree.add_node(this_node_id,attr_dict={  'state':x,
@@ -352,6 +413,15 @@ class RRT():
                 tree.add_edge(last_node_id,this_node_id)
                 last_node_id = this_node_id                
             x_new_id = last_node_id
+
+        #now x_new_id has a parent and is in the tree
+
+        #another goal bias -- try to grow toward the goal.
+        if not self.goal is None:
+            added_id = self.extend_from(x_new_id,self.goal)
+            if not added_id is None: 
+                print 'goal extension bias got somewhere.',tree.node[added_id]['action']
+                self.check_goal(added_id)
 
         self.viz_x_rand = x_rand
         self.viz_x_nearest_id = x_nearest_id            
@@ -375,32 +445,8 @@ class RRT():
 
         self.viz_change = True
         
-        pruned_nodes = set()    #keep track of nodes that were pruned
-
-        if self.goal_test(tree.node[x_new_id]):
-            print 'added point in the goal set'
-            self.goal_set_nodes.add(x_new_id)
-            if not self.found_feasible_solution:
-                print '!!!\n'*5
-                print 'found first solution'
-                print '!!!\n'*5
-                self.found_feasible_solution = True
-                self.worst_cost = tree.node[x_new_id]['cost']
-                self.cheapest_goal = x_new_id
-                self.cost_history.append((self.n_iters,self.worst_cost))
-            else:
-                if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
-                    self.worst_cost = tree.node[x_new_id]['cost']
-                    self.cheapest_goal = x_new_id
-                    self.cost_history.append((self.n_iters,self.worst_cost))
-            if do_pruning:
-                print 'Prune the tree: ',self.worst_cost
-                pruned_nodes = self.prune(self.worst_cost)
-                print ' removed %d nodes'%len(pruned_nodes)
-                self.n_pruned += len(pruned_nodes)
-                if self.cheapest_goal in pruned_nodes:
-                    raise AssertionError("Pruning removed the best goal, which is used to set the pruning cost bound.")
-
+        self.check_goal(x_new_id)
+        pruned_nodes = self.prune()
         if do_rewire:
             if x_new_id in pruned_nodes:
                 #pruning removed x_new
@@ -484,7 +530,17 @@ class RRT():
             #    print '_new_cost %f new_cost %f'%(_new_cost,new_cost)
                 
             self._deep_update_cost(child,new_cost)
-        
+
+    def best_solution_goal(self):
+        if self.cheapest_goal is None:
+            return None
+        graph = self.tree.reverse()
+        #there's actually only a single path, since the graph is a tree
+        path = nx.shortest_path(graph,source=self.cheapest_goal,target=self.start_node_id)
+        path = path[::-1]
+        return path, np.array([self.tree.node[i]['state'] for i in path]), np.array([self.tree.node[i]['action'] for i in path[1:]])
+
+                
     def best_solution_(self,x):
         """
         return list of node IDs forming a path
@@ -516,12 +572,13 @@ class RRT():
         return path[::-1]
         
     #in order for prune to work, self.distance_from_goal cannot overestimate the true cost to get to the goal.
-    def prune(self,bound):
+    def prune_at_bound(self,bound):
         nodes_before = set(self.tree.nodes())
         self._prune_from(bound,self.start_node_id)
         nodes_after = set(self.tree.nodes())
         assert nodes_after<=nodes_before #the new nodes should be a subset of the old nodes
         nodes_removed = nodes_before - nodes_after
+        self.goal_set_nodes = self.goal_set_nodes - nodes_removed   #in case we removed goal
         return nodes_removed
         
     def _prune_from(self,bound,root):
