@@ -47,40 +47,46 @@ def collision_free(from_node,action):
     check that taking action from from_node produces a collision free trajectory
     if not, return a partial trajectory for the state (x_path) and control (u_path)
     """
+    assert len(action.shape) == 2 #two dimensions (array of actions)
+    assert action.shape[1] == 2 #action is two dimensional
 
-    action = np.array(action)
     x_path = [from_node['state']]       #initialize this with the from_node, but when return, make sure to take it out.
     u_path = []
     all_the_way = False
 
     if isStateValid(from_node['state']):
-        #x_path.append(from_node['state'])
-        x_final = from_node['state'] + action
+        last_x_final = from_node['state'] 
+        for single_action in action:
+            #x_path.append(from_node['state'])
+            x_final = last_x_final + single_action
 
-        step = .1
+            step = .1
 
-        for i in itertools.count():
-            u = x_final - x_path[i] #actuation to go to x_final
-            if np.linalg.norm(u) < 1e-6:
-                all_the_way = True
-                break
-            
-            if np.linalg.norm(u) > step:
-                u = u / np.linalg.norm(u) * step
-            x_next = x_path[i] + u
+            for i in itertools.count():
+                u = x_final - x_path[i] #actuation to go to x_final
+                if np.linalg.norm(u) < 1e-6:
+                    all_the_way = True
+                    break                
+                if np.linalg.norm(u) > step:
+                    u = u / np.linalg.norm(u) * step
+                x_next = x_path[i] + u
 
-            if not isStateValid(x_next):
-                break
-            u_path.append(u)
-            x_path.append(x_next)
-        
-    return x_path[1:], u_path, all_the_way    
+                if not isStateValid(x_next):
+                    break
+                u_path.append(u)
+                x_path.append(x_next)
+            last_x_final = x_final
+    x_path = np.array(x_path[1:])
+    u_path = np.array(u_path)
+
+    return x_path, u_path, all_the_way    
 
 def cost(x_from,action):
     #cost is the Euclidian length of the path.
     assert len(x_from) == 2
-    assert len(action) == 2
-    return np.linalg.norm(action)
+    assert len(action.shape) == 2
+    assert action.shape[1] == 2
+    return sum ( [np.linalg.norm(a) for a in action] ) 
 
 def steer(x_from_node,x_toward):
     x_from = x_from_node['state']
@@ -92,7 +98,7 @@ def steer(x_from_node,x_toward):
     control = extension_direction #steer
     
     x_new = x_from + control 
-    return (x_new,control)
+    return (x_new,control.reshape((1,-1)))
     
 def distance(from_node,to_point):
     assert len(to_point)==2
@@ -126,6 +132,8 @@ rrt.gamma_rrt = 4.0
 rrt.eta = 0.5
 rrt.c = 1
 
+
+rrt.goal = goal
 rrt.set_start(start)
 rrt.init_search()
 
@@ -333,8 +341,8 @@ if True:
     
     import shelve
     plt.show()
-    for s in shelve.open('kin2d_rewire_bug.shelve')['sample_history']:
-        rrts(s)
+    #for s in shelve.open('kin2d_rewire_bug.shelve')['sample_history']:
+    #    rrts(s)
    
 ani_rrt = copy.deepcopy(rrt)
 
