@@ -1,9 +1,34 @@
 %% LyX 2.0.0 created this file.  For more info, see http://www.lyx.org/.
 %% Do not edit unless you really know what you are doing.
-\documentclass[twocolumn,english,letterpaper, conference]{IEEEtran}
-\usepackage{lmodern}
-\renewcommand{\sfdefault}{lmss}
-\renewcommand{\ttdefault}{lmtt}
+\documentclass[letterpaper, 10pt, english, conference]{IEEEtran}
+
+\overrideIEEEmargins
+
+\usepackage{amsfonts}
+\usepackage{amsmath,amssymb}
+\usepackage[tight]{subfigure}
+\usepackage{cite}
+\usepackage[vlined,linesnumbered,ruled]{algorithm2e}
+\usepackage{color}
+
+\ifx\pdfoutput\undefined
+\usepackage{graphicx} % not running pdftex
+\else
+\ifx\pdfoutput\relax
+\usepackage{graphicx} % not running pdftex
+\else
+\ifnum\pdfoutput>0
+\usepackage[pdftex]{graphicx} % running pdftex with pdf output
+\else
+\usepackage{graphicx} % running pdftex with dvi output
+\fi
+\fi
+\fi
+
+
+%\usepackage{lmodern}
+%\renewcommand{\sfdefault}{lmss}
+%\renewcommand{\ttdefault}{lmtt}
 \usepackage[T1]{fontenc}
 \usepackage[latin9]{inputenc}
 \usepackage{geometry}
@@ -11,26 +36,25 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \usepackage{verbatim}
-\usepackage{amsmath}
-\usepackage{amssymb}
 
-\makeatletter
+
+%\makeatletter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
 \usepackage[T1]{fontenc}
 \usepackage{pslatex}
-\usepackage[vlined,linesnumbered,ruled]{algorithm2e}
 
 \makeatother
 
 \usepackage{babel}
 \begin{document}
+
 \global\long\def\at#1{}
 
-\newcommand{\rrtstar}{RRT$^*$}
+\newcommand{\rrtstar}{RRT$^*$ }
 
 
 
-\title{Sample Based Planning for Dynamical Systems}
+\title{\LARGE \bf AQR-RRT$^*$: Optimal Sample-Based Motion Planning for General Dynamical Systems}
 
 \maketitle
 
@@ -38,7 +62,7 @@
 We propose a method for finding probabilistically optimal control
 trajectories for dynamical systems with differentiable dynamics and
 twice differentiable cost functions. We first introduce a 
-version of the \rrtstar algorithm that uses an affine quadratic regulator 
+version of the \rrtstar algorithm that uses an LQR-based
 extension to
 plan for problems with affine dynamics and second order costs. 
 We prove that this method almost surely
@@ -51,7 +75,7 @@ general domains, provided their dynamics are locally differentiable  and
 their cost function locally twice differentiable. This 
 removes the need for
 domain-specific  extension methods, which are a major
-obstacle to the general applicability of \rrtstar. 
+obstacle to the general applicability of RRT$^*$. 
 We demonstrate
 our method's application in a few standard benchmark domains. 
 \end{abstract}
