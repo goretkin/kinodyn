@@ -21,14 +21,36 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
+\bibitem{karaman.frazzoli.ijrr11}
+S.~Karaman and E.~Frazzoli, ``Sampling-based algorithms for optimal motion
+  planning,'' \emph{International Journal of Robotics Research}, vol.~30,
+  no.~7, pp. 846--894, June 2011.
+
 \bibitem{lavalle.kuffner.ijrr01}
 S.~M. LaValle and J.~J. Kuffner, ``Randomized kinodynamic planning,''
   \emph{International Journal of Robotics Research}, vol.~20, no.~5, pp.
   378--400, May 2001.
 
-\bibitem{karaman.frazzoli.ijrr11}
-S.~Karaman and E.~Frazzoli, ``Sampling-based algorithms for optimal motion
-  planning,'' \emph{International Journal of Robotics Research}, vol.~30,
-  no.~7, pp. 846--894, June 2011.
+\bibitem{LaVallefromdyn}
+S.~M. Lavalle, ``From dynamic programming to {RRTs}: Algorithmic design of
+  feasible trajectories,'' in \emph{Control Problems in Robotics}.\hskip 1em
+  plus 0.5em minus 0.4em\relax Springer-Verlag, 2002.
+
+\bibitem{Cheng01}
+P.~Cheng and S.~M. Lavalle, ``Reducing metric sensitivity in randomized
+  trajectory design,'' in \emph{In IEEE International Conference on Intelligent
+  Robots and Systems}, 2001, pp. 43--48.
+
+\bibitem{elena.russ.icra10}
+E.~Glassman and R.~Tedrake, ``A quadratic regulator-based heuristic for rapidly
+  exploring state space,'' in \emph{Proceedings of the IEEE International
+  Conference on Robotics and Automation}, May 2010.
+
+\bibitem{Perez12}
+A.~Perez, R.~Platt, G.~Konidaris, L.~Kaelbling, and T.~Lozano-Perez,
+  ``{LQR-RRT}$^*$: Optimal sampling-based motion planning with automatically
+  derived extension heuristics,'' in \emph{Proceedings of the IEEE
+  International Conference on Robotics and Automation}, May 2012, pp.
+  2537--2542.
 
 \end{thebibliography}

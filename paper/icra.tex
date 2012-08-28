@@ -1,5 +1,3 @@
-%% LyX 2.0.0 created this file.  For more info, see http://www.lyx.org/.
-%% Do not edit unless you really know what you are doing.
 \documentclass[letterpaper, 10pt, english, conference]{IEEEtran}
 
 \overrideIEEEmargins
@@ -25,48 +23,47 @@
 \fi
 \fi
 
-
-%\usepackage{lmodern}
-%\renewcommand{\sfdefault}{lmss}
-%\renewcommand{\ttdefault}{lmtt}
-\usepackage[T1]{fontenc}
-\usepackage[latin9]{inputenc}
-\usepackage{geometry}
-\geometry{verbose}
-\usepackage{fancyhdr}
-\pagestyle{fancy}
 \usepackage{verbatim}
 
 
 %\makeatletter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
-\usepackage[T1]{fontenc}
-\usepackage{pslatex}
+%\usepackage[T1]{fontenc}
+%\usepackage{pslatex}
 
-\makeatother
+%\makeatother
 
-\usepackage{babel}
+%\usepackage{babel}
 \begin{document}
 
 \global\long\def\at#1{}
 
 \newcommand{\rrtstar}{RRT$^*$ }
 
+\title{\LARGE \bf Optimal Sample-Based Planning with
+Automatically Derived Extension Procedures for Systems
+with General Costs and Dynamics}
 
-
-\title{\LARGE \bf AQR-RRT$^*$: Optimal Sample-Based Motion Planning for General Dynamical Systems}
+\author{
+\authorblockN{Gustavo Goretkin, Alejandro Perez, Robert Platt Jr., and George Konidaris; TLPK?}
+\authorblockA{Computer Science and Artificial Intelligence Laboratory,
+Massachusetts Institute of Technology\\
+\{goretkin, aperez, rplatt, gdk\}@csail.mit.edu}
+}
 
 \maketitle
 
 \begin{abstract}
-We propose a method for finding probabilistically optimal control
-trajectories for dynamical systems with differentiable dynamics and
-twice differentiable cost functions. We first introduce a 
-version of the \rrtstar algorithm that uses an LQR-based
+We introduce a method for automatically deriving the extension
+procedure---a critical component of the RRT$^*$ algorithm---for 
+general systems with differentiable dynamics and
+twice differentiable cost functions. 
+%
+We first introduce a 
+version of the RRT$^*$ algorithm that uses an LQR-based
 extension to
-plan for problems with affine dynamics and second order costs. 
-We prove that this method almost surely
-converges to the optimal plan.
+plan for problems with affine dynamics and second order costs,
+and prove that it almost surely converges to the optimal plan.  
 We then show how to automatically derive an
 extension method for problems with nonlinear dynamics and
 non-quadratic costs by locally approximating both functions. This
@@ -81,29 +78,54 @@ our method's application in a few standard benchmark domains.
 \end{abstract}
 
 \section{Introduction}
+The RRT$^*$ algorithm \cite{karaman.frazzoli.ijrr11} offers a practical,
+effective method for probabilistically complete optimal motion planning.
+However, like all members of the RRT family of planning algorithms
+\cite{lavalle.kuffner.ijrr01}, it builds a tree using an extension procedure which,
+given a pair of points, both estimates the optimal cost of moving from 
+one to the other, and provides a method for doing so. While designing
+such a procedure is straightforward for kinematic systems, for 
+more complex systems it is often difficult to design an extension procedure
+that accurately reflects the dynamics of the domain. Since the 
+performance of RRT-based algorithms can be sensitive to the 
+extension procedure used
+\cite{LaVallefromdyn,Cheng01}, designing it is often the a major
+obstacle to their  application.
 
-intro: rrtstar is great.
-offers probabilistically complete motion planning algorithm
-using a sampling based method based on the popular
-RRT algorithm \cite{lavalle.kuffner.ijrr01}. Yada yada.
+Recently, several authors have proposed using methods from linear
+control theory to automatically derive all or part of the extension
+procedure, as was originally suggested by LaValle and Kuffner
+\cite{lavalle.kuffner.ijrr01}. Glassman and Tedrake \cite{elena.russ.icra10}
+derived a cost-to-go pseudo metric based on linear-quadratic regulators (LQR),
+which was used to grow an RRT in domains with constrained and 
+underactuated dynamics. Perez et al. \cite{Perez12} extended their work
+to automatically derive the extension procedure for arbitrary systems
+with differentiable dynamics and quadratic cost functions. 
+TODO: JUR. ALEJANDRO, CAN YOU DO THIS? JUST A SINGLE SENTENCE HERE
+PLEASE.
 
-however, we require a 
+We propose a method for deriving the extension procedure for systems
+with general costs and dynamics (provided the dynamics are differentiable
+and the costs are twice differentiable). We begin by introducing a 
+version of the RRT$^*$ algorithm that uses an LQR-based
+extension to plan for problems with affine dynamics and second order costs,
+and prove that it almost surely converges to the optimal plan.  
+We then show how to automatically derive an
+extension procedure for more general problems using
+a local linear approximation to the dynamics and a local quadratic
+approximation to the cost function. 
+MAYBE: WE PROVE THAT OUR METHOD IS PROBABILISTICALLY COMPLETE AND
+ALMOST SURELY CONVERGES TO THE OPTIMAL PLAN. THIS METHOD IS
+THEREFORE CAPABLE OF FINDING SUCH A PLAN FOR ANY SYSTEM ... (CONDITIONS)
+We demonstrate
+our method's application in a few standard benchmark domains. 
 
-\rrtstar  \cite{karaman.frazzoli.ijrr11}
-
-Recently, RRT, a sampling-based, probablistically complete motion
-planning algorithm was extended to \rrtstar which provides probabilistic
-optimality. It is straightforward to apply \rrtstar to kinematic motion
-planning problems and this is typically the state-of-the-art solution.
-For problems with differential constraints the application is not
-so straightforward -- some of the primitives require domain-specific
-design. We present a method that works well across many domains with
-differential constraints.
-
-\begin{comment}
-Explain the distinction between general differential constraints and
-kinodynamic constraints
-\end{comment}
+%\rrtstar  
+%
+%\begin{comment}
+%Explain the distinction between general differential constraints and
+%kinodynamic constraints
+%\end{comment}
 
 
 
@@ -306,12 +328,12 @@ Q & -Qx_{0}\\
 \end{array}\right)$.
 
 
-\section{Application to a constrained Linear System with Quadratic Cost }
+\section{Constrained Linear Systems with Second-Order Cost Functions}
 
 Necessary since in general, not possible or practical for steer function
 to be exact. 
 
-Logically equivalent to common formulation of \rrtstar, but easier to
+Logically equivalent to common formulation of RRT$^*$, but easier to
 plug in the primitives.
 
 Algorithm detailing the different structure here 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  28 AUG 2012 15:09
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  28 AUG 2012 17:29
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -102,7 +102,7 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size <24> not available
 \c@IEEEbiography=\count90
 \@IEEEtranrubishbin=\box26
 )
-** WARNING: \overrideIEEEmargins no longer supported (line 5).
+** WARNING: \overrideIEEEmargins no longer supported (line 3).
 ** Use the \CLASSINPUTinnersidemargin, \CLASSINPUToutersidemargin controls inst
 ead.
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/amsfonts.sty
@@ -289,206 +289,50 @@ Package graphics Info: Driver file: pdftex.def on input line 91.
 \Gin@req@height=\dimen134
 \Gin@req@width=\dimen135
 )
-(/usr/local/texlive/2011/texmf-dist/tex/latex/base/fontenc.sty
-Package: fontenc 2005/09/27 v1.99g Standard LaTeX package
-
-(/usr/local/texlive/2011/texmf-dist/tex/latex/base/t1enc.def
-File: t1enc.def 2005/09/27 v1.99g Standard LaTeX file
-LaTeX Font Info:    Redeclaring font encoding T1 on input line 43.
-)
-LaTeX Font Info:    Try loading font information for T1+ptm on input line 100.
-
-(/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/t1ptm.fd
-File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
-))
-(/usr/local/texlive/2011/texmf-dist/tex/latex/base/inputenc.sty
-Package: inputenc 2008/03/30 v1.1d Input encoding file
-\inpenc@prehook=\toks22
-\inpenc@posthook=\toks23
-
-(/usr/local/texlive/2011/texmf-dist/tex/latex/base/latin9.def
-File: latin9.def 2008/03/30 v1.1d Input encoding file
-))
-(/usr/local/texlive/2011/texmf-dist/tex/latex/geometry/geometry.sty
-Package: geometry 2010/09/12 v5.6 Page Geometry
-
-(/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/ifpdf.sty
-Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
-Package ifpdf Info: pdfTeX in PDF mode is detected.
-)
-(/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/ifvtex.sty
-Package: ifvtex 2010/03/01 v1.5 Switches for detecting VTeX and its modes (HO)
-Package ifvtex Info: VTeX not detected.
-)
-(/usr/local/texlive/2011/texmf-dist/tex/generic/ifxetex/ifxetex.sty
-Package: ifxetex 2010/09/12 v0.6 Provides ifxetex conditional
-)
-\Gm@cnth=\count112
-\Gm@cntv=\count113
-\c@Gm@tempcnt=\count114
-\Gm@bindingoffset=\dimen136
-\Gm@wd@mp=\dimen137
-\Gm@odd@mp=\dimen138
-\Gm@even@mp=\dimen139
-\Gm@layoutwidth=\dimen140
-\Gm@layoutheight=\dimen141
-\Gm@layouthoffset=\dimen142
-\Gm@layoutvoffset=\dimen143
-\Gm@dimlist=\toks24
-)
-(/usr/local/texlive/2011/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
-\fancy@headwidth=\skip67
-\f@ncyO@elh=\skip68
-\f@ncyO@erh=\skip69
-\f@ncyO@olh=\skip70
-\f@ncyO@orh=\skip71
-\f@ncyO@elf=\skip72
-\f@ncyO@erf=\skip73
-\f@ncyO@olf=\skip74
-\f@ncyO@orf=\skip75
-)
 (/usr/local/texlive/2011/texmf-dist/tex/latex/tools/verbatim.sty
 Package: verbatim 2003/08/22 v1.5q LaTeX2e package for verbatim enhancements
-\every@verbatim=\toks25
-\verbatim@line=\toks26
+\every@verbatim=\toks22
+\verbatim@line=\toks23
 \verbatim@in@stream=\read1
-)
-(/usr/local/texlive/2011/texmf-dist/tex/latex/base/fontenc.sty
-Package: fontenc 2005/09/27 v1.99g Standard LaTeX package
-
-(/usr/local/texlive/2011/texmf-dist/tex/latex/base/t1enc.def
-File: t1enc.def 2005/09/27 v1.99g Standard LaTeX file
-LaTeX Font Info:    Redeclaring font encoding T1 on input line 43.
-))
-(/usr/local/texlive/2011/texmf-dist/tex/latex/pslatex/pslatex.sty
-Package: pslatex 1996/07/24 v1.2 pslatex emulation (DPC)
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 65.
-LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/cmr/m/n --> OT1/ptmcm/m/n on input line 65.
-LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/cmr/bx/n --> OT1/ptmcm/m/n on input line 65.
-LaTeX Font Info:    Redeclaring symbol font `letters' on input line 66.
-LaTeX Font Info:    Overwriting symbol font `letters' in version `normal'
-(Font)                  OML/cmm/m/it --> OML/ptmcm/m/it on input line 66.
-LaTeX Font Info:    Overwriting symbol font `letters' in version `bold'
-(Font)                  OML/cmm/b/it --> OML/ptmcm/m/it on input line 66.
-LaTeX Font Info:    Redeclaring symbol font `symbols' on input line 67.
-LaTeX Font Info:    Overwriting symbol font `symbols' in version `normal'
-(Font)                  OMS/cmsy/m/n --> OMS/pzccm/m/n on input line 67.
-LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
-(Font)                  OMS/cmsy/b/n --> OMS/pzccm/m/n on input line 67.
-LaTeX Font Info:    Redeclaring symbol font `largesymbols' on input line 68.
-LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `normal'
-(Font)                  OMX/cmex/m/n --> OMX/psycm/m/n on input line 68.
-LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
-(Font)                  OMX/cmex/m/n --> OMX/psycm/m/n on input line 68.
-\symbold=\mathgroup6
-\symitalic=\mathgroup7
-LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 74.
-LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> OT1/ptm/bx/n on input line 74.
-LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
-(Font)                  OT1/cmr/bx/n --> OT1/ptm/bx/n on input line 74.
-LaTeX Font Info:    Redeclaring math alphabet \mathit on input line 75.
-LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> OT1/ptm/m/it on input line 75.
-LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/cmr/bx/it --> OT1/ptm/m/it on input line 75.
-)
-(/usr/local/texlive/2011/texmf-dist/tex/generic/babel/babel.sty
-Package: babel 2008/07/06 v3.8l The Babel package
-
-(/usr/local/texlive/2011/texmf-dist/tex/generic/babel/english.ldf
-Language: english 2005/03/30 v3.3o English support from the babel system
-
-(/usr/local/texlive/2011/texmf-dist/tex/generic/babel/babel.def
-File: babel.def 2008/07/06 v3.8l Babel common definitions
-\babel@savecnt=\count115
-\U@D=\dimen144
-)
-\l@canadian = a dialect from \language\l@american 
-\l@australian = a dialect from \language\l@british 
-\l@newzealand = a dialect from \language\l@british 
-)) (./icra.aux)
+) (./icra.aux)
 \openout1 = `icra.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 49.
-LaTeX Font Info:    ... okay on input line 49.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 49.
-LaTeX Font Info:    ... okay on input line 49.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 49.
-LaTeX Font Info:    ... okay on input line 49.
-LaTeX Font Info:    Checking defaults for OMS/pzccm/m/n on input line 49.
-LaTeX Font Info:    Try loading font information for OMS+pzccm on input line 49
-.
-(/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omspzccm.fd
-File: omspzccm.fd 2000/01/03 Fontinst v1.801 font definitions for OMS/pzccm.
-)
-LaTeX Font Info:    ... okay on input line 49.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 49.
-LaTeX Font Info:    ... okay on input line 49.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 49.
-LaTeX Font Info:    ... okay on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <5> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <5> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <7> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <7> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <8> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <8> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <9> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <9> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <10> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <10> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <11> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <11> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <12> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <17> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <17> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <20> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <20> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <24> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `T1/ptm/bx/it' in size <24> not available
-(Font)              Font shape `T1/ptm/b/it' tried instead on input line 49.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
 
 (/usr/local/texlive/2011/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count116
-\scratchdimen=\dimen145
+\scratchcounter=\count112
+\scratchdimen=\dimen136
 \scratchbox=\box36
-\nofMPsegments=\count117
-\nofMParguments=\count118
-\everyMPshowfont=\toks27
-\MPscratchCnt=\count119
-\MPscratchDim=\dimen146
-\MPnumerator=\count120
-\makeMPintoPDFobject=\count121
-\everyMPtoPDFconversion=\toks28
+\nofMPsegments=\count113
+\nofMParguments=\count114
+\everyMPshowfont=\toks24
+\MPscratchCnt=\count115
+\MPscratchDim=\dimen137
+\MPnumerator=\count116
+\makeMPintoPDFobject=\count117
+\everyMPtoPDFconversion=\toks25
 ) (/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
 Package: pdftexcmds 2011/04/22 v0.16 Utilities of pdfTeX for LuaTeX (HO)
 
 (/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/ifluatex.sty
 Package: ifluatex 2010/03/01 v1.3 Provides the ifluatex switch (HO)
 Package ifluatex Info: LuaTeX not detected.
+)
+(/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/ifpdf.sty
+Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
+Package ifpdf Info: pdfTeX in PDF mode is detected.
 )
 Package pdftexcmds Info: LuaTeX not detected.
 Package pdftexcmds Info: \pdf@primitive is available.
@@ -526,114 +370,39 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-*geometry* driver: auto-detecting
-*geometry* detected driver: pdftex
-*geometry* verbose mode - [ preamble ] result:
-* driver: pdftex
-* paper: letterpaper
-* layout: <same size as paper>
-* layoutoffset:(h,v)=(0.0pt,0.0pt)
-* modes: 
-* h-part:(L,W,R)=(92.14519pt, 430.00462pt, 92.14519pt)
-* v-part:(T,H,B)=(95.39737pt, 556.47656pt, 143.09605pt)
-* \paperwidth=614.295pt
-* \paperheight=794.96999pt
-* \textwidth=430.00462pt
-* \textheight=556.47656pt
-* \oddsidemargin=19.8752pt
-* \evensidemargin=19.8752pt
-* \topmargin=-6.94011pt
-* \headheight=12.0pt
-* \headsep=18.06749pt
-* \topskip=12.0pt
-* \footskip=28.90755pt
-* \marginparwidth=20.0pt
-* \marginparsep=10.0pt
-* \columnsep=12.0pt
-* \skip\footins=10.79993pt plus 4.79993pt minus 2.39996pt
-* \hoffset=0.0pt
-* \voffset=0.0pt
-* \mag=1000
-* \@twocolumntrue
-* \@twosidefalse
-* \@mparswitchfalse
-* \@reversemarginfalse
-* (1in=72.27pt=25.4mm, 1cm=28.453pt)
-
-LaTeX Font Info:    Calculating math sizes for size <17> on input line 59.
-LaTeX Font Info:    Try loading font information for OT1+ptmcm on input line 59
-.
-(/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/ot1ptmcm.fd
-File: ot1ptmcm.fd 2000/01/03 Fontinst v1.801 font definitions for OT1/ptmcm.
+** ATTENTION: \authorblockN is deprecated (line 54). Use \IEEEauthorblockN inst
+ead.
+** ATTENTION: \authorblockA is deprecated (line 54). Use \IEEEauthorblockA inst
+ead.
+LaTeX Font Info:    Try loading font information for OMS+ptm on input line 54.
+(/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omsptm.fd
+File: omsptm.fd 
 )
-LaTeX Font Info:    Try loading font information for OML+ptmcm on input line 59
-.
+LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 54.
 
-(/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omlptmcm.fd
-File: omlptmcm.fd 2000/01/03 Fontinst v1.801 font definitions for OML/ptmcm.
-)
-LaTeX Font Info:    Try loading font information for OMX+psycm on input line 59
-.
-
-(/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omxpsycm.fd
-File: omxpsycm.fd 2000/01/03 Fontinst v1.801 font definitions for OMX/psycm.
-)
-LaTeX Font Info:    Try loading font information for U+msa on input line 59.
-
+** ATTENTION: \authorblockN is deprecated (line 54). Use \IEEEauthorblockN inst
+ead.
+** ATTENTION: \authorblockA is deprecated (line 54). Use \IEEEauthorblockA inst
+ead.
+LaTeX Font Info:    Try loading font information for U+msa on input line 58.
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2009/06/22 v3.00 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 59.
+LaTeX Font Info:    Try loading font information for U+msb on input line 58.
 
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 )
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <11.89995> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 59.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8.5> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 59.
-
-
-LaTeX Warning: No \author given.
-
-
-LaTeX Warning: No \author given.
-
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7.4> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 92.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 92.
-
-Underfull \vbox (badness 1412) has occurred while \output is active []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 126--127
-[]\T1/ptm/m/n/10 CollisionFree: $[] \OMS/pzccm/m/n/10 7!
- []
-
-
-Underfull \hbox (badness 7081) in paragraph at lines 154--161
-[]\T1/ptm/m/n/10 CollisionFree: $[] \OMS/pzccm/m/n/10 7! \OML/ptmcm/m/it/10 x[]
-; u[]$ \T1/ptm/m/n/10 where
+Underfull \hbox (badness 10000) in paragraph at lines 148--149
+[]\OT1/ptm/m/n/10 CollisionFree: $[] \OMS/cmsy/m/n/10 7!
  []
 
 [1{/usr/local/texlive/2011/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
 ]
-[2]
-Underfull \hbox (badness 3989) in paragraph at lines 380--386
-[]$ \T1/ptm/m/n/10 which in-duces a tra-jec-tory $\OT1/ptm/b/n/10 x \OT1/ptmcm/
-m/n/10 =
- []
-
-[3]
-Underfull \hbox (badness 3375) in paragraph at lines 480--491
- \T1/ptm/m/it/10 2) Un-con-trol-lable Dy-nam-ics: [][] \T1/ptm/m/n/10 The lin-e
-arized
- []
-
-(./icra.bbl)
+[2] [3] (./icra.bbl)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -645,31 +414,41 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[4] (./icra.aux) ) 
+[4
+
+] (./icra.aux) ) 
 Here is how much of TeX's memory you used:
- 5992 strings out of 493633
- 83529 string characters out of 3143378
- 176186 words of memory out of 3000000
- 9138 multiletter control sequences out of 15000+200000
- 150474 words of font info for 199 fonts, out of 3000000 for 9000
+ 4560 strings out of 493633
+ 64898 string characters out of 3143378
+ 155861 words of memory out of 3000000
+ 7777 multiletter control sequences out of 15000+200000
+ 46196 words of font info for 102 fonts, out of 3000000 for 9000
  831 hyphenation exceptions out of 8191
- 38i,21n,43p,236b,525s stack positions out of 5000i,500n,10000p,200000b,50000s
-{/usr/local/texlive/2011/texmf-dist/fonts/enc/dvips/base/8r.e
-nc}</usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pf
-b></usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
-></usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><
-/usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></
-usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></u
-sr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb
-></usr/local/texlive/2011/texmf-dist/fonts/type1/urw/symbol/usyr.pfb></usr/loca
-l/texlive/2011/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/
-2011/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2011/texm
-f-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2011/texmf-dist/fon
-ts/type1/urw/times/utmri8a.pfb>
-Output written on icra.pdf (4 pages, 126615 bytes).
+ 37i,21n,26p,236b,495s stack positions out of 5000i,500n,10000p,200000b,50000s
+{/usr/local/texlive/2011/texmf-dist/fonts/enc/dvips/base/8r.enc
+}</usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb>
+</usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb></
+usr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></u
+sr/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></us
+r/local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/
+local/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/lo
+cal/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/loca
+l/texlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/t
+exlive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texl
+ive/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texli
+ve/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive
+/2011/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2
+011/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/201
+1/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2011
+/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/
+2011/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2011/texmf
+-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/local/texlive/2011/texmf-dist/fon
+ts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2011/texmf-dist/fonts/type1/u
+rw/times/utmri8a.pfb>
+Output written on icra.pdf (4 pages, 208675 bytes).
 PDF statistics:
- 62 PDF objects out of 1000 (max. 8388607)
- 44 compressed objects within 1 object stream
+ 94 PDF objects out of 1000 (max. 8388607)
+ 68 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
