@@ -63,10 +63,11 @@ def run_forward_fb(x0,gain_schedule):
         xs[i,2] = xs[i-1,2] + 1
     return xs[1:],us
 
-no_obstacles_test = True
+no_obstacles_test = False
 def obstacles(x,y):
-    return abs(x)<.2 #velocity limit
     if no_obstacles_test: return True
+
+    return abs(x)<.54 #velocity limit
     #return true for if point is not in collision
     out_ball = (x-0)**2 + (y-0)**2 > .5**2
     in_square = np.logical_and(y>.1,np.logical_and(.3<x,x<.5))
@@ -89,8 +90,9 @@ def isActionValid(action):
     if not r: print 'action constraint!',action
     return r
 
-max_time_horizon = 100
-goal = np.array([0,.8,70])
+max_time_horizon = 50
+goal = np.array([0,.8,50])
+
 def sample():
     if np.random.rand()<.9:
         statespace = np.random.rand(2)*np.array([.4,2])-np.array([.2,1])
@@ -123,8 +125,8 @@ def collision_free(from_node,action):
                 all_the_way = False
                 break
             x_path.append(x)
-            u_path.append(np.array([u])) #brackets keep the elements of u_path looking like an action
-
+            u_path.append(u) 
+    u_path = np.array(u_path)
     return x_path, u_path, all_the_way        
  
 def cost(x_from,action):
@@ -153,7 +155,7 @@ def node_cache_ctg(node):
     global R
     global max_time_horizon
 
-    print 'calculate ctg for', node
+    #print 'calculate ctg for', node
     x = node['state']        
     #reverse system
     Ar = A.I
@@ -462,6 +464,8 @@ def distance_from_goal(node):
 start = np.array([0,-1,0])
 rrt = RRT(state_ndim=3)
 
+rrt.goal = goal
+
 #rrt.set_distance(distance)
 rrt.set_distance(distance_cache)
 
@@ -482,7 +486,9 @@ rrt.c = 1
 rrt.set_start(start)
 rrt.init_search()
 
+
 def plot_tree(rrt):
+    from mayavi import mlab
     tree = rrt.tree
     leafs = [i for i in tree.nodes() if len(tree.successors(i)) == 0]
     accounted = set()
@@ -504,7 +510,6 @@ def plot_tree(rrt):
                 this_path.append(this_node) #repeat branching node
                 break
 
-    from mayavi import mlab
     for p in paths:
         s = np.array([rrt.tree.node[i]['state'] for i in p])
         c = np.array([rrt.tree.node[i]['cost'] for i in p])
@@ -567,34 +572,60 @@ if __name__ == '__main__':
 
         if control_ax is not None:
             control_ax.cla()
-            upath = np.array([tree.node[i]['action'] for i in best_sol[1:]]).T  #the first action is None -- action at the root
-            print upath.shape
+            upath = []
+            for i in best_sol[1:]:             #the first action is None -- action at the root
+                for control in tree.node[i]['action']:
+                    print control
+                    upath.append(control)
+            upath = np.array(upath).T  
             control_ax.plot(np.squeeze(upath))
 
         if (ani_rrt.viz_change):
             ani_ax.plot([viz_x_from[0],viz_x_new[0]],[viz_x_from[1],viz_x_new[1]],'y',lw=5,alpha=.7,zorder=3,label='new extension')
 
-        pos=[tree.node[n]['state'][0:2] for n in tree.nodes()]
+        pos = {n:tree.node[n]['state'][0:2] for n in tree.nodes()}
+        col = [tree.node[n]['cost'] for n in tree.nodes()]
 
         int_ax.get_figure().sca(int_ax) #set the current axis to the int_ax. there is some bug in networkx/matplotlib
         node_collection = nx.draw_networkx_nodes(G=tree,
                                                 pos=pos,
                                                 ax=ani_ax,
                                                 node_size=25,
-                                                node_color=[tree.node[n]['cost'] for n in tree.nodes()],
+                                                node_color=col,
                                                 cmap = mpl.cm.get_cmap(name='copper'),
                                                 )
-        
-        edge_collection = nx.draw_networkx_edges(G=tree,
-                                                pos=pos,
-                                                ax=ani_ax,
-                                                edge_color='b',
-                                                )
-        if not edge_collection is None:
-            edge_collection.set_zorder(4)
-            
+
         if not node_collection is None:
             node_collection.set_zorder(5)
+
+        if False:                                        
+            #draw straight edges
+            edge_collection = nx.draw_networkx_edges(G=tree,
+                                                    pos=pos,
+                                                    ax=ani_ax,
+                                                    edge_color='b',
+                                                    )
+        else:
+            #draw dynamical edges
+        
+            lines = []
+            for i in tree.nodes():
+                s = tree.predecessors(i)
+                if len(s) == 0:
+                    continue
+                assert len(s) == 1 #it's a tree
+                s = s[0]
+                x0 = tree.node[s]['state']
+                xs = run_forward(x0, tree.node[i]['action'])
+                xs = np.concatenate((x0.reshape((1,-1)),xs))
+                lines.append(xs[:,0:2])
+            edge_collection = mpl.collections.LineCollection(lines)
+            ani_ax.add_collection(edge_collection)
+        
+        if not edge_collection is None:
+                edge_collection.set_zorder(4)
+
+            
         
         #mfc, mec, mew is marker face color, edge color, edge width
         if (ani_rrt.viz_change):
@@ -629,7 +660,7 @@ if __name__ == '__main__':
         else:   
             info_text = ani_ax.figure.text(.8, .5, info,size='small')
 
-    if False:
+    if True:
         int_fig = plt.figure(None)
         int_ax = int_fig.add_subplot(1,1,1)
         plt.subplots_adjust(left=.15,bottom=.35,right=.8)
