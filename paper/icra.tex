@@ -40,7 +40,7 @@
 
 \newcommand{\rrtstar}{RRT$^*$ }
 
-\title{\LARGE \bf Optimal Sample-Based Planning with
+\title{\LARGE \bf Optimal Sampling-Based Planning with
 Automatically Derived Extension Procedures for Systems
 with General Costs and Dynamics}
 
@@ -96,7 +96,7 @@ Recently, several authors have proposed using methods from linear
 control theory to automatically derive all or part of the extension
 procedure, as was originally suggested by LaValle and Kuffner
 \cite{lavalle.kuffner.ijrr01}. Glassman and Tedrake \cite{elena.russ.icra10}
-derived a cost-to-go pseudo metric based on linear-quadratic regulators (LQR),
+derived a cost-to-go pseudo-metric based on linear-quadratic regulators (LQR),
 which was used to grow an RRT in domains with constrained and 
 underactuated dynamics. Perez et al. \cite{Perez12} extended their work
 to automatically derive the extension procedure for arbitrary systems
@@ -132,9 +132,9 @@ our method's application in a few standard benchmark domains.
 \section{Background}
 
 
-\subsection{RRT{*}}
+\subsection{RRT$^*$}
 
-The RRT{*} algorithm is a sample-based motion planner to finds probabalistically
+The RRT$^*$ algorithm is a sample-based motion planner to finds probabalistically
 optimal solutions. It requires the following algorithmic primitives:
 
 Steer: $ $$\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Action }a$
