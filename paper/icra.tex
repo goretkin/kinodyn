@@ -100,9 +100,7 @@ derived a cost-to-go pseudo-metric based on linear-quadratic regulators (LQR),
 which was used to grow an RRT in domains with constrained and 
 underactuated dynamics. Perez et al. \cite{Perez12} extended their work
 to automatically derive the extension procedure for arbitrary systems
-with differentiable dynamics and quadratic cost functions. 
-TODO: JUR. ALEJANDRO, CAN YOU DO THIS? JUST A SINGLE SENTENCE HERE
-PLEASE.
+with differentiable dynamics and quadratic cost functions. Webb and van den Berg \cite{jur} proposed a method for computing trajectories between pairs of states by minimizing a cost function with a tunable trade-off between duration and control effort. ...
 
 We propose a method for deriving the extension procedure for systems
 with general costs and dynamics (provided the dynamics are differentiable
@@ -131,7 +129,66 @@ our method's application in a few standard benchmark domains.
 
 \section{Background}
 
+\subsection{Problem Statement}
 
+Given a system with known (possibly non-linear) process dynamics, the
+optimal motion planning problem is to find a minimum cost feasible
+trajectory from an initial configuration to a goal configuration. Let
+{\em configuration space} be a compact set, $X \subseteq \mathcal{X}$,
+that describes all possible configurations of the system. Let $U
+\subseteq \mathcal{U}$ be a compact control input space. We assume that we
+are given the non-linear process dynamics:
+\[
+x_{k+1} = f(x,u)
+\]
+A {\em dynamically feasible trajectory} is a continuous function,
+$\sigma: [0,1] \to X$, for which there exists a control function,
+$u:[0,1] \to U$, such that $\forall t \in [0,1], \dot{\sigma}(t) =
+f(\sigma(t),u(t))$. The set of all dynamically feasible trajectories
+is denoted by $\Sigma_\mathrm{traj}$. Given an initial configuration,
+$x_\mathrm{init}$, and a goal region $X_\mathrm{goal}$, the motion
+planning problem is to find a dynamically feasible trajectory,
+$\sigma$, and a control, $u$, that starts in the initial configuration
+and reaches the goal region: $\sigma(0) = x_\mathrm{init}$ and
+$\sigma(1) \in X_\mathrm{goal}$. Let $c : \Sigma_\mathrm{traj} \to
+\mathbb{R}^+$ be a {\em cost functional} that maps each feasible
+trajectory to a non-negative cost. The optimal motion planning problem
+is to find a solution to the motion planning problem that minimizes
+$c(\sigma)$.
+
+\subsection{RRT$^*$}
+
+Optimal Rapidly exploring random tree (RRT$^*$) \cite{karaman.frazzoli.ijrr11} is a version of the RRT algorithm~\cite{lavalle.kuffner.ijrr01} that has the \emph{asymptotic optimality} property, i.e., almost-sure convergence to an optimal solution.
+
+The major components of the algorithm are:
+\begin{itemize}
+\item {\it Random sampling}:
+%
+The ${\tt Sample}$ procedure provides independent uniformly distributed random samples of states from the configuration space.
+
+\item {\it Near nodes}:
+% 
+Given a set $V$ of vertices in the tree and a state $x$, the ${\tt
+  Near}(V, x)$ procedure provides a set of states in $V$ that are close to
+$x$. Here, closeness is measured with respect to some metric as
+follows:
+$$
+{\tt Near}(V, x) := \left\{ x' \in V \,\,:\,\, \Vert x - x' \Vert \le \gamma
+\left(\frac{\log n}{n}\right)^{1/d} \right\},
+$$
+where $\Vert \cdot \Vert$ is the distance using the metric, $n$ is the number of vertices in the tree, $d$ is the dimension of the space, and $\gamma$ is a constant.
+ 
+\item {\it Steering}:
+%
+Given two states $x, x'$, the ${\tt Steer}(x,x')$ procedure returns a path $\sigma$ that connects $x$ and $x'$. Most implementations connect two given states with a straight path in configuration space.
+
+\item {\it Collision checking}:
+%
+Given a path $\sigma$, ${\tt CollisionFree}(\sigma)$ returns true if the path lies in the obstacle-free portion of  configuration space.
+
+\end{itemize}
+
+\begin{comment}
 \subsection{RRT$^*$}
 
 The RRT$^*$ algorithm is a sample-based motion planner to finds probabalistically
@@ -164,14 +221,11 @@ Distance: $\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto c$ where
 $c$ is the cost of getting from $s_{\mbox{from}}$ to $s_{\mbox{to}}$
 without obstacles
 
-\begin{comment}
-CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto\left\langle x_{1},\cdots,x_{T}\right\rangle ,\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
-where $ $$\left\langle x_{1},\cdots,x_{T}\right\rangle $ is a trajectory
-of states arising from taking $u$ from $x_{\mbox{from}}$ until hitting
-an obstacle or completing the action and $\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
-is a decomposition of $u$ that corresponds to the state trajectory. 
-\end{comment}
-
+%CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto\left\langle x_{1},\cdots,x_{T}\right\rangle ,\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
+%where $ $$\left\langle x_{1},\cdots,x_{T}\right\rangle $ is a trajectory
+%of states arising from taking $u$ from $x_{\mbox{from}}$ until hitting
+%an obstacle or completing the action and $\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
+%is a decomposition of $u$ that corresponds to the state trajectory. 
 
 CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}},u'$
 where $x_{\mbox{final}}=x_{\mbox{from}}$ and $u=u'$ if the trajectory
@@ -184,10 +238,7 @@ $u$ that brings $x_{\mbox{from }}$ to $x_{\mbox{final}}$.
 Cost: $\left(x_{\mbox{from}},u\right)\mapsto\mbox{Cost }c$ where
 $c$ is the cost of the trajectory from taking $u$ in $x_{\mbox{from}}$.
 
-\begin{comment}
-Include in code adding points along an extension?
-\end{comment}
-
+% Include in code adding points along an extension?
 
 \begin{center}
 \begin{algorithm}
@@ -252,7 +303,7 @@ $\sigma_\mathrm{min} \leftarrow {\tt NULL}$\;
 
 The changes to the primitives do not logically change the \rrtstar algorithm,
 but instead make it easier to plug-in the contributed components.
-
+\end{comment}
 
 \subsection{Math Tools}
 
