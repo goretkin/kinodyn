@@ -67,7 +67,7 @@ no_obstacles_test = False
 def obstacles(x,y):
     if no_obstacles_test: return True
 
-    return abs(x)<.54 #velocity limit
+    return abs(x)<.48 #velocity limit
     #return true for if point is not in collision
     out_ball = (x-0)**2 + (y-0)**2 > .5**2
     in_square = np.logical_and(y>.1,np.logical_and(.3<x,x<.5))
@@ -78,11 +78,15 @@ def obstacles(x,y):
                           np.logical_and(np.logical_not(in_square),
                                          np.logical_not(in_square1)))
     
+max_time_horizon = 50
+goal = np.array([0,.8,50])
+
 def isStateValid(state):
+    assert len(state) == 3
     x = state[0]
     y = state[1]
-    assert len(state) == 3
-    return bool(obstacles(x,y))
+    t = state[2]
+    return t<= max_time_horizon and bool(obstacles(x,y))    #time obstacle here. prevents nodes from getting pushed farther and farther into time by rewiring
 
 def isActionValid(action):
     return True
@@ -90,8 +94,6 @@ def isActionValid(action):
     if not r: print 'action constraint!',action
     return r
 
-max_time_horizon = 50
-goal = np.array([0,.8,50])
 
 def sample():
     if np.random.rand()<.9:
@@ -106,7 +108,6 @@ def sample():
         #time = np.array(min(np.random.geometric(.06,size=1),max_time_horizon))
         time = np.reshape(time,newshape=(1,))
         return np.concatenate((statespace,time))
-
 
 def collision_free(from_node,action):
     """
@@ -127,6 +128,7 @@ def collision_free(from_node,action):
             x_path.append(x)
             u_path.append(u) 
     u_path = np.array(u_path)
+
     return x_path, u_path, all_the_way        
  
 def cost(x_from,action):
@@ -134,6 +136,9 @@ def cost(x_from,action):
     global Q
     global R
     assert len(x_from) == 3
+    if len(action) == 0:
+        #null action
+        return 0    #is captured in dynamics below, but if the action is actually null, then the next assertion fails
     assert action.shape[1] == 1
 
     x_path = run_forward(x_from,action)
@@ -215,7 +220,7 @@ def steer(x_from_node,x_toward):
     #pk should be zeros. 
 
     Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
-    print Fs
+    #print Fs
     xs = np.zeros(shape=(T+1,3))
     us = np.zeros(shape=(T,1))
     xs[0] = x_from
@@ -243,7 +248,7 @@ def steer_cache(x_from_node,x_toward):
     if T <= 0:
         return (x_from,np.zeros(shape=(0,1)))   #stay here
 
-    if T < 5:
+    if T < 10:
         #this technique isn't too accurate for short times due to slack in the final-value constraint
         #so do something else.
         return steer(x_from_node,x_toward)
@@ -255,6 +260,11 @@ def steer_cache(x_from_node,x_toward):
         node_cache_ctg(x_from_node)
 
     Fs = x_from_node['gain']
+
+    if T >len(Fs):
+        print "requested uncached steer!!!"
+        return steer(x_from_node,x_toward) #fixme should cache more
+
 
     #reverse system
     Ar = A.I
@@ -413,10 +423,19 @@ def distance_cache(from_node,to_point):
     if T<0:
         return np.inf
     elif T==0:
-        return 0 if np.allclose(x_from,x_toward) else np.inf
+        return 0 if np.allclose(x_from,x_toward,atol = 1e-4) else np.inf #fudge tolerance
+    
+    if T < 5:
+        #this technique isn't too accurate for short times due to slack in the final-value constraint
+        #so do something else.
+        return distance(from_node,to_point)
     
     if 'ctg' not in from_node:
         node_cache_ctg(from_node)
+
+    if T >= len(from_node['ctg']):
+        print 'requested uncached distance!!!'
+        distance(from_node,to_point)
 
     ctg = from_node['ctg'][T]
 
@@ -462,7 +481,7 @@ def distance_from_goal(node):
     return 0#max(distance(node,goal)-goal_region_radius,0)
 
 start = np.array([0,-1,0])
-rrt = RRT(state_ndim=3)
+rrt = RRT(state_ndim=3,control_ndim=1)
 
 rrt.goal = goal
 
@@ -566,22 +585,41 @@ if __name__ == '__main__':
             viz_x_new = ani_rrt.viz_x_new
             viz_x_from =ani_rrt.viz_x_from
         
-        best_sol = ani_rrt.best_solution(goal)
-        xpath = np.array([tree.node[i]['state'] for i in best_sol]).T
+        best_sol = ani_rrt.best_solution(goal) 
+        #xpath = np.array([tree.node[i]['state'] for i in best_sol]).T #straight line connection between nodes
+        xpath = [tree.node[best_sol[0]]['state']]
+        for (node_from,node_to) in zip(best_sol[:-1],best_sol[1:]):
+            xpath.extend( run_forward(tree.node[node_from]['state'],tree.node[node_to]['action']) )
+        
+        xpath = np.array(xpath).T
         ani_ax.plot(xpath[0],xpath[1],ls='--',lw=10,alpha=.7,color=(.2,.2,.2,1),zorder=2,label='best path so far')
 
         if control_ax is not None:
+            upath = rrt.get_action(best_sol)
             control_ax.cla()
-            upath = []
-            for i in best_sol[1:]:             #the first action is None -- action at the root
-                for control in tree.node[i]['action']:
-                    print control
-                    upath.append(control)
-            upath = np.array(upath).T  
             control_ax.plot(np.squeeze(upath))
+        
+        #draw paths that collided
+        if not rrt.viz_collided_paths is None:
+            lines = []
+            for (node,action) in rrt.viz_collided_paths:
+                x0 = node['state']
+                xs = run_forward(x0,action)
+                xs = np.concatenate((x0.reshape((1,-1)),xs))
+                lines.append(xs[:,0:2])
+            
+            collision_collection = mpl.collections.LineCollection(lines,linewidths=1,linestyles='solid')
+            collision_collection.set_color('red')
+            ani_ax.add_collection(collision_collection)
+            collision_collection.set_zorder(4)
+
+            rrt.viz_collided_paths = []                
+
 
         if (ani_rrt.viz_change):
+            #draws a straight edge
             ani_ax.plot([viz_x_from[0],viz_x_new[0]],[viz_x_from[1],viz_x_new[1]],'y',lw=5,alpha=.7,zorder=3,label='new extension')
+            
 
         pos = {n:tree.node[n]['state'][0:2] for n in tree.nodes()}
         col = [tree.node[n]['cost'] for n in tree.nodes()]
@@ -607,7 +645,6 @@ if __name__ == '__main__':
                                                     )
         else:
             #draw dynamical edges
-        
             lines = []
             for i in tree.nodes():
                 s = tree.predecessors(i)
@@ -704,17 +741,15 @@ if __name__ == '__main__':
 
                 p = np.array([event.xdata,event.ydata,interactive_T])
                 print 'sample',p
-                sampler = lambda : p
-                
-                interactive_rrt.set_sample(sampler)
-                interactive_rrt.search(1)
+
+                interactive_rrt.extend(p)
                 draw_rrt(interactive_rrt,int_ax,action_ts_ax)
                 interactive_rrt.viz_change = False
                 int_fig.canvas.draw()
 
                 upath = []
                 for i in interactive_rrt.best_solution(goal)[1:]:
-                    upath.append(interactive_rrt.tree.node[i]['action'])
+                    upath.extend(interactive_rrt.tree.node[i]['action'])
                 upath = np.array(upath)
                 print np.squeeze(upath)
                 

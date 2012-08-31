@@ -12,10 +12,12 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
     
 class RRT():
-    def __init__(self,state_ndim):
+    def __init__(self,state_ndim,control_ndim):
 
         self.tree = tree = nx.DiGraph()
         self.state_ndim = state_ndim
+        self.control_ndim = control_ndim
+
         self.next_node_id = 0
         
         self.gamma_rrt = 1.0 #decay rate of ball
@@ -36,6 +38,9 @@ class RRT():
         self.found_feasible_solution = False
         self.worst_cost = None          #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
         self.can_prune = False          #if True, then worst_cost has decreased since last time we did a prune.
+
+        self.deleted_nodes = set()      #nodes can be deleted as a result of pruning or as a result of rewiring causing a collision.
+                                        #this set gets emptied at the beginning of an extend, and reflects the nodes deleted within a single iteration
 
         self.cheapest_goal = None   #the goal corresponding with the upper-bound cost
         self.goal_set_nodes = set() #a set of node ids that are within the goal set
@@ -60,10 +65,15 @@ class RRT():
         self.viz_x_near_id = None #list of states that are within the search radius
         
         self.viz_search_radius = None
+        self.viz_collided_paths = [] #collision queries that return collision, set to None to not store this information
 
 
-        self.save_vars = ['tree','found_feasible_solution','n_pruned','n_rewired','goal_set_nodes','worst_cost',
-                          'search_initialized','next_node_id','cheapest_goal']
+        self.save_vars = [
+                            'tree','state_ndim','next_node_id','gamma_rrt','steer_reach_threshold','extension_aggressiveness','rrt_until_feasible','search_initialized',
+                            'n_pruned', 'n_extensions', 'n_iters',
+                            'found_feasible_solution', 'worst_cost', 'can_prune', 'deleted_nodes',
+                            'cheapest_goal', 'goal_set_nodes', 'cost_history', 'sample_history', 'check_cost_decreasing',
+                            ]
 
         self.debug = True
                           
@@ -119,7 +129,19 @@ class RRT():
         """
         collision_test(node,action) = x_path, u_path, all_the_way
         """
-        self.collision_free = collision_free  
+        if self.viz_collided_paths is None:
+            self.collision_free = collision_free  
+        else:
+            #wrap collision checker in a function that will store paths that collided
+            import types
+            def _collision_free(self,node,action):
+                x_path, u_path, all_the_way = collision_free(node,action)
+                if not all_the_way:
+                    self.viz_collided_paths.append( (node,action) ) 
+                return x_path,u_path,all_the_way
+
+            self.collision_free = types.MethodType(_collision_free,self,RRT) #bind method to self. invoke like self.collision_free(..)
+                            
         
     def set_sample(self,sample):
         """
@@ -195,8 +217,9 @@ class RRT():
         self.search_initialized = True
         
         self.start_node_id = self.get_node_id()
+        nop_action = np.zeros(shape=(0,self.control_ndim))
         self.tree.add_node(self.start_node_id,
-          attr_dict={'state':self.state0,'action':None,'hops':0,'cost':0})
+          attr_dict={'state':self.state0,'action':nop_action,'hops':0,'cost':0})
 
     def force_iteration(self,quiet=True):
         """
@@ -250,6 +273,7 @@ class RRT():
             self.n_pruned += len(pruned_nodes)
             if self.cheapest_goal in pruned_nodes:
                 raise AssertionError("Pruning removed the best goal, which is used to set the pruning cost bound.")
+        self.deleted_nodes = self.deleted_nodes.union(pruned_nodes)
         return pruned_nodes
             
     def extend_from(self,node_id,to_state):
@@ -275,6 +299,7 @@ class RRT():
     def extend(self,x_rand):
         self.n_extensions += 1
         self.sample_history.append(x_rand)
+        self.deleted_nodes = set()
         #this is what gives RRT* optimality. Set to False for vanilla RRT.                        
         do_find_cheapest_parent = self.found_feasible_solution or not self.rrt_until_feasible #do RRT until a solution is found, then proceed as RRT*
 
@@ -340,7 +365,9 @@ class RRT():
                 print 'error',np.linalg.norm(np.array(x_path[-1]) - x_new)
                 print 'expected x_new',x_new
                 print 'actual x_new',x_path[-1]
-                raise AssertionError('steer function or collision_free function is inaccurate')
+                print '\n\n\n\nraise SoftAssertion!!!!!\n\n\n\n'
+                #raise AssertionError('steer function or collision_free function is inaccurate')    #fixme
+            
 
         #by this point, we have an x_new that is collision-free reachable from at least one node in the tree (namely x_nearest_id)
         #determine who the parent of x_new should be
@@ -420,7 +447,7 @@ class RRT():
         if not self.goal is None:
             added_id = self.extend_from(x_new_id,self.goal)
             if not added_id is None: 
-                print 'goal extension bias got somewhere.',tree.node[added_id]['action']
+                print 'goal extension bias got somewhere.'#,tree.node[added_id]['action']
                 self.check_goal(added_id)
 
         self.viz_x_rand = x_rand
@@ -458,6 +485,9 @@ class RRT():
         
             #rewire to see if it's cheaper to go through the new point x_new
             for x_near in X_near:
+                if x_near in self.deleted_nodes: 
+                    print 'updating dynamics removed something in X_near',x_near
+                    continue
                 #proposed_cost = tree.node[x_new_id]['cost'] + c*self.distance(tree.node[x_near],x_new)
                 candidate_x_near, action = self.steer(tree.node[x_new_id],tree.node[x_near]['state'])   #can't steer exactly to x_near
                 proposed_cost = tree.node[x_new_id]['cost'] + self.cost(tree.node[x_new_id]['state'],action)
@@ -466,11 +496,12 @@ class RRT():
                     if all_the_way:
                         if self.distance(tree.node[x_near],candidate_x_near) < self.steer_reach_threshold:
                             #rewire. parent of x_near should be x_new
+                            print ' updating x_near from ', tree.node[x_near]['state'], ' to ' , candidate_x_near
+
                             old_parent = tree.predecessors(x_near)
                             assert len(old_parent)==1 #each node in tree has only one parent
                             old_parent = old_parent[0]
                             tree.remove_edge(old_parent,x_near)
-            
                             tree.node[x_near]['state'] = candidate_x_near
                             tree.node[x_near]['action'] = action
                             tree.add_edge(x_new_id,x_near)
@@ -481,10 +512,12 @@ class RRT():
                             self._deep_update_cost(x_near,proposed_cost)
 
                     self.n_rewired += 1
+
         
 
 
     def _deep_enforce_dynamics(self,node_id):
+        #node_id['state'] supposedly has moved. apply action of all the children 
         childs = list(self.tree.successors_iter(node_id))   #can't iterate over dictionary while removing entries
         for child in childs:
             x_path,u_path,all_the_way = self.collision_free(self.tree.node[node_id],self.tree.node[child]['action'])
@@ -531,6 +564,16 @@ class RRT():
                 
             self._deep_update_cost(child,new_cost)
 
+    def get_action(self,node_ids):
+        """
+        pack actions into a single array of actions
+        """
+        upath = []
+        for i in node_ids:             #the first action is None -- action at the root
+            for control in self.tree.node[i]['action']:
+                upath.append(control)
+        upath = np.array(upath)
+        
     def best_solution_goal(self):
         if self.cheapest_goal is None:
             return None
@@ -538,7 +581,9 @@ class RRT():
         #there's actually only a single path, since the graph is a tree
         path = nx.shortest_path(graph,source=self.cheapest_goal,target=self.start_node_id)
         path = path[::-1]
-        return path, np.array([self.tree.node[i]['state'] for i in path]), np.array([self.tree.node[i]['action'] for i in path[1:]])
+        upath = self.get_action(best_sol)   #the first node contains an empty action action
+
+        return path, np.array([self.tree.node[i]['state'] for i in path]), upath.T
 
                 
     def best_solution_(self,x):
@@ -601,6 +646,7 @@ class RRT():
             self.remove_subtree(node)
             
         self.tree.remove_node(root_id)
+        self.deleted_nodes.add(root_id)     #keep track of deleted nodes
         return
 
     def do_to_subtree(self,root_id,node_action=None,edge_action=None):
