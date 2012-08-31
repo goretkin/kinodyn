@@ -21,7 +21,7 @@ class RRT():
         self.next_node_id = 0
         
         self.gamma_rrt = 1.0 #decay rate of ball
-        self.eta = 0.5  #maximum ball sizetry to speak french though
+        self.eta = 0.5  #maximum ball size
         
         self.steer_reach_threshold = 1e-4 #self.distance(from_node,to_state) < self.steer_reach_threshold, then the two states are taken to be equivalent
 
