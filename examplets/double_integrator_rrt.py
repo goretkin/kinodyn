@@ -130,7 +130,10 @@ def collision_free(from_node,action):
     u_path = np.array(u_path)
 
     return x_path, u_path, all_the_way        
- 
+
+def same_state(a,b):
+    return a[2] == b[2] and np.allclose(a,b,atol=1e-4)
+
 def cost(x_from,action):
     #this does not include the cost of being in at the state arrived by taking the last action
     global Q
@@ -329,7 +332,7 @@ def distance_direct(from_node,to_point):
     #to_point is an array and from_point is a node
     assert len(to_point)==3
     x_actual,action = steer(from_node,to_point)
-    if np.allclose(x_actual,to_point,atol=1e-4): #if actually drove there:
+    if same_state(x_actual,to_point): #if actually drove there:
         return cost(from_node['state'],action)
     else:
         return np.inf
@@ -339,7 +342,7 @@ def distance_direct_qp(from_node,to_point):
     #to_point is an array and from_point is a node
     assert len(to_point)==3
     x_actual,action = steer_QP(from_node,to_point)
-    if np.allclose(x_actual,to_point,atol=1e-4): #if actually drove there:
+    if same_state(x_actual,to_point): #if actually drove there:
         return cost(from_node['state'],action)
     else:
         return np.inf
@@ -365,7 +368,7 @@ def distance(from_node,to_point):
     if T<0:
         return np.inf
     elif T==0:
-        return 0 if np.allclose(x_from,x_toward) else np.inf
+        return 0 if same_state(x_from,x_toward) else np.inf
 
     desired = np.matrix([[x_toward[0]],
                          [x_toward[1]]])                     
@@ -423,7 +426,7 @@ def distance_cache(from_node,to_point):
     if T<0:
         return np.inf
     elif T==0:
-        return 0 if np.allclose(x_from,x_toward,atol = 1e-4) else np.inf #fudge tolerance
+        return 0 if same_state(x_from,x_toward) else np.inf
     
     if T < 5:
         #this technique isn't too accurate for short times due to slack in the final-value constraint
@@ -450,7 +453,7 @@ def distance_direct_steer_cache(from_node,to_point):
     #to_point is an array and from_point is a node
     assert len(to_point)==3
     x_actual,action = steer_cache(from_node,to_point)
-    if np.allclose(x_actual,to_point,atol=1e-4): #if actually drove there:
+    if same_state(x_actual,to_point): #if actually drove there:
         return cost(from_node['state'],action)
     else:
         return np.inf
@@ -487,7 +490,7 @@ rrt.goal = goal
 
 #rrt.set_distance(distance)
 rrt.set_distance(distance_cache)
-
+rrt.set_same_state(same_state)
 rrt.set_cost(cost)
 rrt.set_steer(steer_cache)
 
@@ -660,9 +663,7 @@ if __name__ == '__main__':
             ani_ax.add_collection(edge_collection)
         
         if not edge_collection is None:
-                edge_collection.set_zorder(4)
-
-            
+                edge_collection.set_zorder(4)            
         
         #mfc, mec, mew is marker face color, edge color, edge width
         if (ani_rrt.viz_change):
@@ -710,9 +711,7 @@ if __name__ == '__main__':
         #box = int_ax.get_position()
         #int_ax.set_position([box.x0-.1, box.y0+.15, box.width, box.height])
         #plt.tight_layout()
-        draw_rrt(interactive_rrt,int_ax,action_ts_ax)
-
-        
+        draw_rrt(interactive_rrt,int_ax,action_ts_ax)        
         
         #sampler = lambda : np.array([1.0,1.0])
         #interactive_rrt.set_sample(sampler)
@@ -751,8 +750,7 @@ if __name__ == '__main__':
                 for i in interactive_rrt.best_solution(goal)[1:]:
                     upath.extend(interactive_rrt.tree.node[i]['action'])
                 upath = np.array(upath)
-                print np.squeeze(upath)
-                
+                print np.squeeze(upath)             
 
             elif event.button == 3: #print node info on right click.
                 #node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata,interactive_T])

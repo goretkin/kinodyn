@@ -22,8 +22,6 @@ class RRT():
         
         self.gamma_rrt = 1.0 #decay rate of ball
         self.eta = 0.5  #maximum ball size
-        
-        self.steer_reach_threshold = 1e-4 #self.distance(from_node,to_state) < self.steer_reach_threshold, then the two states are taken to be equivalent
 
         self.extension_aggressiveness = 1    #how many nodes to try to extend from if the nearest does not yield an extension
         self.rrt_until_feasible = True      #do RRT until you can start pruning, then so RRT*
@@ -157,6 +155,13 @@ class RRT():
         """
         self.steer = steer
 
+    def set_same_state(self,same_state):
+        """
+        same_state(a,b)
+        if a and b are the same state, then return True. important in rewiring
+        """
+        self.same_state = same_state
+        
     def set_distance(self,distance):
         """
         distance(from_node,to_point)
@@ -361,7 +366,7 @@ class RRT():
         if not all_the_way:
             x_new = x_path[-1]
         else:
-            if not np.allclose(x_path[-1],x_new,atol=1e-4): #fixme bring out this parameter
+            if not self.same_state(x_path[-1],x_new):
                 print 'error',np.linalg.norm(np.array(x_path[-1]) - x_new)
                 print 'expected x_new',x_new
                 print 'actual x_new',x_path[-1]
@@ -396,7 +401,7 @@ class RRT():
                 candidate_x_new, candidate_action = self.steer(tree.node[x_near],x_new)
                 x_path, u_path, all_the_way = self.collision_free(tree.node[x_near],candidate_action) #would be great if didn't need to perform this step in order to compute the cost.
 
-                if all_the_way and np.allclose(candidate_x_new,x_new):  #fixme allclose should have some greater tolerance for systems for which it is hard to steer
+                if all_the_way and self.same_state(candidate_x_new,x_new):
                     #this_cost = tree.node[x_near]['cost'] + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_near]['state']]+list(x_path[1:]),u_path)])
                     this_cost = tree.node[x_near]['cost'] + self.cost(tree.node[x_near]['state'],u_path)
                     if this_cost < c_min:                
@@ -494,9 +499,10 @@ class RRT():
                 if (proposed_cost < tree.node[x_near]['cost']):
                     x_path, u_path, all_the_way =self.collision_free(tree.node[x_new_id],action)
                     if all_the_way:
-                        if self.distance(tree.node[x_near],candidate_x_near) < self.steer_reach_threshold:
+                        if self.same_state(tree.node[x_near]['state'],candidate_x_near):
                             #rewire. parent of x_near should be x_new
-                            print ' updating x_near from ', tree.node[x_near]['state'], ' to ' , candidate_x_near
+                            if not self.same_state(tree.node[x_near]['state'],candidate_x_near):
+                                print ' updating x_near from ', tree.node[x_near]['state'], ' to ' , candidate_x_near 
 
                             old_parent = tree.predecessors(x_near)
                             assert len(old_parent)==1 #each node in tree has only one parent
@@ -509,6 +515,7 @@ class RRT():
                             #x_near has a new parent, so in general we need to propagate the new cost and the new dynamics.
                             #enforce dynamics might wiggle the states around a little bit, changing the cost evaluation, so do that first.
                             self._deep_enforce_dynamics(x_near)
+                            print 'x_near %d decreased by %f'%(x_near,tree.node[x_near]['cost']-proposed_cost)
                             self._deep_update_cost(x_near,proposed_cost)
 
                     self.n_rewired += 1
@@ -531,8 +538,8 @@ class RRT():
                     print 'redundant node' #fixme
                 else:    
                     self.tree.node[child]['state'] = x_path[-1]
-                if not np.allclose(state_orig,self.tree.node[child]['state']):
-                    print 'node ', child, 'wiggle from', state_orig, ' to ', self.tree.node[child]['state']
+                #if not np.allclose(state_orig,self.tree.node[child]['state']):
+                #    print 'node ', child, 'wiggle from', state_orig, ' to ', self.tree.node[child]['state']
                 self._deep_enforce_dynamics(child)
 
     def _deep_update_cost(self,node_id,cost):
@@ -544,7 +551,8 @@ class RRT():
             if tree.node[node_id]['cost'] < cost:
                 raise AssertionError('cost of node %d increased by %f'%(node_id,cost-tree.node[node_id]['cost']))
             else:
-                print 'node %d decreased by %f'%(node_id,tree.node[node_id]['cost']-cost)
+                #print 'node %d decreased by %f'%(node_id,tree.node[node_id]['cost']-cost)
+                pass
         
         self.tree.node[node_id]['cost'] = cost
         

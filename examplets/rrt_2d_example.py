@@ -42,6 +42,9 @@ def sample():
     else: #goal bias
         return goal
 
+def same_state(a,b):
+    return np.allclose(a,b)
+
 def collision_free(from_node,action):
     """
     check that taking action from from_node produces a collision free trajectory
@@ -115,8 +118,9 @@ def distance_from_goal(node):
     return max(distance(node,goal)-goal_region_radius,0)
 
 start = np.array([-1,-1])*1    
-rrt = RRT(state_ndim=2)
+rrt = RRT(state_ndim=2,control_ndim=2)
 
+rrt.set_same_state(same_state)
 rrt.set_distance(distance)
 rrt.set_cost(cost)
 rrt.set_steer(steer)
