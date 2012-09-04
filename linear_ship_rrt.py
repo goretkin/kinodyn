@@ -42,8 +42,14 @@ goal = np.array([0,0,100,100,200])
 ship_sprite = Ship_Sprite()
 
 def obstacle(x,y):
-    in_obstacle1 = np.logical_and(np.logical_and(20<=x,x<=55),np.logical_and(45<=y,y<=80))
-    in_obstacle2 = np.logical_and(np.logical_and(70<=x,x<=110),np.logical_and(60<=y,y<=80))
+    u = (x+y)/2
+    v = x-y
+
+    #in_obstacle1 = np.logical_and(np.logical_and(20<=x,x<=55),np.logical_and(45<=y,y<=80))
+    #in_obstacle2 = np.logical_and(np.logical_and(70<=x,x<=110),np.logical_and(60<=y,y<=80))
+
+    in_obstacle1 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(-25<=v,v<=-5))
+    in_obstacle2 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(5<=v,v<=25))
 
     in_field = np.logical_and(np.logical_and(-10<=x,x<=110),np.logical_and(-10<=y,y<=110))        
     return np.logical_and ( np.logical_not( np.logical_or(in_obstacle1,in_obstacle2) ),
@@ -136,14 +142,17 @@ def draw():
 
     ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-10,110,-10,110],alpha=.5,zorder=1,aspect='auto')    
 
+    all_states = np.array(nx.get_node_attributes(rrt.tree,'state').values())
+    ani_ax.plot(all_states[:,2],all_states[:,3],'g.',alpha=.8,zorder=2)
+
+
     a = rrt.best_solution_goal()
     if a is None: return
     nodes, xpath_sparse, upath = a
     xpath = lqr_rrt.run_forward(start,upath)
-    ani_ax.plot(xpath[:,2],xpath[:,3],'.')
+    ani_ax.plot(xpath[:,2],xpath[:,3],'.',zorder=3)
 
-    all_states = np.array(nx.get_node_attributes(rrt.tree,'state').values())
-    plt.plot(all_state[:,2],all_state[:,3],'.',alpha=.3)
+
 
 if False and __name__ == '__main__':
 #    if False:

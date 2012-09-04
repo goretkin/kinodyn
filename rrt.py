@@ -267,7 +267,7 @@ class RRT():
                     self.found_feasible_solution = True
                     self.worst_cost = tree.node[x_new_id]['cost']
                     self.cheapest_goal = x_new_id
-                    self.cost_history.append((self.n_iters,self.worst_cost))
+                    self.cost_history.append((self.n_iters,self.worst_cost,self.best_solution_goal()))
                     self.can_prune = True
                 else:
                     if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
@@ -568,7 +568,7 @@ class RRT():
                 #print "_deep_update_cost updated self.worst_cost from %f to %f"%(self.worst_cost,cost)
                 self.worst_cost = cost
                 self.cheapest_goal = node_id
-                self.cost_history.append((self.n_iters,self.worst_cost))
+                self.cost_history.append((self.n_iters,self.worst_cost,self.best_solution_goal()))
         for child in tree.successors_iter(node_id):
             #new_cost = tree.node[node_id]['cost'] + self.distance(tree.node[node_id],tree.node[child]['state'])
             new_cost = tree.node[node_id]['cost'] + self.cost(tree.node[node_id]['state'],tree.node[child]['action'])
