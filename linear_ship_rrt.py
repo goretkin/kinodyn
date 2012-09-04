@@ -1,23 +1,24 @@
-#import examplets
-from rrt import RRT
-from ship_visualize_animation import Ship_Sprite
-
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-#import networkx as nx
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+#only to label 
+import time
+start_time = int(time.time())
 
 import sys
 sys.setrecursionlimit(10000)
 
 import shelve
-
 import itertools
 import networkx as nx
 
+from rrt import RRT
+from ship_visualize_animation import Ship_Sprite
 from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR
-
 from lqr_rrt import LQR_RRT
+
 #[velx, vely, posx, posy]
 A = np.matrix([ [1,     0,      0,      0   ],
                 [0,     1,      0,      0   ],
@@ -50,7 +51,7 @@ def obstacle(x,y):
 
     in_obstacle1 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(-25<=v,v<=-5))
     in_obstacle2 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(5<=v,v<=25))
-    in_obstacle3 = False #np.logical_and(np.logical_and(80<=u,u<=85),np.logical_and(-2<=v,v<=2))
+    in_obstacle3 = np.logical_and(np.logical_and(80<=u,u<=85),np.logical_and(-2<=v,v<=2))
 
     in_field = np.logical_and(np.logical_and(-10<=x,x<=110),np.logical_and(-10<=y,y<=110))        
     return np.logical_and ( np.logical_not( 
@@ -162,7 +163,7 @@ def hook(rrt):
     a = plt.figure()
 
     c = rrt.worst_cost
-    fname = "rrt_2d_di_%f.png"%(c)
+    fname = "rrt_2d_di_%d,%d.png"%(start_time,rrt.n_iters)
     draw(rrt,a.gca())
     a.savefig(fname)
     plt.ion()
