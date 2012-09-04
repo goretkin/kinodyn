@@ -65,7 +65,6 @@ class RRT():
         self.viz_search_radius = None
         self.viz_collided_paths = [] #collision queries that return collision, set to None to not store this information
 
-
         self.save_vars = [
                             'tree','state_ndim','next_node_id','gamma_rrt','steer_reach_threshold','extension_aggressiveness','rrt_until_feasible','search_initialized',
                             'n_pruned', 'n_extensions', 'n_iters',
@@ -74,6 +73,8 @@ class RRT():
                             ]
 
         self.debug = True
+        
+        self.sample_goal = None
                           
     def save(self,shelf_file):
         try:
@@ -107,7 +108,13 @@ class RRT():
         goal_test(node) = True/False
         """
         self.goal_test = goal_test
-    
+
+    def set_sample_goal(self,sample_goal):
+        """
+        sample_goal() returns a point in the goal set -- necessary for one form of goal bias
+        """
+        self.sample_goal = sample_goal
+
     def set_distance_from_goal(self,distance_from_goal):
         """
         goal_distance(node) = distance
@@ -449,8 +456,8 @@ class RRT():
         #now x_new_id has a parent and is in the tree
 
         #another goal bias -- try to grow toward the goal.
-        if not self.goal is None:
-            added_id = self.extend_from(x_new_id,self.goal)
+        if not self.sample_goal is None:
+            added_id = self.extend_from(x_new_id,self.sample_goal())
             if not added_id is None: 
                 print 'goal extension bias got somewhere.'#,tree.node[added_id]['action']
                 self.check_goal(added_id)
@@ -581,6 +588,8 @@ class RRT():
             for control in self.tree.node[i]['action']:
                 upath.append(control)
         upath = np.array(upath)
+        if len(upath.shape) > 1: assert upath.shape[1] == self.control_ndim #singleton control FIXME
+        return upath
         
     def best_solution_goal(self):
         if self.cheapest_goal is None:
@@ -589,9 +598,9 @@ class RRT():
         #there's actually only a single path, since the graph is a tree
         path = nx.shortest_path(graph,source=self.cheapest_goal,target=self.start_node_id)
         path = path[::-1]
-        upath = self.get_action(best_sol)   #the first node contains an empty action action
+        upath = self.get_action(path)   #the first node contains an empty action action
 
-        return path, np.array([self.tree.node[i]['state'] for i in path]), upath.T
+        return path, np.array([self.tree.node[i]['state'] for i in path]), upath
 
                 
     def best_solution_(self,x):
