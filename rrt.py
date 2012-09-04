@@ -34,7 +34,7 @@ class RRT():
         self.n_iters = 0
         
         self.found_feasible_solution = False
-        self.worst_cost = None          #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
+        self.worst_cost = np.inf        #an upper-bound on the cost of a feasible solution. gets set after the first feasible solution is found
         self.can_prune = False          #if True, then worst_cost has decreased since last time we did a prune.
 
         self.deleted_nodes = set()      #nodes can be deleted as a result of pruning or as a result of rewiring causing a collision.
@@ -75,7 +75,8 @@ class RRT():
         self.debug = True
         
         self.sample_goal = None
-                          
+        
+        self.improved_solution_hook = None                          
     def save(self,shelf_file):
         try:
             self.check_consistency()
@@ -266,16 +267,14 @@ class RRT():
                     print '!!!\n'*5
                     self.found_feasible_solution = True
                     self.worst_cost = tree.node[x_new_id]['cost']
-                    self.cheapest_goal = x_new_id
-                    self.cost_history.append((self.n_iters,self.worst_cost,self.best_solution_goal()))
-                    self.can_prune = True
-                else:
+
+                if self.found_feasible_solution:
                     if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
                         self.worst_cost = tree.node[x_new_id]['cost']
                         self.cheapest_goal = x_new_id
-                        self.cost_history.append((self.n_iters,self.worst_cost))
+                        self.cost_history.append((self.n_iters,self.worst_cost,self.best_solution_goal()))
+                        self.improved_solution_hook(self)
                         self.can_prune = True
-
     def prune(self):
         pruned_nodes = set()
         if self.do_pruning and self.can_prune:

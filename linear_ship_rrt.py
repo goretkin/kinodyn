@@ -50,7 +50,7 @@ def obstacle(x,y):
 
     in_obstacle1 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(-25<=v,v<=-5))
     in_obstacle2 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(5<=v,v<=25))
-    in_obstacle3 = np.logical_and(np.logical_and(80<=u,u<=85),np.logical_and(-2<=v,v<=2))
+    in_obstacle3 = False #np.logical_and(np.logical_and(80<=u,u<=85),np.logical_and(-2<=v,v<=2))
 
     in_field = np.logical_and(np.logical_and(-10<=x,x<=110),np.logical_and(-10<=y,y<=110))        
     return np.logical_and ( np.logical_not( 
@@ -130,12 +130,13 @@ rrt.c = 1
 rrt.set_start(start)
 rrt.init_search()
 
-def draw():
+def draw(rrt,ani_ax=None):
     x = np.linspace(-10,110,500)
     X,Y = np.meshgrid(x,x)
     obstacle_bitmap = obstacle(X,Y) #rasterize the obstacles
 
-    ani_ax = plt.figure().gca()
+    if ani_ax is None:
+        ani_ax = plt.figure().gca()
 
     
     ani_ax.cla()
@@ -156,7 +157,17 @@ def draw():
     xpath = lqr_rrt.run_forward(start,upath)
     ani_ax.plot(xpath[:,2],xpath[:,3],'.',zorder=3)
 
+def hook(rrt):
+    plt.ioff()
+    a = plt.figure()
 
+    c = rrt.worst_cost
+    fname = "rrt_2d_di_%f.png"%(c)
+    draw(rrt,a.gca())
+    a.savefig(fname)
+    plt.ion()
+    
+rrt.improved_solution_hook = hook
 
 if False and __name__ == '__main__':
 #    if False:
