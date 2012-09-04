@@ -50,9 +50,13 @@ def obstacle(x,y):
 
     in_obstacle1 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(-25<=v,v<=-5))
     in_obstacle2 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(5<=v,v<=25))
+    in_obstacle3 = np.logical_and(np.logical_and(80<=u,u<=85),np.logical_and(-2<=v,v<=2))
 
     in_field = np.logical_and(np.logical_and(-10<=x,x<=110),np.logical_and(-10<=y,y<=110))        
-    return np.logical_and ( np.logical_not( np.logical_or(in_obstacle1,in_obstacle2) ),
+    return np.logical_and ( np.logical_not( 
+                                            np.logical_or(  np.logical_or(in_obstacle1,in_obstacle2),
+                                                            in_obstacle3)
+                                                         ),
                             in_field
                             )
 
