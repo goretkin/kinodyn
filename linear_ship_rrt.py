@@ -36,8 +36,8 @@ max_time_horizon = 200
 goal = np.array([0,0,100,100,200])
 
 
-field_shelve = shelve.open('field_simple.shelve')
-obstacle_paths = field_shelve['obstacle_paths']
+#field_shelve = shelve.open('field_simple.shelve')
+#obstacle_paths = field_shelve['obstacle_paths']
 
 ship_sprite = Ship_Sprite()
 
