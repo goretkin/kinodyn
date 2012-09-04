@@ -266,7 +266,7 @@ class RRT():
                     print 'found first solution'
                     print '!!!\n'*5
                     self.found_feasible_solution = True
-                    self.worst_cost = tree.node[x_new_id]['cost']
+                    
 
                 if self.found_feasible_solution:
                     if tree.node[x_new_id]['cost']<self.worst_cost:         #there's a node in the goal that has a lowers the maximum cost (therefore we can prune more aggressively
