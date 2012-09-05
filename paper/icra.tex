@@ -160,6 +160,68 @@ $c(\sigma)$.
 
 Optimal Rapidly exploring random tree (RRT$^*$) \cite{karaman.frazzoli.ijrr11} is a version of the RRT algorithm~\cite{lavalle.kuffner.ijrr01} that has the \emph{asymptotic optimality} property, i.e., almost-sure convergence to an optimal solution.
 
+\begin{center}
+\begin{algorithm}
+\For {$i =1, \ldots, N$} { \label{line:iteration_start_orig}
+	$x_\mathrm{rand} \leftarrow {\tt Sample}$\; \label{line:rrtstar:sample}
+	$X_\mathrm{near} \leftarrow \mathtt{Near}(V ,x_\mathrm{rand})$\; \label{line:rrtstar:compute_near_orig}
+	$(x_\mathrm{min},\sigma_\mathrm{min}) \leftarrow {\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{rand})$\; \label{line:rrtstar:call_find_min_cost_parent}
+	\If{${\tt CollisionFree}(\sigma)$}{ \label{line:rrtstar:check_collision}
+		$V \leftarrow V \cup \{ x_\mathrm{rand} \}$\;  
+		$E \leftarrow E \cup \{ (x_\mathrm{min}, x_\mathrm{rand})$ \}\;
+		$(V,E) \leftarrow {\tt Rewire}(\,(V,E), X_\mathrm{near}, x_\mathrm{rand} \,)$\;
+	}
+	}
+%}
+\Return {$G = (V,E)$}\;
+\caption{${\tt RRT}^* ((V,E), N)$}
+\label{algorithm:rrtstar_orig}
+\end{algorithm}
+\end{center}
+
+%\vspace*{-.6in}
+
+\begin{center}
+\begin{algorithm}
+$\mathrm{minCost} \leftarrow \infty$;\,
+$x_\mathrm{min} \leftarrow {\tt NULL}$;
+$\sigma_\mathrm{min} \leftarrow {\tt NULL}$\;
+\For{$x_\mathrm{near} \in X_\mathrm{near}$}{
+	$\sigma \leftarrow {\tt Steer}(x_\mathrm{near}, x_\mathrm{rand})$\;
+	\If {${\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma) < \mathrm{minCost}$} {
+		$\mathrm{minCost} \leftarrow {\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma)$\;
+		$x_\mathrm{min} \leftarrow x_\mathrm{near}$;
+		$\sigma_\mathrm{min} \leftarrow \sigma$\;
+	}
+}
+\Return{$(x_\mathrm{min},\sigma_\mathrm{min})$}\;
+\caption{${\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{rand})$}
+\label{algorithm:find_parent_orig}
+\end{algorithm}
+\end{center}
+
+%\vspace*{-.6in}
+
+\begin{center}
+\begin{algorithm}
+\For{$x_\mathrm{near} \in X_\mathrm{near}$} {
+	$\sigma \leftarrow {\tt Steer}(x_\mathrm{rand}, x_\mathrm{near})$ \;
+	\If{${\tt Cost}(x_\mathrm{rand}) + {\tt Cost}(\sigma) < {\tt Cost}(x_\mathrm{near})$}{
+		\If {${\tt CollisionFree}(\sigma)$}{	
+			$x_\mathrm{parent} \leftarrow {\tt Parent}(x_\mathrm{near})$\;
+			$E \leftarrow E \setminus \{ x_\mathrm{parent}, x_\mathrm{near}\}$\;
+			$E \leftarrow E \cup \{ x_\mathrm{rand}, x_\mathrm{near}\}$\;
+		}
+	}
+}
+\Return{$(V,E)$}\;
+\caption{${\tt Rewire}( \, (V,E),X_\mathrm{near}, x_\mathrm{rand} \, )$}
+\label{algorithm:rewire_orig}
+\end{algorithm}
+\end{center}
+%\vspace*{-.3in}
+
+
 The major components of the algorithm are:
 \begin{itemize}
 \item {\it Random sampling}:
@@ -187,6 +249,46 @@ Given two states $x, x'$, the ${\tt Steer}(x,x')$ procedure returns a path $\sig
 Given a path $\sigma$, ${\tt CollisionFree}(\sigma)$ returns true if the path lies in the obstacle-free portion of  configuration space.
 
 \end{itemize}
+
+The algorithm proceeds as follows.
+Firstly, a state is sampled, denoted as
+$x_\mathrm{rand}$, from the configuration space
+(Line~\ref{line:rrtstar:sample}), and near neighbors are evaluated
+using the ${\tt Near}$ function
+(Line~\ref{line:rrtstar:compute_near_orig}).\footnote{Although it is not
+  explicitly noted here,
+%  in the algorithm description in order not to
+ % complicate the discussion, 
+ we assume that the algorithm proceeds to
+  the next iteration if the ${\tt Near}$ function returns an empty
+  set.} Next, RRT$^*$ calls ${\tt ChooseParent}$
+(Algorithm~\ref{algorithm:find_parent_orig}) to find a candidate for a
+parent node to $x_\mathrm{rand}$
+(Line~\ref{line:rrtstar:call_find_min_cost_parent}). ${\tt
+  ChooseParent}$ searches through the nodes in the set
+$X_\mathrm{near}$ of near nodes and returns the node, denoted as
+$x_\mathrm{min}$, that reaches $x_\mathrm{rand}$ with minimum cost
+along with the path $\sigma_\mathrm{min}$ connecting
+$x_\mathrm{min}$ to $x_\mathrm{rand}$. After that node
+%the node within
+%$X_\mathrm{near}$ that reaches $x_\mathrm{rand}$ (possibly with a path that is {\em not}
+%collision free) 
+is found, the algorithm checks $\sigma_\mathrm{min}$ for collision
+(Line~\ref{line:rrtstar:check_collision}). If the path
+is obstacle-free,
+%$\sigma_\mathrm{min}$ collides with an obstacle, then the algorithm
+%proceeds with the next iteration. Otherwise, 
+the algorithm adds
+$x_\mathrm{rand}$ to the tree and connects $x_\mathrm{min}$ to
+$x_\mathrm{rand}$, and attempts to ``rewire'' the nodes in
+$X_\mathrm{near}$ using the ${\tt Rewire}$ procedure
+(Algorithm~\ref{algorithm:rewire_orig}). The ${\tt Rewire}$
+procedure attempts to connect $x_\mathrm{rand}$ with each node in the
+set $X_\mathrm{near}$ of near nodes. If the path that connects
+$x_\mathrm{rand}$ with a near node $x_\mathrm{near}$ reaches
+$x_\mathrm{near}$ with cost less than that of its current parent, then
+the $x_\mathrm{near}$ is ``rewired'' to $x_\mathrm{rand}$ by
+connecting $x_\mathrm{rand}$ and $x_\mathrm{near}$.
 
 \begin{comment}
 \subsection{RRT$^*$}
