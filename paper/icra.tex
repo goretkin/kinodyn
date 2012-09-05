@@ -131,13 +131,13 @@ our method's application in a few standard benchmark domains.
 
 \subsection{Problem Statement}
 
-Given a system with known (possibly non-linear) process dynamics, the
+Given a system with known process dynamics, the
 optimal motion planning problem is to find a minimum cost feasible
 trajectory from an initial configuration to a goal configuration. Let
 {\em configuration space} be a compact set, $X \subseteq \mathcal{X}$,
 that describes all possible configurations of the system. Let $U
 \subseteq \mathcal{U}$ be a compact control input space. We assume that we
-are given the non-linear process dynamics:
+are given the process dynamics:
 \[
 x_{k+1} = f(x,u)
 \]
@@ -158,7 +158,7 @@ $c(\sigma)$.
 
 \subsection{RRT$^*$}
 
-Optimal Rapidly exploring random tree (RRT$^*$) \cite{karaman.frazzoli.ijrr11} is a version of the RRT algorithm~\cite{lavalle.kuffner.ijrr01} that has the \emph{asymptotic optimality} property, i.e., almost-sure convergence to an optimal solution.
+Optimal Rapidly-exploring random tree (RRT$^*$) \cite{karaman.frazzoli.ijrr11} is a version of the RRT algorithm~\cite{lavalle.kuffner.ijrr01} that has the \emph{asymptotic optimality} property, i.e., almost-sure convergence to an optimal solution.
 
 \begin{center}
 \begin{algorithm}
@@ -289,123 +289,6 @@ $x_\mathrm{rand}$ with a near node $x_\mathrm{near}$ reaches
 $x_\mathrm{near}$ with cost less than that of its current parent, then
 the $x_\mathrm{near}$ is ``rewired'' to $x_\mathrm{rand}$ by
 connecting $x_\mathrm{rand}$ and $x_\mathrm{near}$.
-
-\begin{comment}
-\subsection{RRT$^*$}
-
-The RRT$^*$ algorithm is a sample-based motion planner to finds probabalistically
-optimal solutions. It requires the following algorithmic primitives:
-
-Steer: $ $$\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Action }a$
-where $a$ is an action that can be applied in $s_{\mbox{from}}$
-in order to get to $s_{\mbox{to}}$
-
-Distance: $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{Cost }c$
-where $c$ is the cost of getting from $s_{\mbox{from}}$ to $s_{\mbox{to}}$
-without obstacles
-
-CollisionFree: $\left(\mbox{State}\, s_{\mbox{from}},\mbox{State}\, s_{\mbox{to}}\right)\mapsto\mbox{StateTraj }\left\langle s_{1},\cdots,s_{T}\right\rangle $
-
-
-\subsection{Modifications to Primitives}
-
-Modification
-
-SteerApprox: $ $$\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto u$
-where $a$ is an action that can be applied in $x_{\mbox{from}}$
-in order to get toward $s_{\mbox{to}}$
-
-SimForward: $ $$\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}}$
-where $u$ is an action that when applied in $x_{\mbox{from}}$ brings
-the system to $x_{\mbox{final}}$
-
-Distance: $\left(x_{\mbox{from}},x_{\mbox{to}}\right)\mapsto c$ where
-$c$ is the cost of getting from $s_{\mbox{from}}$ to $s_{\mbox{to}}$
-without obstacles
-
-%CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto\left\langle x_{1},\cdots,x_{T}\right\rangle ,\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
-%where $ $$\left\langle x_{1},\cdots,x_{T}\right\rangle $ is a trajectory
-%of states arising from taking $u$ from $x_{\mbox{from}}$ until hitting
-%an obstacle or completing the action and $\left\langle u_{0},\cdots,u_{T-1}\right\rangle $
-%is a decomposition of $u$ that corresponds to the state trajectory. 
-
-CollisionFree: $\left(x_{\mbox{from}},u\right)\mapsto x_{\mbox{final}},u'$
-where $x_{\mbox{final}}=x_{\mbox{from}}$ and $u=u'$ if the trajectory
-gotten from taking $u$ in $x_{\mbox{from }}$ is entirely collision
-free. If the trajectory is partially collision free, then $x_{\mbox{final}}$
-is the the last state collision-free state along the trajectory before
-which all states are also collision free and $u'$ is the part of
-$u$ that brings $x_{\mbox{from }}$ to $x_{\mbox{final}}$.
-
-Cost: $\left(x_{\mbox{from}},u\right)\mapsto\mbox{Cost }c$ where
-$c$ is the cost of the trajectory from taking $u$ in $x_{\mbox{from}}$.
-
-% Include in code adding points along an extension?
-
-\begin{center}
-\begin{algorithm}
-\For {$i =1, \ldots, N$} {
-    $x_\mathrm{rand} \leftarrow {\tt Sample}$\;
-    ($x_\mathrm{nearest}, c_\mathrm{nearest}) \leftarrow \mathtt{Nearest}(V ,x_\mathrm{rand})$\;
-    \If {$c_\mathrm{nearest} \neq \infty$} {
-        $u_\text{nearest} \leftarrow {\tt SteerApprox}(x_\mathrm{nearest}, x_\mathrm{rand})$\;
-        ($\sigma, x_\text{new}) \leftarrow {\tt CollisionFree}(x_\mathrm{nearest}, u_\mathrm{nearest})$\;
-        \If {$\sigma \neq \emptyset$}{
-            $X_\mathrm{near} \leftarrow \mathtt{Near}(V ,x_\mathrm{new})$\;
-            $x_\mathrm{min},u_\mathrm{min} \leftarrow {\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{new})$\;
-            $x_\mathrm{new} \leftarrow {\tt SimForward}(x_\mathrm{min}, u_\mathrm{min})$\;
-            $X \leftarrow X \cup \{ x_\mathrm{new} \}$\;
-            $E \leftarrow E \cup \{ (x_\mathrm{min}, x_\mathrm{new})$\}\;
-            $(V,E) \leftarrow {\tt Rewire}(\,(V,E), X_\mathrm{near}, x_\mathrm{new} \,)$\;
-}
-}
-}
-\Return {$G = (V,E)$}\;
-\caption{${\tt ALG}^* ((V,E), N)$}
-
-\end{algorithm}
-\end{center}
-
-\begin{center}
-\begin{algorithm}
-$\mathrm{minCost} \leftarrow \infty$;\,
-$x_\mathrm{min} \leftarrow {\tt NULL}$;
-$\sigma_\mathrm{min} \leftarrow {\tt NULL}$\;
-\For{$x_\mathrm{near} \in X_\mathrm{near}$}{
-    $u \leftarrow {\tt SteerApprox}(x_\mathrm{near}, x_\mathrm{new})$\;
-    ($x^{\prime},u^{\prime}) \leftarrow {\tt CollisionFree}(x_\mathrm{near}, u)$\;
-    \If {${\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma) < \mathrm{minCost} $} {
-        $\mathrm{minCost} \leftarrow {\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma)$\;
-        $x_\mathrm{min} \leftarrow x_\mathrm{near}$;
-        $\sigma_\mathrm{min} \leftarrow \sigma$\;
-    }
-}
-\Return{$(x_\mathrm{min},\sigma_\mathrm{min})$}\;
-\caption{${\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{new})$}
-
-\end{algorithm}
-\end{center}
-
-\begin{center}
-\begin{algorithm}
-\For{$x_\mathrm{near} \in X_\mathrm{near}$} {
-    $\sigma \leftarrow {\tt LQRSteer}(x_\mathrm{new}, x_\mathrm{near})$ \;
-    \If{${\tt Cost}(x_\mathrm{new}) + {\tt Cost}(\sigma) < {\tt Cost}(x_\mathrm{near})$}{
-        \If {${\tt CollisionFree}(\sigma)$}{   
-            $x_\mathrm{parent} \leftarrow {\tt Parent}(x_\mathrm{near})$\;
-            $E \leftarrow E \setminus \{ x_\mathrm{parent}, x_\mathrm{near}\}$\;
-            $E \leftarrow E \cup \{ x_\mathrm{new}, x_\mathrm{near}\}$\;
-}
-    }
-}
-\Return{$(V,E)$}\;
-\caption{${\tt Rewire}( \, (V,E), X_\mathrm{near}, x_\mathrm{new} \, )$}
-\end{algorithm}
-\end{center}
-
-The changes to the primitives do not logically change the \rrtstar algorithm,
-but instead make it easier to plug-in the contributed components.
-\end{comment}
 
 \subsection{Math Tools}
 
