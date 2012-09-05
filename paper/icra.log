@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.14)  5 SEP 2012 12:53
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.14)  5 SEP 2012 13:28
 entering extended mode
  %&-line parsing enabled.
 **icra.tex
@@ -314,28 +314,28 @@ LaTeX Font Info:    Try loading font information for U+msb on input line 58.
 
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
-)
-Underfull \hbox (badness 10000) detected at line 179
-[][]
- []
-
-
-Underfull \hbox (badness 10000) detected at line 200
-[][]
- []
-
-
-Underfull \hbox (badness 10000) detected at line 220
-[][]
- []
-
-[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
+) [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
 
 ]
-Overfull \hbox (1.53342pt too wide) detected at line 240
+Overfull \hbox (1.53342pt too wide) detected at line 176
 []\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 V; x\OT1/cmr/m/n/10 ) := [] \OML/cmm/m/it/1
 0 ;
+ []
+
+
+Underfull \hbox (badness 10000) detected at line 205
+[][]
+ []
+
+
+Underfull \hbox (badness 10000) detected at line 226
+[][]
+ []
+
+
+Underfull \hbox (badness 10000) detected at line 246
+[][]
  []
 
 [2] [3] (./icra.bbl)
@@ -358,7 +358,7 @@ Here is how much of TeX's memory you used:
  7023 multiletter control sequences out of 15000+50000
  47781 words of font info for 104 fonts, out of 3000000 for 9000
  28 hyphenation exceptions out of 8191
- 27i,21n,24p,285b,437s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 27i,21n,24p,285b,439s stack positions out of 5000i,500n,10000p,200000b,50000s
 {/usr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/s
 hare/texmf-texlive/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texmf-
 texlive/fonts/type1/public/amsfonts/cm/cmbx7.pfb></usr/share/texmf-texlive/font
@@ -377,7 +377,7 @@ fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/share/texmf-texlive/fonts/
 type1/urw/times/utmb8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/times/utmb
 i8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/times/utmr8a.pfb></usr/share/
 texmf-texlive/fonts/type1/urw/times/utmri8a.pfb>
-Output written on icra.pdf (4 pages, 230147 bytes).
+Output written on icra.pdf (4 pages, 230195 bytes).
 PDF statistics:
  96 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
