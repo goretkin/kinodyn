@@ -76,11 +76,12 @@ def collision_free(from_node,action):
 
                 if not isStateValid(x_next):
                     break
-                u_path.append(u)
+                u_path.append(np.array([u]))
                 x_path.append(x_next)
             last_x_final = x_final
-    x_path = np.array(x_path[1:])
-    u_path = np.array(u_path)
+
+    x_path = x_path[1:]
+    u_path = u_path
 
     return x_path, u_path, all_the_way    
 
@@ -132,7 +133,7 @@ rrt.set_collision_free(collision_free)
 
 rrt.set_distance_from_goal(distance_from_goal)
 
-rrt.gamma_rrt = 4.0
+rrt.gamma_rrt = 40.0
 rrt.eta = 0.5
 rrt.c = 1
 
@@ -277,146 +278,146 @@ def draw_rrt(int_ax,rrt):
         info_text = ani_ax.figure.text(.8, .5, info,size='small')
     
   
-    
-if True:
-    frame_counter = 0
+if __name__ == '__main__':
+    if True:
+        frame_counter = 0
 
-    int_fig = plt.figure(None)
-    int_ax = int_fig.add_subplot(111)
-    
-    # shift the axis to make room for legend
-    box = int_ax.get_position()
-    int_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
-    
-    draw_rrt(int_ax,interactive_rrt)
-    
-    
-    #sampler = lambda : np.array([1.0,1.0])
-    #interactive_rrt.set_sample(sampler)
-    #interactive_rrt.search(1)
-    
-    #draw_rrt(int_ax,interactive_rrt)
-    
-    def save_frame(fig):
-        global frame_counter
-        s ='int_rrt_2d_%03d.png'%(frame_counter)
-        fig.savefig(s)
-        frame_counter += 1
-
-    def rrts(xrand):
-        xrand = np.array(xrand)
-        interactive_rrt.set_sample(lambda : xrand)
-        interactive_rrt.search(1)
+        int_fig = plt.figure(None)
+        int_ax = int_fig.add_subplot(111)
+        
+        # shift the axis to make room for legend
+        box = int_ax.get_position()
+        int_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
+        
         draw_rrt(int_ax,interactive_rrt)
-        interactive_rrt.viz_change = False
-        int_fig.canvas.draw()
-            
-    def button_press_event_dispatcher(event):
-        if int_fig.canvas.widgetlock.locked(): #matplotlib widget in use
-            return
-        if event.xdata is None or event.ydata is None: #make sure clicked on axes
-            return
-            
-        if event.button == 1: #sample 
-            p = np.array([event.xdata,event.ydata])
-            
-            sampler = lambda : p
-            
-            interactive_rrt.set_sample(sampler)
+        
+        
+        #sampler = lambda : np.array([1.0,1.0])
+        #interactive_rrt.set_sample(sampler)
+        #interactive_rrt.search(1)
+        
+        #draw_rrt(int_ax,interactive_rrt)
+        
+        def save_frame(fig):
+            global frame_counter
+            s ='int_rrt_2d_%03d.png'%(frame_counter)
+            fig.savefig(s)
+            frame_counter += 1
+
+        def rrts(xrand):
+            xrand = np.array(xrand)
+            interactive_rrt.set_sample(lambda : xrand)
             interactive_rrt.search(1)
             draw_rrt(int_ax,interactive_rrt)
             interactive_rrt.viz_change = False
             int_fig.canvas.draw()
-            save_frame(int_fig)
+                
+        def button_press_event_dispatcher(event):
+            if int_fig.canvas.widgetlock.locked(): #matplotlib widget in use
+                return
+            if event.xdata is None or event.ydata is None: #make sure clicked on axes
+                return
+                
+            if event.button == 1: #sample 
+                p = np.array([event.xdata,event.ydata])
+                
+                sampler = lambda : p
+                
+                interactive_rrt.set_sample(sampler)
+                interactive_rrt.search(1)
+                draw_rrt(int_ax,interactive_rrt)
+                interactive_rrt.viz_change = False
+                int_fig.canvas.draw()
+                save_frame(int_fig)
 
-        elif event.button == 3: #print node info / draw voronoi regions
-            draw_voronoi(int_ax,interactive_rrt)
-            node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata])
-            state = interactive_rrt.tree.node[node_id]['state']
-            int_ax.text(*state,s=str(node_id),zorder=30)    #text on top
-            int_fig.canvas.draw()
-            
-            print node_id, interactive_rrt.tree.node[node_id]
-            
-        import sys
-        sys.stdout.flush() #function is called asyncrhonously, so any print statements might not flush
-            
-    int_fig.canvas.mpl_connect('button_press_event', button_press_event_dispatcher)    
-    
-    import shelve
-    plt.show()
-    #for s in shelve.open('kin2d_rewire_bug.shelve')['sample_history']:
-    #    rrts(s)
-   
-ani_rrt = copy.deepcopy(rrt)
-
-if False:
-    rrt.search(iters=1e3)
-    ax = plt.figure(None).add_subplot(111)
-
-    tree = rrt.tree
-    nx.draw_networkx(G=tree,
-                     pos=nx.get_node_attributes(tree,'state'),
-                     ax=ax,
-                     node_size=25,
-                     node_color=nx.get_node_attributes(tree,'cost').values(),
-                     cmap = mpl.cm.get_cmap(name='copper'),
-                     edge_color=nx.get_edge_attributes(tree,'pruned').values(),
-                    with_labels=False,
-                    #style='dotted'
-                    )
-                  
-    ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
-
-    xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
-    ax.plot(xpath[0],xpath[1],'g--',lw=10,alpha=.7)
-
-    plt.show()
-
-
-if False:
-    ani_fig = plt.figure(None)
-    ani_ax = ani_fig.gca()
-    
-    ani_ax.set_xlim(-1,1)
-    ani_ax.set_ylim(-1,1)
-    ani_ax.set_aspect('equal')
-    
-    ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
-    
-    #import copy
-
-    
-    # shift the axis to make room for legend
-    box = ani_ax.get_position()
-    ani_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
-    
-    worst_costs = []
-
-    saved_frame = []
-
-    def update_frame(i): 
-        print 'frame: ',i
-        ani_rrt.force_iteration()
-        ani_ax.set_title('time index: %d'%(i))
-        draw_rrt(ani_ax,ani_rrt)
-
-        global worst_costs
-        worst_costs.append(ani_rrt.worst_cost)
-
-        if(i%50==0):
-            global saved_frame
-            if i not in saved_frame:
-                import shelve
-                s = shelve.open('rrt_%04d.shelve'%i)
-                ani_rrt.save(s)
-                s.close()
+            elif event.button == 3: #print node info / draw voronoi regions
+                draw_voronoi(int_ax,interactive_rrt)
+                node_id, distance = interactive_rrt.nearest_neighbor([event.xdata,event.ydata])
+                state = interactive_rrt.tree.node[node_id]['state']
+                int_ax.text(*state,s=str(node_id),zorder=30)    #text on top
+                int_fig.canvas.draw()
+                
+                print node_id, interactive_rrt.tree.node[node_id]
+                
+            import sys
+            sys.stdout.flush() #function is called asyncrhonously, so any print statements might not flush
+                
+        int_fig.canvas.mpl_connect('button_press_event', button_press_event_dispatcher)    
         
+        import shelve
+        plt.show()
+        #for s in shelve.open('kin2d_rewire_bug.shelve')['sample_history']:
+        #    rrts(s)
        
-    ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=1500,interval=500)
-    ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
-    #ani.save('test.mp4', fps=20, codec='mpeg4', clear_temp=True)
-    
-    
+    ani_rrt = copy.deepcopy(rrt)
+
+    if False:
+        rrt.search(iters=1e3)
+        ax = plt.figure(None).add_subplot(111)
+
+        tree = rrt.tree
+        nx.draw_networkx(G=tree,
+                         pos=nx.get_node_attributes(tree,'state'),
+                         ax=ax,
+                         node_size=25,
+                         node_color=nx.get_node_attributes(tree,'cost').values(),
+                         cmap = mpl.cm.get_cmap(name='copper'),
+                         edge_color=nx.get_edge_attributes(tree,'pruned').values(),
+                        with_labels=False,
+                        #style='dotted'
+                        )
+                      
+        ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
+
+        xpath = np.array([rrt.tree.node[i]['state'] for i in rrt.best_solution(goal)]).T
+        ax.plot(xpath[0],xpath[1],'g--',lw=10,alpha=.7)
+
+        plt.show()
+
+
+    if False:
+        ani_fig = plt.figure(None)
+        ani_ax = ani_fig.gca()
+        
+        ani_ax.set_xlim(-1,1)
+        ani_ax.set_ylim(-1,1)
+        ani_ax.set_aspect('equal')
+        
+        ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5)    
+        
+        #import copy
+
+        
+        # shift the axis to make room for legend
+        box = ani_ax.get_position()
+        ani_ax.set_position([box.x0-.1, box.y0, box.width, box.height])
+        
+        worst_costs = []
+
+        saved_frame = []
+
+        def update_frame(i): 
+            print 'frame: ',i
+            ani_rrt.force_iteration()
+            ani_ax.set_title('time index: %d'%(i))
+            draw_rrt(ani_ax,ani_rrt)
+
+            global worst_costs
+            worst_costs.append(ani_rrt.worst_cost)
+
+            if(i%50==0):
+                global saved_frame
+                if i not in saved_frame:
+                    import shelve
+                    s = shelve.open('rrt_%04d.shelve'%i)
+                    ani_rrt.save(s)
+                    s.close()
+            
+           
+        ani = animation.FuncAnimation(fig=ani_fig,func=update_frame,frames=1500,interval=500)
+        ani.save('rrt.mp4', fps=5, codec='mpeg4', clear_temp=False)
+        #ani.save('test.mp4', fps=20, codec='mpeg4', clear_temp=True)
+        
+        
 
 

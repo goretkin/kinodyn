@@ -66,7 +66,7 @@ class RRT():
         self.viz_collided_paths = [] #collision queries that return collision, set to None to not store this information
 
         self.save_vars = [
-                            'tree','state_ndim','next_node_id','gamma_rrt','steer_reach_threshold','extension_aggressiveness','rrt_until_feasible','search_initialized',
+                            'tree','state_ndim','next_node_id','gamma_rrt','extension_aggressiveness','rrt_until_feasible','search_initialized',
                             'n_pruned', 'n_extensions', 'n_iters',
                             'found_feasible_solution', 'worst_cost', 'can_prune', 'deleted_nodes',
                             'cheapest_goal', 'goal_set_nodes', 'cost_history', 'sample_history', 'check_cost_decreasing',
@@ -77,11 +77,12 @@ class RRT():
         self.sample_goal = None
         
         self.improved_solution_hook = None                          
-    def save(self,shelf_file):
-        try:
-            self.check_consistency()
-        except AssertionError as e:
-            print "Warning! saving an inconsistent RRT! ",e
+    def save(self,shelf_file,do_consistency_check=True):
+        if(do_consistency_check):
+            try:
+                self.check_consistency()
+            except AssertionError as e:
+                print "Warning! saving an inconsistent RRT! ",e
         
         for var in self.save_vars:
             shelf_file[var] = self.__dict__[var]
@@ -273,7 +274,7 @@ class RRT():
                         self.worst_cost = tree.node[x_new_id]['cost']
                         self.cheapest_goal = x_new_id
                         self.cost_history.append((self.n_iters,self.worst_cost,self.best_solution_goal()))
-                        self.improved_solution_hook(self)
+                        if self.improved_solution_hook is not None: self.improved_solution_hook(self)
                         self.can_prune = True
     def prune(self):
         pruned_nodes = set()
@@ -286,12 +287,22 @@ class RRT():
                 raise AssertionError("Pruning removed the best goal, which is used to set the pruning cost bound.")
         self.deleted_nodes = self.deleted_nodes.union(pruned_nodes)
         return pruned_nodes
-            
+
+    def _collapse_action(self,action_sequence):
+        u_path = []
+        for action in action_sequence:
+            u_path.extend(action)
+        u_path = np.array(u_path)
+        if len(u_path) > 0: assert u_path.shape[1] == self.control_ndim
+        return u_path
+
     def extend_from(self,node_id,to_state):
         tree = self.tree
 
         x_actual,action = self.steer(tree.node[node_id],to_state)
         x_path, u_path, all_the_way  = self.collision_free(tree.node[node_id], action)
+
+        u_path = self._collapse_action(u_path)
 
         new_id = self.get_node_id()
         if len(x_path) == 0:
@@ -304,6 +315,7 @@ class RRT():
                                          }
         )
         tree.add_edge(node_id,new_id)
+        self.check_goal(new_id)
         return new_id
 
     
@@ -391,7 +403,7 @@ class RRT():
         u_path_min = u_path                 #control trajectory from x_min to candidate_x_new
 #        c_min = tree.node[x_min]['cost']  + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_nearest_id]['state']]+list(x_path_min[1:]),u_path_min)])      #cost of candidate_x_new_min. 
                                                                                                 #can't simply do self.cost(tree.node[x_nearest_id]['state'],action) because action might cause a collision
-        c_min = tree.node[x_min]['cost'] + self.cost(tree.node[x_nearest_id]['state'],u_path_min)
+        c_min = tree.node[x_min]['cost'] + self.cost(tree.node[x_nearest_id]['state'],self._collapse_action(u_path_min))
 
         if do_find_cheapest_parent or do_rewire:
             X_near = self.near(x_new,radius)
@@ -409,7 +421,7 @@ class RRT():
 
                 if all_the_way and self.same_state(candidate_x_new,x_new):
                     #this_cost = tree.node[x_near]['cost'] + sum([self.cost(x,u) for (x,u) in zip([tree.node[x_near]['state']]+list(x_path[1:]),u_path)])
-                    this_cost = tree.node[x_near]['cost'] + self.cost(tree.node[x_near]['state'],u_path)
+                    this_cost = tree.node[x_near]['cost'] + self.cost(tree.node[x_near]['state'],self._collapse_action(u_path))
                     if this_cost < c_min:                
                         x_min = x_near
                         c_min = this_cost
@@ -427,7 +439,7 @@ class RRT():
             x_new_id = self.get_node_id()
 
             tree.add_node(x_new_id,attr_dict={  'state':x_new,
-                                                'action':action,
+                                                'action':self._collapse(action),
                                                 'hops':1+tree.node[x_min]['hops'],
                                                 'cost':tree.node[x_min]['cost']+self.cost(tree.node[x_min]['state'],action)
                                              }
@@ -439,7 +451,7 @@ class RRT():
             last_node_id = x_min
             for i in range(len(x_path_min)):
                 x = x_path_min[i]
-                u = u_path_min[[i]] #preserve the dimensionality
+                u = u_path_min[i]
                 assert len(x_new) == self.state_ndim 
                 this_node_id = self.get_node_id()
                 tree.add_node(this_node_id,attr_dict={  'state':x,
@@ -459,7 +471,7 @@ class RRT():
             added_id = self.extend_from(x_new_id,self.sample_goal())
             if not added_id is None: 
                 print 'goal extension bias got somewhere.'#,tree.node[added_id]['action']
-                self.check_goal(added_id)
+                #self.check_goal(added_id)
 
         self.viz_x_rand = x_rand
         self.viz_x_nearest_id = x_nearest_id            
@@ -525,9 +537,6 @@ class RRT():
                             self._deep_update_cost(x_near,proposed_cost)
 
                     self.n_rewired += 1
-
-        
-
 
     def _deep_enforce_dynamics(self,node_id):
         #node_id['state'] supposedly has moved. apply action of all the children 
