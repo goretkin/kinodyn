@@ -23,6 +23,7 @@ class RRT():
         
         self.gamma_rrt = 1.0 #decay rate of ball
         self.eta = 0.5  #maximum ball size
+        self.max_nodes_in_ball = None
 
         self.extension_aggressiveness = 1    #how many nodes to try to extend from if the nearest does not yield an extension
         self.rrt_until_feasible = True      #do RRT until you can start pruning, then so RRT*
@@ -85,7 +86,9 @@ class RRT():
         if self.logger is None:
             self.logger = logging.getLogger()
             self.logger.setLevel(0)
-            self.logger.addHandler(logging.StreamHandler())
+            #FIXME I must be doing something wrong
+            if len(self.logger.handlers) == 0:
+                self.logger.addHandler(logging.StreamHandler())
 
     def __deepcopy__(self,memo):
         import copy
@@ -218,15 +221,20 @@ class RRT():
         # cost(x,action) x is a starting state and action is an action
         self.cost = cost
 
-    def near(self,point,radius):
+    def near(self,point,radius,max_n=None):
         """
         return a dictionary where keys are nodes and values are distances
+        if number of nodes is greater than max_n, return dictionary containing
+        only the max_n elements with the least distance
         """
         S = {}    
         for this_node in self.tree.nodes_iter():
             this_distance = self.distance(self.tree.node[this_node],point)
             if(this_distance<radius):
                 S[this_node] = this_distance
+        if max_n is not None and len(S)>max_n:
+            #inefficient to sort all of dictionary by key when we only care about first max_n
+            S = dict(sorted(S.items(),key=lambda x: x[1])[:max_n])  
         return S
     
     def nearest_neighbor(self,state):
@@ -353,7 +361,6 @@ class RRT():
         tree.add_edge(node_id,new_id)
         self.check_goal(new_id)
         return new_id
-
     
     def extend(self,x_rand):
         self.n_extensions += 1
@@ -440,7 +447,7 @@ class RRT():
         c_min = tree.node[x_min]['cost'] + self.cost(tree.node[x_nearest_id]['state'],self._collapse_action(u_path_min))
 
         if do_find_cheapest_parent or do_rewire:
-            X_near = self.near(x_new,radius)
+            X_near = self.near(x_new,radius,self.max_nodes_in_ball)
             self.logger.debug('nodes in ball:{}'.format(len(X_near)))
         else:
             X_near = None
