@@ -10,9 +10,10 @@ import networkx as nx
 import heapq
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import logging
     
 class RRT():
-    def __init__(self,state_ndim,control_ndim):
+    def __init__(self,state_ndim,control_ndim,logger=None):
 
         self.tree = tree = nx.DiGraph()
         self.state_ndim = state_ndim
@@ -70,31 +71,67 @@ class RRT():
                             'n_pruned', 'n_extensions', 'n_iters',
                             'found_feasible_solution', 'worst_cost', 'can_prune', 'deleted_nodes',
                             'cheapest_goal', 'goal_set_nodes', 'cost_history', 'sample_history', 'check_cost_decreasing',
+                            'state0', 'start_node_id', 
                             ]
 
-        self.debug = True
-        
+        self.save_keys = ['state','cost','action','hops']   #keys of a node
+
         self.sample_goal = None
         
         self.improved_solution_hook = None                          
+        self.logger = logger
+
+        self.function_list = [  'goal_test', 'sample_goal', 'distance_from_goal', 'collision_free', 'sample', 'steer', 'same_state', 'distance', 'cost' ]
+        if self.logger is None:
+            self.logger = logging.getLogger()
+            self.logger.setLevel(0)
+            self.logger.addHandler(logging.StreamHandler())
+
+    def __deepcopy__(self,memo):
+        import copy
+        dup = RRT(self.state_ndim,self.control_ndim,logger=self.logger)
+        for var in self.save_vars:
+            dup.__dict__[var] = copy.deepcopy(self.__dict__[var],memo)
+
+        for func in self.function_list:
+            dup.__dict__[func] = self.__dict__[func]
+        return dup
+
+    def clean_nodes(self):
+        """
+        for each node in the tree, remove all entries that are not in save_keys
+        (deletes any data, such as cached cost-to-go)
+        """
+        for node_id in self.tree.nodes():
+            node = self.tree.node[node_id]
+            for key in node.keys():
+                if key not in self.save_keys:
+                    del node[key]
+        
     def save(self,shelf_file,do_consistency_check=True):
         if(do_consistency_check):
             try:
                 self.check_consistency()
             except AssertionError as e:
-                print "Warning! saving an inconsistent RRT! ",e
+                self.logger.warn("Warning! saving an inconsistent RRT! {}".format(e))
         
         for var in self.save_vars:
             shelf_file[var] = self.__dict__[var]
             
-    def load(self,shelf_file):
+    def load(self,shelf_file,strict_consistency_check=False):
         if not self.search_initialized:
-            print "Warning! initializing after loading will over-write the loaded values."
+            self.logger.warn("Warning! initializing after loading will over-write the loaded values.")
         for var in self.save_vars:
             if var not in shelf_file.keys():
                 raise AssertionError('shelf file is missing key: %s'%str(var))
             self.__dict__[var] = shelf_file[var]
-        self.check_consistency()
+        if strict_consistency_check:
+            self.check_consistency()
+        else:
+            try:
+                self.check_consistency()
+            except AssertionError as e:
+                self.logger.warn("Loading inconsistent tree: {}".format(e))
             
     def get_node_id(self):
         _id = self.next_node_id
@@ -226,7 +263,7 @@ class RRT():
         only call once
         """
         if(self.search_initialized):
-            print "search already initializd"
+            self.logger.warn("search already initializd")
 
         self.search_initialized = True
         
@@ -249,23 +286,23 @@ class RRT():
                 return
             
     def search(self,iters=5e2):
-        for i in xrange(int(iters)):
+        iters = int(iters)
+        self.logger.info('starting search of {}'.format(iters))
+        for i in xrange(iters):
             self.n_iters += 1
             x_rand = self.sample()
             self.extend(x_rand)
-            print 'iter:',i,' n_pruned:',self.n_pruned, 'n_rewired:', self.n_rewired, 'nodes in tree:', len(self.tree.node)
+            self.logger.info('iter:{},  n_pruned:{}, n_rewired:{}, nodes in tree:{}'.format(self.n_iters,self.n_pruned, self.n_rewired, len(self.tree.node)))
 
     def check_goal(self,node_id):
         x_new_id = node_id
         tree = self.tree
         
         if self.goal_test(tree.node[x_new_id]):
-                print 'added point in the goal set'
+                self.logger.info('added point in the goal set')
                 self.goal_set_nodes.add(x_new_id)
                 if not self.found_feasible_solution:
-                    print '!!!\n'*5
-                    print 'found first solution'
-                    print '!!!\n'*5
+                    print '!!!found first solution!!!'
                     self.found_feasible_solution = True
                     
 
@@ -279,9 +316,8 @@ class RRT():
     def prune(self):
         pruned_nodes = set()
         if self.do_pruning and self.can_prune:
-            print 'Prune the tree: ',self.worst_cost
             pruned_nodes = self.prune_at_bound(self.worst_cost)
-            print ' removed %d nodes'%len(pruned_nodes)
+            self.logger.info('Prune the tree at: {} removed {} nodes.'.format(self.worst_cost,len(pruned_nodes)))
             self.n_pruned += len(pruned_nodes)
             if self.cheapest_goal in pruned_nodes:
                 raise AssertionError("Pruning removed the best goal, which is used to set the pruning cost bound.")
@@ -343,7 +379,7 @@ class RRT():
 
         x_nearest_id, nearest_distance  = self.nearest_neighbor(x_rand)
         if nearest_distance == np.inf:
-            if self.debug: print 'no nearest node'
+            self.logger.debug('no nearest node')
             return      #there is no nearest node (occurs for some distance functions)
         (x_new, action) = self.steer(tree.node[x_nearest_id],x_rand)
 
@@ -360,7 +396,7 @@ class RRT():
             not possible to extend the x_nearest
             """
             if extension_aggressiveness <=1:
-                if self.debug: print 'no collision-free extension possible'
+                self.logger.debug('no collision-free extension possible')
                 return #go to next iteration
             else:
                 #candidate_x_nearest is thusly denoated "candidate" because extension from it may not be possible.
@@ -378,16 +414,14 @@ class RRT():
                         break
 
                 if len(x_path) == 0:
-                    if self.debug: print 'aggresive extension %d still found nothing to extend from!'%(extension_aggressiveness)
+                    self.logger.debug('aggresive extension %d still found nothing to extend from!'%(extension_aggressiveness))
                     return
         
         if not all_the_way:
             x_new = x_path[-1]
         else:
             if not self.same_state(x_path[-1],x_new):
-                print 'error',np.linalg.norm(np.array(x_path[-1]) - x_new)
-                print 'expected x_new',x_new
-                print 'actual x_new',x_path[-1]
+                self.logger.error('expected x_new: {} actual x_new: {}'.format(x_new,x_path[-1]))
                 print '\n\n\n\nraise SoftAssertion!!!!!\n\n\n\n'
                 #raise AssertionError('steer function or collision_free function is inaccurate')    #fixme
             
@@ -407,7 +441,7 @@ class RRT():
 
         if do_find_cheapest_parent or do_rewire:
             X_near = self.near(x_new,radius)
-            print 'nodes in ball:',len(X_near)
+            self.logger.debug('nodes in ball:{}'.format(len(X_near)))
         else:
             X_near = None
     
@@ -470,7 +504,7 @@ class RRT():
         if not self.sample_goal is None:
             added_id = self.extend_from(x_new_id,self.sample_goal())
             if not added_id is None: 
-                print 'goal extension bias got somewhere.'#,tree.node[added_id]['action']
+                self.logger.info('goal extension bias got somewhere.')#,tree.node[added_id]['action']
                 #self.check_goal(added_id)
 
         self.viz_x_rand = x_rand
@@ -500,7 +534,7 @@ class RRT():
         if do_rewire:
             if x_new_id in pruned_nodes:
                 #pruning removed x_new
-                print 'pruning removed x_new'
+                self.logger.debug('pruning removed x_new')
                 return
             #if nodes were pruned, then X_near may contain invalid nodes
             #can re-do the query, or just remove
@@ -509,7 +543,7 @@ class RRT():
             #rewire to see if it's cheaper to go through the new point x_new
             for x_near in X_near:
                 if x_near in self.deleted_nodes: 
-                    print 'updating dynamics removed something in X_near',x_near
+                    self.logger.debug('updating dynamics removed {} in X_near'.format(x_near))
                     continue
                 #proposed_cost = tree.node[x_new_id]['cost'] + c*self.distance(tree.node[x_near],x_new)
                 candidate_x_near, action = self.steer(tree.node[x_new_id],tree.node[x_near]['state'])   #can't steer exactly to x_near
@@ -520,7 +554,7 @@ class RRT():
                         if self.same_state(tree.node[x_near]['state'],candidate_x_near):
                             #rewire. parent of x_near should be x_new
                             if not self.same_state(tree.node[x_near]['state'],candidate_x_near):
-                                print ' updating x_near from ', tree.node[x_near]['state'], ' to ' , candidate_x_near 
+                                self.logger.debug('updating x_near from {} to {}'.format(tree.node[x_near]['state'],candidate_x_near) )
 
                             old_parent = tree.predecessors(x_near)
                             assert len(old_parent)==1 #each node in tree has only one parent
@@ -533,7 +567,7 @@ class RRT():
                             #x_near has a new parent, so in general we need to propagate the new cost and the new dynamics.
                             #enforce dynamics might wiggle the states around a little bit, changing the cost evaluation, so do that first.
                             self._deep_enforce_dynamics(x_near)
-                            print 'x_near %d decreased by %f'%(x_near,tree.node[x_near]['cost']-proposed_cost)
+                            self.logger.debug('x_near %d decreased by %f'%(x_near,tree.node[x_near]['cost']-proposed_cost))
                             self._deep_update_cost(x_near,proposed_cost)
 
                     self.n_rewired += 1
@@ -544,13 +578,13 @@ class RRT():
         for child in childs:
             x_path,u_path,all_the_way = self.collision_free(self.tree.node[node_id],self.tree.node[child]['action'])
             if not all_the_way:
-                print 'updating dynamics removed tree rooted at ',child
+                self.logger.debug('updating dynamics removed tree rooted at {}'.format(child))
                 self.remove_subtree(child)
             else:
                 state_orig = self.tree.node[child]['state']
                 if len(x_path) == 0:
                     self.tree.node[child]['state'] = self.tree.node[node_id]['state']
-                    print 'redundant node' #fixme
+                    self.logger.debug('redundant node') #fixme
                 else:    
                     self.tree.node[child]['state'] = x_path[-1]
                 #if not np.allclose(state_orig,self.tree.node[child]['state']):
@@ -693,7 +727,7 @@ class RRT():
             dcost = self.tree.node[b]['cost']-self.tree.node[a]['cost']
             distance = self.distance(self.tree.node[a],self.tree.node[b]['state'])
             error = abs(dcost-distance)
-            if error > 1e-6:
+            if error > 1e-4:
                 raise AssertionError('consistency check: edge: %s, dcost: %f, distance: %f, error:%f'%(str(edge),dcost,distance,error))
 
     def check_tree_constraint(self):
