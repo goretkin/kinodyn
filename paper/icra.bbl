@@ -28,16 +28,6 @@ S.~M. LaValle and J.~J. Kuffner, ``Randomized kinodynamic planning,''
   \emph{International Journal of Robotics Research}, vol.~20, no.~5, pp.
   378--400, May 2001.
 
-\bibitem{LaVallefromdyn}
-S.~M. Lavalle, ``From dynamic programming to {RRTs}: Algorithmic design of
-  feasible trajectories,'' in \emph{Control Problems in Robotics}.\hskip 1em
-  plus 0.5em minus 0.4em\relax Springer-Verlag, 2002.
-
-\bibitem{Cheng01}
-P.~Cheng and S.~M. Lavalle, ``Reducing metric sensitivity in randomized
-  trajectory design,'' in \emph{In IEEE International Conference on Intelligent
-  Robots and Systems}, 2001, pp. 43--48.
-
 \bibitem{elena.russ.icra10}
 E.~Glassman and R.~Tedrake, ``A quadratic regulator-based heuristic for rapidly
   exploring state space,'' in \emph{Proceedings of the IEEE International
@@ -51,8 +41,17 @@ A.~Perez, R.~Platt, G.~Konidaris, L.~Kaelbling, and T.~Lozano-Perez,
   2537--2542.
 
 \bibitem{jur}
-D.~J. Webb and J.~V.~D. Berg, ``Kinodynamic rrt$^*$: Optimal motion planning
+D.~J. Webb and J.~V.~D. Berg, ``Kinodynamic {RRT$^*$}: Optimal motion planning
   for systems with linear differential constraints,'' arXiv:1205.5088v1,
   submitted.
+
+\bibitem{lavalle.book06}
+S.~LaValle, \emph{Planning Algorithms}.\hskip 1em plus 0.5em minus 0.4em\relax
+  Cambridge University Press, 2006.
+
+\bibitem{Karaman.Frazzoli:CDC10}
+Karaman and Frazzoli, ``Optimal kinodynamic motion planning using incremental
+  sampling-based methods,'' in \emph{{IEEE} Conference on Decision and Control
+  (CDC)}, Atlanta, GA, December 2010.
 
 \end{thebibliography}

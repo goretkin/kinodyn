@@ -1,13 +1,14 @@
-This is BibTeX, Version 0.99c (TeX Live 2009/Debian)
+This is BibTeX, Version 0.99d (TeX Live 2011)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
 The top-level auxiliary file: icra.aux
 The style file: IEEEtran.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: references.bib
-I was expecting a `,' or a `}'---line 24 of file references.bib
- : 
- : @article{lozanoperez.wesley.comm_acm79,
-(Error may have been on previous line)
-I'm skipping whatever remains of this entry
+Warning--I didn't find a database entry for "stillman?"
 -- IEEEtran.bst version 1.11 (2003/04/02) by Michael Shell.
 -- http://www.ctan.org/tex-archive/macros/latex/contrib/supported/IEEEtran/
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
@@ -15,43 +16,43 @@ I'm skipping whatever remains of this entry
 Done.
 You've used 7 entries,
             3975 wiz_defined-function locations,
-            847 strings with 8512 characters,
-and the built_in function-call counts, 4988 in all, are:
-= -- 381
-> -- 100
-< -- 38
-+ -- 56
+            847 strings with 8454 characters,
+and the built_in function-call counts, 4570 in all, are:
+= -- 344
+> -- 94
+< -- 31
++ -- 52
 - -- 16
-* -- 240
-:= -- 748
-add.period$ -- 15
+* -- 220
+:= -- 696
+add.period$ -- 14
 call.type$ -- 7
-change.case$ -- 8
-chr.to.int$ -- 90
+change.case$ -- 7
+chr.to.int$ -- 72
 cite$ -- 7
-duplicate$ -- 371
-empty$ -- 444
+duplicate$ -- 344
+empty$ -- 416
 format.name$ -- 22
-if$ -- 1144
+if$ -- 1043
 int.to.chr$ -- 0
 int.to.str$ -- 7
-missing$ -- 66
+missing$ -- 63
 newline$ -- 41
 num.names$ -- 7
-pop$ -- 160
+pop$ -- 157
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 2
-skip$ -- 387
+skip$ -- 353
 stack$ -- 0
-substring$ -- 219
-swap$ -- 286
-text.length$ -- 8
+substring$ -- 176
+swap$ -- 260
+text.length$ -- 7
 text.prefix$ -- 0
 top$ -- 5
 type$ -- 0
 warning$ -- 0
-while$ -- 21
+while$ -- 17
 width$ -- 8
-write$ -- 83
-(There was 1 error message)
+write$ -- 81
+(There was 1 warning)
