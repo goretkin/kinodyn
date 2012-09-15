@@ -132,6 +132,7 @@ def AQR(A,B,Q,R,ctdt='dt',c=None,q=None,r=None,d=None):
     The control law is accordingly uh = M * xh 
     u = uh - R^(-1) r
     """
+
     A = np.matrix(A)
     B = np.matrix(B)
     Q = np.matrix(Q)
@@ -182,11 +183,11 @@ def AQR(A,B,Q,R,ctdt='dt',c=None,q=None,r=None,d=None):
     Bh = np.matrix(Bh)
     Qh = np.matrix(Qh)
     Rh = np.matrix(Rh)
-    
+
     return (Ah,Bh,Qh,Rh,-R.I*r)
 
 
-def final_value_LQR(A,B,Q,R,x_toward,T):
+def final_value_LQR(A,B,Q,R,x_toward,T,c=None,q=None,r=None,d=None):
     """
     get to x_toward in T time steps.
     returns (n+1)-by-(n+1) ctg matrices
@@ -213,11 +214,15 @@ def final_value_LQR(A,B,Q,R,x_toward,T):
                                 B=B,
                                 Q=Q,
                                 R=R,
+                                c=c,q=q,r=r,d=d,
                                 ctdt='dt')
     #pk should be zeros since system is Affine
-    assert np.allclose(pk,np.zeros(m))
+    assert np.allclose(pk,np.zeros(m))  #this assertion and the comment only hold when r=0, so it's no surprise if this gets triggered when we use a different cost function.
 
     Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
+    #should use broadcasting
+    for i in range(len(Fs)):
+        Fs[i,:,m] = Fs[i,:,m] + np.array(pk).reshape((m,)) #FIXME is this right?
     return Fs, Ps
 
 
@@ -343,7 +348,7 @@ def simulate_lti_fb_dt(A,B,x0,gain_schedule,T):
 import cvxopt
 import cvxopt.solvers
 
-def LQR_QP(A,B,Q,R,T,x0,xT=None):
+def LQR_QP(A,B,Q,R,T,x0,xT=None,umin=None,umax=None):
     """
     T number of time steps
     """
@@ -407,15 +412,44 @@ def LQR_QP(A,B,Q,R,T,x0,xT=None):
     cQP_q = cvxopt.matrix(QP_q)
     cQP_A = cvxopt.matrix(QP_A)
     cQP_B = cvxopt.matrix(QP_B)
-            
-    sol = cvxopt.solvers.coneqp(P=cQP_P,q=cQP_q,A=cQP_A,b=cQP_B)
+
+    if umin is None and umax is None:            
+        sol = cvxopt.solvers.coneqp(P=cQP_P,q=cQP_q,A=cQP_A,b=cQP_B)
+        qpmats = (QP_P,QP_q,QP_A,QP_B)
+    else:
+        assert umin is not None and umax is not None
+        #actuation constraints
+        n_u = m*(T-1)
+        #D is number of decision variables
+        # n_u is number of those that are actuation
+        QP_G = np.zeros(shape=(2*n_u,D))
+        QP_h = np.zeros(shape=(2*n_u,1))
+        for i in range(T-1):
+            k = i*(n+m) + n     #x[k:k+m] is u_i (control at time i)
+            l = i*2*m             #h[l:l+2*m] is constraint on control vector at time i
+
+            #max constraint
+            QP_G[l:l+m,k:k+m] = np.eye(m)
+
+            #min constraint
+            QP_G[l+m:l+2*m,k:k+m] = -np.eye(m)
+
+            QP_h[l:l+m] = umin.reshape((-1,1))
+            QP_h[l+m:l+2*m] = umax.reshape((-1,1))
+    
+        cQP_G = cvxopt.matrix(QP_G)
+        cQP_h = cvxopt.matrix(QP_h)
+        sol = cvxopt.solvers.coneqp(P=cQP_P,q=cQP_q,G=cQP_G,h=cQP_h,A=cQP_A,b=cQP_B)
+        qpmats = (QP_P,QP_q,QP_A,QP_B,QP_G,QP_h)
+        
+    
     qp_sol = np.array(sol['x'],dtype=np.float64)    
     from numpy.lib.stride_tricks import as_strided
     
     dbyte = 8 #8 bytes in float64
     xs = as_strided(qp_sol,shape=(n,T),strides=(dbyte,dbyte*(n+m)))
     us = as_strided(qp_sol[n:],shape=(m,T-1),strides=(dbyte,dbyte*(n+m)))
-    return sol,(QP_P,QP_q,QP_A,QP_B),xs,us
+    return sol,qpmats,xs,us
             
             
             
