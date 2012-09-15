@@ -18,6 +18,9 @@ class LQR_RRT():
             return True
 
         self.action_state_valid = action_state_valid
+        self.max_nodes_per_extension = None
+
+        self.max_steer_cost = np.inf
 
     def run_forward(self,x0,us):
         A = self.A
@@ -71,15 +74,45 @@ class LQR_RRT():
         if len(action) > 0:
             if self.action_state_valid(x0,action[0]):
                 x_path_np = self.run_forward(x0,action)
-                for (x,u) in zip(x_path_np,action):
-                    if not self.action_state_valid(x,u):
+
+                for i in range(len(x_path_np)):                   
+                    if not self.action_state_valid(x_path_np[i],action[i]):
                         all_the_way = False
                         break
-                    x_path.append(x)
-                    u_path.append(u) 
-        u_path = np.array(u_path)
+                    x_path.append(x_path_np[i])
+                    u_path.append(action[[i]])
 
-        return x_path, u_path, all_the_way        
+        u_path_all = np.zeros(shape=(len(u_path),self.m))
+
+        #don't return any intermediate points
+        if False:
+            for i in range(len(u_path)):
+                u_path_all[i] = u_path[i][0]
+            if len(x_path)>0:
+                return [x_path[-1]], [u_path_all], all_the_way
+            else:
+                return [], [], all_the_way
+
+        #downsample
+        if self.max_nodes_per_extension is not None and len(x_path) > self.max_nodes_per_extension:
+            x_path_ds = []
+            u_path_ds = []
+            #getting indices correct here was a pain.
+            inds = np.array(np.round(np.linspace(0,len(x_path),self.max_nodes_per_extension)),dtype=np.int)
+            for (i,j) in zip(inds[0:-1],inds[1:]):
+                x_path_ds.append(x_path[j-1])
+                l = j-i
+                action_part = np.zeros(shape=(l,self.m))
+                for k in range(l):
+                    action_part[k] = u_path[i+k][0]
+                u_path_ds.append(action_part)
+            
+            assert len(u_path) == sum( [len(action_part) for action_part in u_path] )
+            x_path = x_path_ds
+            u_path = u_path_ds
+        #u_path = np.array(u_path)
+        
+        return x_path, u_path, all_the_way
 
     def same_state(self,a,b):
         return a[self.n] == b[self.n] and np.allclose(a,b,atol=1e-4) #time has to be identical and phase-space state has to be approximate
@@ -131,7 +164,7 @@ class LQR_RRT():
         node['ctg'] = Ps[::-1] 
         node['gain'] = Fs[::-1]
 
-    def steer(self,x_from_node,x_toward):
+    def steer(self,x_from_node,x_toward,cost_limit=True):
         A = self.A
         B = self.B
         Q = self.Q
@@ -175,16 +208,22 @@ class LQR_RRT():
         us = np.zeros(shape=(T,self.m))
         xs[0] = x_from
 
+        cost = 0
         for i in range(T):
             us[i] = -1 * (np.dot(Fs[i,:,0:self.n],xs[i,0:self.n]) + Fs[i,:,self.n])
             xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T)
             xs[i+1,self.n] = xs[i,self.n] + 1
+            cost += self.cost(xs[i].T,us[i].reshape(1,self.m))
+            if cost_limit and cost > self.max_steer_cost:
+                break
 
-        x_actual = xs[-1]    
-        return (x_actual, us)
+        if i == T-1:
+            x_actual = xs[-1]
+            return (x_actual, us)
+        else:
+            return (xs[i], us[:i])
 
-
-    def steer_cache(self,x_from_node,x_toward):
+    def steer_cache(self,x_from_node,x_toward,cost_limit=True):
         A = self.A
         B = self.B
 
@@ -202,7 +241,7 @@ class LQR_RRT():
         if T < 10:
             #this technique isn't too accurate for short times due to slack in the final-value constraint
             #so do something else.
-            return self.steer(x_from_node,x_toward)
+            return self.steer(x_from_node,x_toward,cost_limit)
 
         desired = np.matrix(x_toward[0:self.n].reshape(self.n,1))            
 
@@ -219,25 +258,40 @@ class LQR_RRT():
         Ar = A.I
         Br = -A.I * B
 
-        xs = np.zeros(shape=(T+1,self.n+1))
+        xs_r = np.zeros(shape=(T+1,self.n+1))   #r for reverse
         us = np.zeros(shape=(T,self.m))
 
         #we're driving backwards. start at x_toward.
-        xs[0] = x_toward
+        xs_r[0] = x_toward
 
         for i in range(T):
             j = T - i-1 #gain matrices Fs[j] is what you should do with j steps remaining
-            us[i] = -1 * (np.dot(Fs[j,:,0:self.n],xs[i,0:self.n]) + Fs[j,:,self.n])
-            xs[i+1,0:self.n] = np.dot(Ar,xs[i,0:self.n].T) + np.dot(Br,us[i].T)
-            xs[i+1,self.n] = xs[i,self.n] - 1 #reverse time
+            us[i] = -1 * (np.dot(Fs[j,:,0:self.n],xs_r[i,0:self.n]) + Fs[j,:,self.n])
+            xs_r[i+1,0:self.n] = np.dot(Ar,xs_r[i,0:self.n].T) + np.dot(Br,us[i].T)
+            xs_r[i+1,self.n] = xs_r[i,self.n] - 1 #reverse time
 
-        xs = xs[::-1]
         us = us[::-1]
-        x_actual = xs[-1]    
-        #print 'error',(x_from - xs[0])
-        return (x_actual, us)
+        #the xs are for the reverse system -- we could reverse them and hope that they're close enough (that the final value constraint is strong) but instead we forward simiulate the true system
+
+        xs = np.zeros(shape=(T+1,self.n+1))
+        xs[0] = x_from
+        cost = 0
+        for i in range(T):
+            xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T)
+            xs[i+1,self.n] = xs[i,self.n] + 1
+            cost += self.cost(xs[i].T,us[i].reshape(1,self.m))
+            if cost_limit and cost > self.max_steer_cost:
+                break
+
+        if i == T-1:
+            x_actual = xs[-1]   
+            #print 'error',(x_from - xs[0])
+            return (x_actual, us)
+        else:
+            return (xs[i], us[:i])
 
     def steer_QP(self,x_from_node,x_toward):
+        raise NotImplementedError
         A = self.A
         B = self.B
         Q = self.Q
@@ -381,7 +435,7 @@ class LQR_RRT():
 
         if T >= len(from_node['ctg']):
             print 'requested uncached distance!!!'
-            distance(from_node,to_point)
+            self.distance(from_node,to_point)
 
         ctg = from_node['ctg'][T]
 
