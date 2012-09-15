@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 This is pdfTeX, Version 3.1415926-2.3-1.40.12 (TeX Live 2011) (format=pdflatex 2011.7.3)  14 SEP 2012 17:55
+=======
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.8.14)  14 SEP 2012 19:56
+>>>>>>> Stashed changes
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -295,8 +299,13 @@ Package: verbatim 2003/08/22 v1.5q LaTeX2e package for verbatim enhancements
 \verbatim@line=\toks23
 \verbatim@in@stream=\read1
 )
+<<<<<<< Updated upstream
 \c@theorem=\count112
 \c@problem=\count113
+=======
+\c@theorem=\count111
+\c@problem=\count112
+>>>>>>> Stashed changes
  (./icra.aux
 
 LaTeX Warning: Label `eqn:affine_lqr_cost' multiply defined.
@@ -316,6 +325,7 @@ LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 39.
 LaTeX Font Info:    ... okay on input line 39.
 LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 39.
 LaTeX Font Info:    ... okay on input line 39.
+<<<<<<< Updated upstream
  (/usr/local/texlive/2011/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count114
@@ -328,6 +338,19 @@ LaTeX Font Info:    ... okay on input line 39.
 \MPscratchDim=\dimen137
 \MPnumerator=\count118
 \makeMPintoPDFobject=\count119
+=======
+ (/usr/share/texmf-texlive/tex/context/base/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count113
+\scratchdimen=\dimen133
+\scratchbox=\box34
+\nofMPsegments=\count114
+\nofMParguments=\count115
+\everyMPshowfont=\toks24
+\MPscratchCnt=\count116
+\MPscratchDim=\dimen134
+\MPnumerator=\count117
+>>>>>>> Stashed changes
 \everyMPtoPDFconversion=\toks25
 ) (/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
 Package: pdftexcmds 2011/04/22 v0.16 Utilities of pdfTeX for LuaTeX (HO)
@@ -336,6 +359,7 @@ Package: pdftexcmds 2011/04/22 v0.16 Utilities of pdfTeX for LuaTeX (HO)
 Package: ifluatex 2010/03/01 v1.3 Provides the ifluatex switch (HO)
 Package ifluatex Info: LuaTeX not detected.
 )
+<<<<<<< Updated upstream
 (/usr/local/texlive/2011/texmf-dist/tex/generic/oberdiek/ifpdf.sty
 Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
 Package ifpdf Info: pdfTeX in PDF mode is detected.
@@ -376,12 +400,18 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
+=======
+>>>>>>> Stashed changes
 ** ATTENTION: \authorblockN is deprecated (line 58). Use \IEEEauthorblockN inst
 ead.
 ** ATTENTION: \authorblockA is deprecated (line 58). Use \IEEEauthorblockA inst
 ead.
 LaTeX Font Info:    Try loading font information for OMS+ptm on input line 58.
+<<<<<<< Updated upstream
 (/usr/local/texlive/2011/texmf-dist/tex/latex/psnfss/omsptm.fd
+=======
+(/usr/share/texmf-texlive/tex/latex/psnfss/omsptm.fd
+>>>>>>> Stashed changes
 File: omsptm.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
@@ -391,16 +421,25 @@ LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
 ead.
 ** ATTENTION: \authorblockA is deprecated (line 58). Use \IEEEauthorblockA inst
 ead.
+<<<<<<< Updated upstream
 LaTeX Font Info:    Try loading font information for U+msa on input line 62.
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2009/06/22 v3.00 AMS symbols A
 )
 LaTeX Font Info:    Try loading font information for U+msb on input line 62.
+=======
+LaTeX Font Info:    Try loading font information for U+msa on input line 81.
+(/usr/share/texmf-texlive/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2009/06/22 v3.00 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 81.
+>>>>>>> Stashed changes
 
 (/usr/local/texlive/2011/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 )
 
+<<<<<<< Updated upstream
 LaTeX Warning: Citation `stillman?' on page 1 undefined on input line 147.
 
 (./background.tex [1{/usr/local/texlive/2011/texmf-var/fonts/map/pdftex/updmap/
@@ -409,25 +448,54 @@ pdftex.map}
 
 ]
 Overfull \hbox (1.53342pt too wide) detected at line 63
+=======
+LaTeX Warning: Citation `lavalle_book' on page 1 undefined on input line 128.
+
+
+LaTeX Warning: Citation `stillman?' on page 1 undefined on input line 128.
+
+(./background.tex
+
+LaTeX Warning: Citation `Karaman.Frazzoli:CDC10' on page 1 undefined on input l
+ine 28.
+
+[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
+
+
+]
+Overfull \hbox (1.53342pt too wide) detected at line 69
+>>>>>>> Stashed changes
 []\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 V; x\OT1/cmr/m/n/10 ) := [] \OML/cmm/m/it/1
 0 ;
  []
 
 
+<<<<<<< Updated upstream
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 [2]
 Overfull \hbox (1.32974pt too wide) in paragraph at lines 228--228
 [] 
+=======
+Underfull \hbox (badness 10000) detected at line 111
+[][]
+>>>>>>> Stashed changes
  []
 
 )
 
+<<<<<<< Updated upstream
 LaTeX Warning: Reference `' on page 3 undefined on input line 229.
+=======
+Underfull \hbox (badness 10000) detected at line 147
+[][]
+ []
+>>>>>>> Stashed changes
 
 [3] <diff_rrtstar5_1.png, id=31, 578.16pt x 433.62pt>
 File: diff_rrtstar5_1.png Graphic file (type png)
 
+<<<<<<< Updated upstream
 <use diff_rrtstar5_1.png>
 Package pdftex.def Info: diff_rrtstar5_1.png used on input line 306.
 (pdftex.def)             Requested size: 115.63243pt x 86.72246pt.
@@ -467,6 +535,58 @@ Package pdftex.def Info: rrt-2D-di_50-runs_convergence.png used on input line 3
  [4 <./rrt-2D-di_50-runs_sols.png> <./rrt-2D-di_50-runs_convergence.png>] [5 <.
 /diff_rrtstar5_1.png (PNG copy)> <./diff_rrtstar5_3.png (PNG copy)> <./diff_rrt
 star5_5.png (PNG copy)> <./diff_rrtstar5_9.png (PNG copy)>] (./icra.bbl)
+=======
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[2]
+Overfull \hbox (1.32974pt too wide) in paragraph at lines 211--211
+[] 
+ []
+
+)
+
+LaTeX Warning: Reference `' on page 3 undefined on input line 519.
+
+
+LaTeX Warning: Citation `karaman_cdc10' on page 3 undefined on input line 540.
+
+[3]
+
+LaTeX Warning: Citation `karaman_cdc10' on page 4 undefined on input line 574.
+
+
+LaTeX Warning: Citation `karaman_cdc10' on page 4 undefined on input line 576.
+
+<diff_rrtstar5_1.png, id=29, 578.16pt x 433.62pt>
+File: diff_rrtstar5_1.png Graphic file (type png)
+ <use diff_rrtstar5_1.png>
+<diff_rrtstar5_3.png, id=30, 578.16pt x 433.62pt>
+File: diff_rrtstar5_3.png Graphic file (type png)
+ <use diff_rrtstar5_3.png>
+<diff_rrtstar5_5.png, id=31, 578.16pt x 433.62pt>
+File: diff_rrtstar5_5.png Graphic file (type png)
+ <use diff_rrtstar5_5.png>
+<diff_rrtstar5_9.png, id=32, 578.16pt x 433.62pt>
+File: diff_rrtstar5_9.png Graphic file (type png)
+ <use diff_rrtstar5_9.png>
+
+LaTeX Warning: Citation `karaman_cdc10' on page 4 undefined on input line 612.
+
+
+LaTeX Warning: Citation `webb_berg' on page 4 undefined on input line 613.
+
+<rrt-2D-di_50-runs_sols.png, id=33, 586.8324pt x 442.2924pt>
+File: rrt-2D-di_50-runs_sols.png Graphic file (type png)
+
+<use rrt-2D-di_50-runs_sols.png>
+<rrt-2D-di_50-runs_convergence.png, id=35, 586.8324pt x 442.2924pt>
+File: rrt-2D-di_50-runs_convergence.png Graphic file (type png)
+
+<use rrt-2D-di_50-runs_convergence.png> [4 <./rrt-2D-di_50-runs_sols.png> <./rr
+t-2D-di_50-runs_convergence.png>] [5 <./diff_rrtstar5_1.png (PNG copy)> <./diff
+_rrtstar5_3.png (PNG copy)> <./diff_rrtstar5_5.png (PNG copy)> <./diff_rrtstar5
+_9.png (PNG copy)>] (./icra.bbl)
+>>>>>>> Stashed changes
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -489,6 +609,7 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
+<<<<<<< Updated upstream
  4632 strings out of 493633
  66354 string characters out of 3143378
  152167 words of memory out of 3000000
@@ -524,6 +645,38 @@ Output written on icra.pdf (6 pages, 605122 bytes).
 PDF statistics:
  129 PDF objects out of 1000 (max. 8388607)
  88 compressed objects within 1 object stream
+=======
+ 3937 strings out of 495061
+ 53577 string characters out of 1182621
+ 139177 words of memory out of 3000000
+ 7065 multiletter control sequences out of 15000+50000
+ 46236 words of font info for 98 fonts, out of 3000000 for 9000
+ 28 hyphenation exceptions out of 8191
+ 29i,22n,24p,537b,472s stack positions out of 5000i,500n,10000p,200000b,50000s
+{/usr/share/texmf-texlive/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-texli
+ve/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texmf-texlive/fonts/ty
+pe1/public/amsfonts/cm/cmbx7.pfb></usr/share/texmf-texlive/fonts/type1/public/a
+msfonts/cm/cmex10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/
+cmmi10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi5.pfb><
+/usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/t
+exmf-texlive/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texmf-texlive
+/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texmf-texlive/fonts/type1
+/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-texlive/fonts/type1/public/amsf
+onts/cm/cmr5.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr6.
+pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/sha
+re/texmf-texlive/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texmf-texl
+ive/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-texlive/fonts/t
+ype1/public/amsfonts/cm/cmsy5.pfb></usr/share/texmf-texlive/fonts/type1/public/
+amsfonts/cm/cmsy6.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/
+cmsy7.pfb></usr/share/texmf-texlive/fonts/type1/public/amsfonts/cm/cmtt10.pfb><
+/usr/share/texmf-texlive/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/s
+hare/texmf-texlive/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-texlive/f
+onts/type1/urw/times/utmbi8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/time
+s/utmr8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/times/utmri8a.pfb>
+Output written on icra.pdf (6 pages, 615152 bytes).
+PDF statistics:
+ 123 PDF objects out of 1000 (max. 8388607)
+>>>>>>> Stashed changes
  0 named destinations out of 1000 (max. 500000)
  31 words of extra memory for PDF output out of 10000 (max. 10000000)
 

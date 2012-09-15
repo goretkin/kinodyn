@@ -156,6 +156,7 @@ special-purpose tools, while remaining applicable to
 %solved. 
 We show that this method trivially satisfies
 Karaman and Frazzoli's requirements for probabilitic optimality of the
+<<<<<<< Updated upstream
 resulting trajectory, when the system has linear dynamics and 
 quadratic costs. We also show how to use locally linear dynamic
 and locally quadratic cost approximations to apply the method
@@ -169,6 +170,333 @@ and in more general settings.
 \input{background.tex}
 
 \section{Kinodynamic Planning for Systems with Affine Dynamics and Quadratic Costs}
+=======
+resulting trajectory. Most importantly, we believe that the method can
+be extended directly to non-linear systems with similar optimality
+guarantees. We provide simulations illustrating the behavior of the
+algorithms for both linear and non-linear systems.
+
+\input{background}
+
+% \section{Background}
+
+% \subsection{Problem Statement}
+
+% Given a deterministic system with known process dynamics, the optimal
+% kinodynamic motion planning problem is to find a trajectory that
+% begins in a given start state, terminates in a goal region, avoids
+% obstacles, and satisfies differential dynamics constraints. Let the
+% state space and control input space of the system be described by
+% compact sets, $X \subseteq \mathbb{R}^n$ and $U \subseteq
+% \mathbb{R}^m$, respectively. The system process dynamics are described
+% by a continuously differentiable function,
+% \begin{equation}
+% \dot{x}(t) = f(x(t),u(t)),
+% \label{eqn:sys_dynamics}
+% \end{equation}
+% where $x(t) \in X$ and $u(t) \in U$. Given a time horizon, $T \in
+% \mathbb{R}_{>0}$, a dynamically feasible trajectory is a continuous
+% function, $x: [0,T] \to X$, for which there exists a control function,
+% $u:[0,T] \to U$, that satisifies Equation~\ref{eqn:sys_dynamics}. The
+% optimal kinodynamic motion planning problem is to find a dynamically
+% feasible trajectory starts in an initial state, $x_0 \in X$, avoids
+% obstacles, $X_{obs} \subset X$, and terminates in a goal region,
+% $x_{goal} \subset X$ while minimizing a cost functional of
+% Equation~\ref{eqn:cost_fn}.
+
+% \begin{problem}
+% \label{prob:1}
+% (Optimal kinodynamic motion planning~\cite{sertac_cdc10})
+
+% Given a state space, $X$, obstacle region, $X_{obs}$, goal region,
+% $X_{goal}$, control input space, $U$, and function $f$ describing the
+% system process dynamics, find a control, $u : [0,T] \to U$, for some $T
+% \in \mathbb{R}_{>0}$ such that the corresponding dynamically feasible
+% trajectory, $x : [0,T] \to X$, avoids the obstacle region, reaches the
+% goal region, and minimizes the cost functional
+% \begin{equation}
+% J(x,u) = \int_{t=0}^T g(x(t),u(t)).
+% \label{eqn:cost_fn}
+% \end{equation}
+
+% \end{problem}
+
+
+% \subsection{RRT$^*$}
+
+% Optimal Rapidly-exploring random tree (RRT$^*$) \cite{karaman.frazzoli.ijrr11} is a version of the RRT algorithm~\cite{lavalle.kuffner.ijrr01} that has the \emph{asymptotic optimality} property, i.e., almost-sure convergence to an optimal solution.
+
+% The major components of the algorithm are:
+% \begin{itemize}
+% \item {\it Random sampling}:
+% %
+% The ${\tt Sample}$ procedure provides independent uniformly distributed random samples of states from the configuration space.
+
+% \item {\it Near nodes}:
+% %
+% Given a set $V$ of vertices in the tree and a state $x$, the ${\tt
+% Near}(V, x)$ procedure provides a set of states in $V$ that are close to
+% $x$. Here, closeness is measured with respect to some metric as
+% follows:
+% $$
+% {\tt Near}(V, x) := \left\{ x' \in V \,\,:\,\, \Vert x - x' \Vert \le \gamma
+% \left(\frac{\log n}{n}\right)^{1/d} \right\},
+% $$
+% where $\Vert \cdot \Vert$ is the distance using the metric, $n$ is the number of vertices in the tree, $d$ is the dimension of the space, and $\gamma$ is a constant.
+ 
+% \item {\it Steering}:
+% %
+% Given two states $x, x'$, the ${\tt Steer}(x,x')$ procedure returns a path $\sigma$ that connects $x$ and $x'$. Most implementations connect two given states with a straight path in configuration space.
+
+% \item {\it Collision checking}:
+% %
+% Given a path $\sigma$, ${\tt CollisionFree}(\sigma)$ returns true if the path lies in the obstacle-free portion of configuration space.
+
+% \end{itemize}
+
+% \begin{center}
+% \begin{algorithm}
+% \For {$i =1, \ldots, N$} { \label{line:iteration_start_orig}
+% $x_\mathrm{rand} \leftarrow {\tt Sample}$\; \label{line:rrtstar:sample}
+% $X_\mathrm{near} \leftarrow \mathtt{Near}(V ,x_\mathrm{rand})$\; \label{line:rrtstar:compute_near_orig}
+% $(x_\mathrm{min},\sigma_\mathrm{min}) \leftarrow {\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{rand})$\; \label{line:rrtstar:call_find_min_cost_parent}
+% \If{${\tt CollisionFree}(\sigma)$}{ \label{line:rrtstar:check_collision}
+% $V \leftarrow V \cup \{ x_\mathrm{rand} \}$\;
+% $E \leftarrow E \cup \{ (x_\mathrm{min}, x_\mathrm{rand})$ \}\;
+% $(V,E) \leftarrow {\tt Rewire}(\,(V,E), X_\mathrm{near}, x_\mathrm{rand} \,)$\;
+% }
+% }
+% %}
+% \Return {$G = (V,E)$}\;
+% \caption{${\tt RRT}^* ((V,E), N)$}
+% \label{algorithm:rrtstar_orig}
+% \end{algorithm}
+% \end{center}
+
+% \vspace*{-.4in}
+
+% \begin{center}
+% \begin{algorithm}
+% $\mathrm{minCost} \leftarrow \infty$;\,
+% $x_\mathrm{min} \leftarrow {\tt NULL}$;
+% $\sigma_\mathrm{min} \leftarrow {\tt NULL}$\;
+% \For{$x_\mathrm{near} \in X_\mathrm{near}$}{
+% $\sigma \leftarrow {\tt Steer}(x_\mathrm{near}, x_\mathrm{rand})$\;
+% \If {${\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma) < \mathrm{minCost}$} {
+% $\mathrm{minCost} \leftarrow {\tt Cost}(x_\mathrm{near}) + {\tt Cost}(\sigma)$\;
+% $x_\mathrm{min} \leftarrow x_\mathrm{near}$;
+% $\sigma_\mathrm{min} \leftarrow \sigma$\;
+% }
+% }
+% \Return{$(x_\mathrm{min},\sigma_\mathrm{min})$}\;
+% \caption{${\tt ChooseParent}(X_\mathrm{near}, x_\mathrm{rand})$}
+% \label{algorithm:find_parent_orig}
+% \end{algorithm}
+% \end{center}
+
+% \vspace*{-.4in}
+
+% \begin{center}
+% \begin{algorithm}[h!!!]
+% \For{$x_\mathrm{near} \in X_\mathrm{near}$} {
+% $\sigma \leftarrow {\tt Steer}(x_\mathrm{rand}, x_\mathrm{near})$ \;
+% \If{${\tt Cost}(x_\mathrm{rand}) + {\tt Cost}(\sigma) < {\tt Cost}(x_\mathrm{near})$}{
+% \If {${\tt CollisionFree}(\sigma)$}{
+% $x_\mathrm{parent} \leftarrow {\tt Parent}(x_\mathrm{near})$\;
+% $E \leftarrow E \setminus \{ x_\mathrm{parent}, x_\mathrm{near}\}$\;
+% $E \leftarrow E \cup \{ x_\mathrm{rand}, x_\mathrm{near}\}$\;
+% }
+% }
+% }
+% \Return{$(V,E)$}\;
+% \caption{${\tt Rewire}( \, (V,E),X_\mathrm{near}, x_\mathrm{rand} \, )$}
+% \label{algorithm:rewire_orig}
+% \end{algorithm}
+% \end{center}
+% \vspace*{-.4in}
+
+% The algorithm proceeds as follows.
+% Firstly, a state is sampled, denoted as
+% $x_\mathrm{rand}$, from the configuration space
+% (Line~\ref{line:rrtstar:sample}), and near neighbors are evaluated
+% using the ${\tt Near}$ function
+% (Line~\ref{line:rrtstar:compute_near_orig}).\footnote{Although it is not
+%   explicitly noted here,
+% % in the algorithm description in order not to
+%  % complicate the discussion,
+%  we assume that the algorithm proceeds to
+%   the next iteration if the ${\tt Near}$ function returns an empty
+%   set.} Next, RRT$^*$ calls ${\tt ChooseParent}$
+% (Algorithm~\ref{algorithm:find_parent_orig}) to find a candidate for a
+% parent node to $x_\mathrm{rand}$
+% (Line~\ref{line:rrtstar:call_find_min_cost_parent}). ${\tt
+% ChooseParent}$ searches through the nodes in the set
+% $X_\mathrm{near}$ of near nodes and returns the node, denoted as
+% $x_\mathrm{min}$, that reaches $x_\mathrm{rand}$ with minimum cost
+% along with the path $\sigma_\mathrm{min}$ connecting
+% $x_\mathrm{min}$ to $x_\mathrm{rand}$. After that node
+% %the node within
+% %$X_\mathrm{near}$ that reaches $x_\mathrm{rand}$ (possibly with a path that is {\em not}
+% %collision free)
+% is found, the algorithm checks $\sigma_\mathrm{min}$ for collision
+% (Line~\ref{line:rrtstar:check_collision}). If the path
+% is obstacle-free,
+% %$\sigma_\mathrm{min}$ collides with an obstacle, then the algorithm
+% %proceeds with the next iteration. Otherwise,
+% the algorithm adds
+% $x_\mathrm{rand}$ to the tree and connects $x_\mathrm{min}$ to
+% $x_\mathrm{rand}$, and attempts to ``rewire'' the nodes in
+% $X_\mathrm{near}$ using the ${\tt Rewire}$ procedure
+% (Algorithm~\ref{algorithm:rewire_orig}). The ${\tt Rewire}$
+% procedure attempts to connect $x_\mathrm{rand}$ with each node in the
+% set $X_\mathrm{near}$ of near nodes. If the path that connects
+% $x_\mathrm{rand}$ with a near node $x_\mathrm{near}$ reaches
+% $x_\mathrm{near}$ with cost less than that of its current parent, then
+% the $x_\mathrm{near}$ is ``rewired'' to $x_\mathrm{rand}$ by
+% connecting $x_\mathrm{rand}$ and $x_\mathrm{near}$.
+
+% \subsection{Affine LQR}
+% \label{sect:affine_lqr}
+
+% Linear quadratic regulation (LQR) is an optimal control technique that
+% efficiently calculates an optimal policy for linear systems with
+% quadratic cost functions. This paper uses finite-horizon LQR that
+% solves the following problem: given deterministic linear process
+% dynamics,
+% \begin{equation}
+% \dot{x}(t) = Ax(t) + Bu(t)),
+% \label{eqn:linear_system}
+% \end{equation}
+% find a state and control trajectory, $x$ and $u$, that minimizes
+% the cost functional,
+% \begin{align} \nonumber
+% J_{LQR}(x,u) = & x(T)^T Q_F x(T) \\
+% & + \int_{t=0}^{t=T} x(t)^T Q x(t) + u(t)^T R u(t),
+% \label{eqn:lqr_cost}
+% \end{align}
+% where we have initial and final value constraints on the state
+% trajectory, $x(0) = x_0$ and $x(T) = x_F$. The linear quadratic
+% regulator solves for the optimal solution to the above problem in two
+% steps. First, it calculates the optimal value function by integrating
+% the differential Riccati equation backward in time starting at the
+% final time $T$ with $P(T) = Q_F$ and integrating toward $0$:
+% \[
+% -\dot{P}(t) = A^T P(t) + P(t) A - P(t) B R^{-1} B^T P(t) + Q.
+% \]
+% Second, LQR calculates the optimal action to take at time $t \leq T$
+% using:
+% \[
+% u(t) = -R^{-1} B^T P x.
+% \]
+
+% The standard LQR formulation requires process dynamics to be linear
+% and the goal state to be at the origin ({\em i.e.} the state cost
+% function to be measured with respect to the origin). However, our RRT
+% application requires goals in locations different than the point about
+% which the system is linearized. Also, we allow for affine process
+% dynamics. Specifically, suppose that the process dynamics are now
+% \begin{equation}
+% \dot{x}(t) = A x(t) + B u + c,
+% \label{eqn:affine_dynamics}
+% \end{equation}
+% and instead of minimizing Equation~\ref{eqn:lqr_cost}, suppose that
+% our goal is now to minimize
+% \begin{align} \nonumber
+% J_{aff}(x,u) & = (x(T)-x^*)^T Q_F (x(T)-x^*) \\
+% & + \int_{t=0}^{t=T}
+% (x(t)-x^*)^T Q (x(t)-x^*) + u(t)^T R u(t).
+% \label{eqn:affine_lqr_cost}
+% \end{align}
+% The difficulty is that the cost function is no longer a quadratic
+% form. It turns out that this problem can easily be solved by
+% reformulating the problem using a change of coordinates in state space
+% and an augmentation of the state vector. Redefine state to be
+% $\bar{x}(t) = x(t) - x^*$, and augment the new state vector with an
+% additional coordinate that will always be equal to one. The new
+% process dynamics are:
+% \[
+% \left(
+% \begin{array}{c}
+% \dot{\bar{x}}(t) \\
+% 1
+% \end{array}
+% \right)
+% =
+% \left(
+% \begin{array}{cc}
+% A & c + Ax^* \\
+% 0 & 1
+% \end{array}
+% \right)
+% \left(
+% \begin{array}{c}
+% \bar{x}(t) \\
+% 1
+% \end{array}
+% \right)
+% + 
+% \left(
+% \begin{array}{c}
+% B \\
+% 0
+% \end{array}
+% \right)
+% u.
+% \]
+% It may be verified that these process dynamics are the same as those
+% in Equation~\ref{eqn:linear_system} except that they are now expressed
+% in terms of the new variable. We can now express the offset cost
+% functional in Equation~\ref{eqn:affine_lqr_cost} as:
+% \begin{align} \nonumber
+% J(\bar{x},u) = & 
+% \left(
+% \begin{array}{c}
+% \bar{x}(T) \\
+% 1
+% \end{array}
+% \right)
+% \bar{Q}_F
+% \left(
+% \begin{array}{c}
+% \bar{x}(T) \\
+% 1
+% \end{array}
+% \right) \\
+% & + \int_{t=0}^{t=T}
+% \left(
+% \begin{array}{c}
+% \bar{x}(t) \\
+% 1
+% \end{array}
+% \right)
+% \bar{Q}
+% \left(
+% \begin{array}{c}
+% \bar{x}(t) \\
+% 1
+% \end{array}
+% \right)
+% + u(t)^T R u(t),
+% \label{eqn:affine_lqr_cost}
+% \end{align}
+% where 
+% $\bar{Q}_F = \left(
+% \begin{array}{cc}
+% Q_F & 0 \\
+% 0 & 1
+% \end{array}
+% \right)$, and 
+% $\bar{Q} = \left(
+% \begin{array}{cc}
+% Q & 0 \\
+% 0 & 1
+% \end{array}
+% \right)$ and we solve the affine version of the problem by applying
+% LQR to the augmented system in the standard way.
+
+
+\section{LQR-RRT$^*$ for affine systems}
+>>>>>>> Stashed changes
 
 The key idea of this paper is to solve kinodynamic RRT$^*$ problems
 using LQR by sampling in time as well as in state space. A tree is
