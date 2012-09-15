@@ -612,11 +612,12 @@ that the optimality guarantee for RRT$^*$
 in kinodynamic systems holds under two
 conditions. 
 
-First, the estimate of cost used during re-wiring as well as
-the trajectory generation itself must be optimal in the absence of
-obstacles, for all trajectories below some length $\bar\epsilon$~\cite{Karaman.Frazzoli:CDC10}.
-Since our affine LQR formulation solves this problem exactly for any time horizon
-and any length of trajectory, this requirement is trivially satisfied. 
+First, the estimate of cost used during re-wiring as well as the
+trajectory generation itself must be optimal in the absence of
+obstacles, for all trajectories below some length
+$\bar\epsilon$~\cite{Karaman.Frazzoli:CDC10}.  Since our affine LQR
+formulation solves this problem exactly for any time horizon and any
+length of trajectory, this requirement is trivially satisfied.
 
  Second, the domain must satisfy a weakened local
 controllability criterion 
@@ -631,37 +632,36 @@ criteria if they already hold for the un-augmented system.
 \begin{figure*}
 \begin{center}
   \begin{center}
-    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar5_1.png}}
-    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar5_3.png}}
-    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar5_5.png}}
-    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar5_9.png}}
+    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar6_1.png}}
+    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar6_4.png}}
+    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar6_6.png}}
+    \subfigure[]{\includegraphics[width=1.6in]{diff_rrtstar6_8.png}}
   \end{center}
 \end{center}
 \caption{Example of using LQR-RRT$^*$ to find an optimal solution to
   the kinodynamic motion planning for the double integrator in the
   presence of obstacles. The four images show the tree at different
   points during growing. The blue lines show the tree. The red path
-  denotes the current best path to the goal. The cost of the best path
-  in each of the four frames is, respectively, 3515, 2495, 53, and
-  14.}
+  denotes the current best path to the goal. The tree in (a) contains
+  21 vertices; in (b) contains 85 vertices; in (c) contains 485
+  vertices; and in (d) contains 1049 vertices. The costs of the four
+  best trajectories, from left to right, are 209, 17, 16, and 9.}
 \label{fig:linear_case_study}
 \end{figure*}
 
 We evaluated our approach to affine systems control using a
-two-dimensional double integrator. Similar evaluations of RRT$^*$
-performance for the double integrator have appeared
-in~\cite{Karaman.Frazzoli:CDC10}
-and~\cite{jur}. Figure~\ref{fig:linear_case_study} illustrates
-the working of the algorithm for an example domain. Starting at
-$(0,0)$ with zero velocity at time $t=0$, the system must reach the
-goal at $(8,0)$ at time $t=10s$. The cost function
-(Equation~\ref{eqn:affine_lqr_cost_nofinal}) has $Q=0$ and
-$R=I$. After 600 iterations of the RRT$^*$ algorithm, there are 249
-vertices in the tree and the current best-cost path has been improved
-eight times. Initially, the algorithms finds a trajectory
-(Figure~\ref{fig:linear_case_study}(a)) with cost $3515$. The
-subsequent eight best-cost trajectories have costs $2495$, $2495$,
-$215$, $53$, $47$, $27$, $22$, and $14$.
+two-dimensional double integrator (four dimensional state space). This
+system has a unit mass and a damping factor of $0.1$. The planning
+problem is to reach a goal state at $(8,0)$ with zero velocity $15$
+seconds after starting at $(0,0)$ with zero velocity while minimizing
+a cost function (Equation~\ref{eqn:affine_lqr_cost_nofinal}) with
+$Q=0$ and $R=I$. Similar evaluations of RRT$^*$ performance for the
+double integrator have appeared in~\cite{Karaman.Frazzoli:CDC10}
+and~\cite{jur}. Figure~\ref{fig:linear_case_study} illustrates the
+working of the algorithm. Initially, the algorithms finds a trajectory
+(Figure~\ref{fig:linear_case_study}(a)) with cost $209$. The algorithm
+found seven more trajecories to the goal with successively smaller
+costs: 145, 65, 17, 15, 16, 11, 9.
 
 \begin{figure}
 \begin{center}
