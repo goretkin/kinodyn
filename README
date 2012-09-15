@@ -18,6 +18,7 @@ python packages needed:
     apt-get install python-shapely
     * have installed libgeos for speedup
       apt-get install libgeos-dev
+    * sudo pip install descartes
 
   * cvxopt 
     Won't install with pip or easy_install since setup.py is in the wrong place. 

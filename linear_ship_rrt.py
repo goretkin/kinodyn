@@ -1,6 +1,7 @@
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
 import numpy as np
 
 #only to label 
@@ -15,15 +16,15 @@ import itertools
 import networkx as nx
 
 from rrt import RRT
-from ship_visualize_animation import Ship_Sprite
+from lin_ship_visualize_animation import Ship_Sprite
 from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR
 from lqr_rrt import LQR_RRT
 
 #[velx, vely, posx, posy]
 A = np.matrix([ [1,     0,      0,      0   ],
                 [0,     1,      0,      0   ],
-                [1e-1,  0,      1,      0   ],
-                [0,     1e-1,   0,      1   ]])
+                [1,     0,      1,      0   ],
+                [0,     1,      0,      1   ]])
 #[accx, accy]
 B = np.matrix([ [1,     0       ],
                 [0,     1       ],
@@ -33,42 +34,35 @@ B = np.matrix([ [1,     0       ],
 Q = np.zeros(shape=(4,4))
 R = np.eye(2)
 
-max_time_horizon = 200
-goal = np.array([0,0,100,100,200])
+max_time_horizon = 300
+goal = np.array([0,0,100,100,max_time_horizon])
 
 
 #field_shelve = shelve.open('field_simple.shelve')
 #obstacle_paths = field_shelve['obstacle_paths']
 
+from shapely.geometry import Polygon
+from descartes.patch import PolygonPatch
+
+from ship_field import obstacles_multipoly, obstacles_polys
+
+#field_poly = Polygon(shell=[(-10,-10),(-10,110),(110,110),(110,-10),(-10,-10)],
+#                    holes=[ [(0,0),(0,100),(100,100),(100,0),(0,0)] ] )
+
+#obstacles_polys.append(field_poly)
+
+
 ship_sprite = Ship_Sprite()
 
-def obstacle(x,y):
-    u = (x+y)/2
-    v = x-y
-
-    #in_obstacle1 = np.logical_and(np.logical_and(20<=x,x<=55),np.logical_and(45<=y,y<=80))
-    #in_obstacle2 = np.logical_and(np.logical_and(70<=x,x<=110),np.logical_and(60<=y,y<=80))
-
-    in_obstacle1 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(-25<=v,v<=-5))
-    in_obstacle2 = np.logical_and(np.logical_and(45<=u,u<=75),np.logical_and(5<=v,v<=25))
-    in_obstacle3 = np.logical_and(np.logical_and(80<=u,u<=85),np.logical_and(-2<=v,v<=2))
-
-    in_field = np.logical_and(np.logical_and(-10<=x,x<=110),np.logical_and(-10<=y,y<=110))        
-    return np.logical_and ( np.logical_not( 
-                                            np.logical_or(  np.logical_or(in_obstacle1,in_obstacle2),
-                                                            in_obstacle3)
-                                                         ),
-                            in_field
-                            )
 
 def isStateValid(state):
     #returns True if state is not in collision
     assert len(state) == 5
-    #ship_sprite.update_pose(state[2],state[3],0)
-    #does_collide = ship_sprite.collision2(obstacle_paths)
-    within_vel = np.linalg.norm(state[0:2]) < 20 #velocity limit
-
-    return within_vel and obstacle(state[2],state[3])
+    #cheaper to check velocity
+    if np.linalg.norm(state[[0,1]]) > 2: return False
+    ship_sprite.update_pose(state[2],state[3])
+    ship_poly = Polygon(ship_sprite.get_ship_path().vertices)
+    return not ship_poly.intersects(obstacles_multipoly)
 
 def isActionValid(action):
     assert len(action) == 2
@@ -102,13 +96,13 @@ def goal_test(node):
     return np.sum(np.abs(node['state'][0:n]-goal[0:n])) < goal_region_radius #disregards time
     return distance(node,goal) < goal_region_radius                     #need to think more carefully about this one
 
-
 start = np.array([0,0,0,0,0])
 lqr_rrt = LQR_RRT(A,B,Q,R,max_time_horizon)
 rrt = RRT(state_ndim=5,control_ndim=2)
 
 lqr_rrt.action_state_valid = action_state_valid
 
+lqr_rrt.max_nodes_per_extension = 5
 
 rrt.sample_goal = lambda : goal
 
@@ -124,39 +118,63 @@ rrt.set_collision_free(lqr_rrt.collision_free)
 rrt.set_distance_from_goal(distance_from_goal)
 
 
-rrt.gamma_rrt = 5
-rrt.eta = .5
+rrt.gamma_rrt = 1.0
+rrt.eta = .2
 rrt.c = 1
+rrt.max_nodes_in_ball = 30
+
+lqr_rrt.max_steer_cost = .015
 
 rrt.set_start(start)
 rrt.init_search()
 
 def draw(rrt,ani_ax=None):
-    x = np.linspace(-10,110,500)
-    X,Y = np.meshgrid(x,x)
-    obstacle_bitmap = obstacle(X,Y) #rasterize the obstacles
-
     if ani_ax is None:
         ani_ax = plt.figure().gca()
-
-    
+   
     ani_ax.cla()
     ani_ax.set_xlim(-10,110)
     ani_ax.set_ylim(-10,110)
     #ani_ax.set_aspect('equal')
     #ani_ax.set_aspect('auto')
 
-    ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-10,110,-10,110],alpha=.5,zorder=1,aspect='auto')    
+    #should be able to move this out, but patch transforms get stuck and the obstacles don't pan/zoom
+    obstacles_patches = [PolygonPatch(poly) for poly in obstacles_polys]
+    obstacle_patch_collection = PatchCollection(obstacles_patches)    
+
+    ani_ax.add_collection(obstacle_patch_collection)
 
     all_states = np.array(nx.get_node_attributes(rrt.tree,'state').values())
     ani_ax.plot(all_states[:,2],all_states[:,3],'g.',alpha=.8,zorder=2)
-
-
+    
+    import copy
+    if False:
+        for state in all_states:
+            ship_sprite.update_pose(state[2],state[3],0)
+            ship_sprite.update_transform_axes(ani_ax)
+            for patch in ship_sprite.patches:
+                ani_ax.add_artist(copy.copy(patch))
+    
+    #draw dynamical edges
+    lines = []
+    for i in rrt.tree.nodes():
+        s = rrt.tree.predecessors(i)
+        if len(s) == 0:
+            continue
+        assert len(s) == 1 #it's a tree
+        s = s[0]
+        x0 = rrt.tree.node[s]['state']
+        xs = lqr_rrt.run_forward(x0, rrt.tree.node[i]['action'])
+        xs = np.concatenate((x0.reshape((1,-1)),xs))
+        lines.append(xs[:,[2,3]])
+    edge_collection = mpl.collections.LineCollection(lines)
+    ani_ax.add_collection(edge_collection)
+    
     a = rrt.best_solution_goal()
-    if a is None: return
-    nodes, xpath_sparse, upath = a
-    xpath = lqr_rrt.run_forward(start,upath)
-    ani_ax.plot(xpath[:,2],xpath[:,3],'.',zorder=3)
+    if a is not None:
+        nodes, xpath_sparse, upath = a
+        xpath = lqr_rrt.run_forward(start,upath)
+        ani_ax.plot(xpath[:,2],xpath[:,3],'.',zorder=3)
 
 def hook(rrt):
     plt.ioff()
@@ -167,8 +185,24 @@ def hook(rrt):
     draw(rrt,a.gca())
     a.savefig(fname)
     plt.ion()
+
+    import shelve
+    s = shelve.open("rrt_2d_di_%d,%d.shelve"%(start_time,rrt.n_iters))
+    upath = rrt.best_solution_goal()[2]
+    xpath = lqr_rrt.run_forward(start,upath)
+    s['traj'] = xpath
+    s['utraj'] = upath
+    s.close()
     
 rrt.improved_solution_hook = hook
+
+from rrt_interactive import RRT_Interactive
+
+rrt_int = RRT_Interactive(rrt,lqr_rrt.run_forward,plot_dims=[2,3],slider_range=(0,max_time_horizon))
+
+obstacles_patches = [PolygonPatch(poly) for poly in obstacles_polys]
+obstacle_patch_collection = PatchCollection(obstacles_patches)    
+rrt_int.int_ax.add_collection(obstacle_patch_collection)
 
 if False and __name__ == '__main__':
 #    if False:

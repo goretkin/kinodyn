@@ -39,13 +39,14 @@ class LQR_RRT():
         return xs[1:]
 
     def run_forward_fb(self,x0,gain_schedule):
+		raise NotImplementedError #this hasn't been tested
         A = self.A
         B = self.B
         n = self.n+1  #+1 for time dimension 
         m = self.m
         assert len(x0) == n
         T = gain_schedule.shape[0]
-        assert gain_schedule.shape[2] == n-1 #no time in the gain 
+        assert gain_schedule.shape[2] == n-1  +1 #no time in the gain, but affine term.
         assert gain_schedule.shape[1] == m
 
         xs = np.zeros(shape=(T+1,n))
@@ -53,10 +54,12 @@ class LQR_RRT():
 
         xs[0] = np.squeeze(x0)
 
-        for i in range(1,T+1):
-            us[i-1] = -1* np.dot(gain_schedule[i-1],xs[i-1,0:self.n])
-            xs[i,0:self.n] = np.dot(A,xs[i-1,0:self.n].T) + np.dot(B,us[i-1].T)
-            xs[i,self.n] = xs[i-1,self.n] + 1
+        Fs = gain_schedule
+        for i in range(T):
+            us[i] = -1 * (np.dot(Fs[i,:,0:self.n],xs[i,0:self.n]) + Fs[i,:,self.n])
+            xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T)
+            xs[i+1,self.n] = xs[i,self.n] + 1
+
         return xs[1:],us
 
 
@@ -81,6 +84,8 @@ class LQR_RRT():
                         break
                     x_path.append(x_path_np[i])
                     u_path.append(action[[i]])
+            else:
+                all_the_way = False
 
         u_path_all = np.zeros(shape=(len(u_path),self.m))
 
@@ -119,6 +124,7 @@ class LQR_RRT():
 
     def cost(self,x_from,action):
         #this does not include the cost of being in at the state arrived by taking the last action
+        #that is, with x_(k+1) = f(x_k,u_k) this sums cost(x_k,u_k) for k in range(len(action))
         Q = self.Q
         R = self.R
         assert len(x_from) == self.n+1
@@ -155,10 +161,11 @@ class LQR_RRT():
         assert kmax > 0
 
         #ctg[0] is cost-to-go zero steps -- very sharp quadratic
-        #so ctg[k] with k = max_time_horizon - from_node['state'][2] is time to go
+        #so ctg[k] with k = max_time_horizon - from_node['state'][self.n] is time to go
 
 
         Fs, Ps = final_value_LQR(Ar,Br,Q,R,x[0:self.n],kmax)
+        #u = -Fs[i] * x + pk, but it is zero since the penalty on actuation is purely quadratic
         #storing in reverse order is easier to think about.
         #node['gain'][i] is what you should do with i steps left to go.
         node['ctg'] = Ps[::-1] 
@@ -267,7 +274,7 @@ class LQR_RRT():
         for i in range(T):
             j = T - i-1 #gain matrices Fs[j] is what you should do with j steps remaining
             us[i] = -1 * (np.dot(Fs[j,:,0:self.n],xs_r[i,0:self.n]) + Fs[j,:,self.n])
-            xs_r[i+1,0:self.n] = np.dot(Ar,xs_r[i,0:self.n].T) + np.dot(Br,us[i].T)
+            xs_r[i+1,0:self.n] = np.array(np.dot(Ar,xs_r[[i],0:self.n].T) + np.dot(Br,us[[i]].T)).T[0]
             xs_r[i+1,self.n] = xs_r[i,self.n] - 1 #reverse time
 
         us = us[::-1]
