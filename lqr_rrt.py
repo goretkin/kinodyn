@@ -39,7 +39,7 @@ class LQR_RRT():
         return xs[1:]
 
     def run_forward_fb(self,x0,gain_schedule):
-		raise NotImplementedError #this hasn't been tested
+        raise NotImplementedError #this hasn't been tested
         A = self.A
         B = self.B
         n = self.n+1  #+1 for time dimension 
