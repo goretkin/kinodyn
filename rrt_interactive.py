@@ -71,14 +71,15 @@ class RRT_Interactive():
 
         self.int_fig.canvas.mpl_connect('button_press_event', button_press_event_dispatcher)            
 
-    def rrts(self,xrand):
-        xrand = np.array(xrand)
-        if self.extend_from_node is not None:
-            print 'extending forced from node',self.extend_from_node
-            self.rrt.extend_from(self.extend_from_node,xrand)
-            #self.extend_from_node = None
-        else:
-            self.rrt.extend(xrand)
+    def rrts(self,xrand=None):
+        if xrand is not None:
+            xrand = np.array(xrand)
+            if self.extend_from_node is not None:
+                print 'extending forced from node',self.extend_from_node
+                self.rrt.extend_from(self.extend_from_node,xrand)
+                #self.extend_from_node = None
+            else:
+                self.rrt.extend(xrand)
         print 'start draw'
         self.draw_rrt(self.int_ax,self.action_ts_ax)
         print 'end draw'
@@ -187,19 +188,31 @@ class RRT_Interactive():
                                                     )
         else:
             #draw dynamical edges
+            if not self.__dict__.has_key('edge_cache'):
+                'reset edge_cache'
+                self.edge_cache = {}
+
             lines = []
             for i in tree.nodes():
-                s = tree.predecessors(i)
-                if len(s) == 0:
-                    continue
-                assert len(s) == 1 #it's a tree
-                s = s[0]
-                x0 = tree.node[s]['state']
-                xs = self.run_forward(x0, tree.node[i]['action'])
-                xs = np.concatenate((x0.reshape((1,-1)),xs))
+                if self.edge_cache.has_key(i):
+                    xs = self.edge_cache[i]
+                else:
+                    s = tree.predecessors(i)
+                    if len(s) == 0:
+                        continue
+                    assert len(s) == 1 #it's a tree
+                    s = s[0]
+                    x0 = tree.node[s]['state']
+                    xs = self.run_forward(x0, tree.node[i]['action'])
+                    xs = np.concatenate((x0.reshape((1,-1)),xs))
+                    self.edge_cache[i] = xs
+
                 lines.append(xs[:,self.plot_dims])
+                
             edge_collection = mpl.collections.LineCollection(lines)
             ax.add_collection(edge_collection)
+            
+
         
         if not edge_collection is None:
                 edge_collection.set_zorder(4)
