@@ -19,6 +19,7 @@ from rrt import RRT
 from lin_ship_visualize_animation import Ship_Sprite
 from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR
 from lqr_rrt import LQR_RRT
+from rrt_interactive import RRT_Interactive
 
 #[velx, vely, posx, posy]
 A = np.matrix([ [1,     0,      0,      0   ],
@@ -195,8 +196,6 @@ def hook(rrt):
     s.close()
     
 rrt.improved_solution_hook = hook
-
-from rrt_interactive import RRT_Interactive
 
 rrt_int = RRT_Interactive(rrt,lqr_rrt.run_forward,plot_dims=[2,3],slider_range=(0,max_time_horizon))
 
