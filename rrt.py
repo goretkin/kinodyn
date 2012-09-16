@@ -68,7 +68,7 @@ class RRT():
         self.viz_collided_paths = [] #collision queries that return collision, set to None to not store this information
 
         self.save_vars = [
-                            'tree','state_ndim','next_node_id','gamma_rrt','extension_aggressiveness','rrt_until_feasible','search_initialized',
+                            'tree','state_ndim','next_node_id','gamma_rrt','max_nodes_in_ball','extension_aggressiveness','rrt_until_feasible','search_initialized',
                             'n_pruned', 'n_extensions', 'n_iters',
                             'found_feasible_solution', 'worst_cost', 'can_prune', 'deleted_nodes',
                             'cheapest_goal', 'goal_set_nodes', 'cost_history', 'sample_history', 'check_cost_decreasing',
@@ -183,7 +183,7 @@ class RRT():
             import types
             def _collision_free(self,node,action):
                 x_path, u_path, all_the_way = collision_free(node,action)
-                if not all_the_way:
+                if not all_the_way and self.viz_collided_paths is not None:
                     self.viz_collided_paths.append( (node,action) ) 
                 return x_path,u_path,all_the_way
 
@@ -221,15 +221,29 @@ class RRT():
         # cost(x,action) x is a starting state and action is an action
         self.cost = cost
 
-    def near(self,point,radius,max_n=None):
+    def near(self,point,radius,max_n=None,direction='to_point'):
         """
         return a dictionary where keys are nodes and values are distances
         if number of nodes is greater than max_n, return dictionary containing
         only the max_n elements with the least distance
+
+        direction = 'to_point'  or 'from_point'
+        if 'to' then ball contains nodes n for which going from n to point is small
+        if 'from' then ball contains nodes n for which going from point to n is small
+        (for symmetric self.distance, this does not matter)
         """
-        S = {}    
+        S = {}
+        distance = None #distance function to use when computing ball
+        if direction=='to_point':
+            distance = self.distance
+        elif direction=='from_point':
+            dummy_node = {'state':point}    #make a dummy node because distance(node,point)
+                                            #and make it outside the loop because distance may in general cache computation in node.
+            def distance(_node,_point):
+                return self.distance(dummy_node,_node['state'])
+
         for this_node in self.tree.nodes_iter():
-            this_distance = self.distance(self.tree.node[this_node],point)
+            this_distance = distance(self.tree.node[this_node],point)            
             if(this_distance<radius):
                 S[this_node] = this_distance
         if max_n is not None and len(S)>max_n:
@@ -344,8 +358,8 @@ class RRT():
         tree = self.tree
 
         x_actual,action = self.steer(tree.node[node_id],to_state)
-        x_path, u_path, all_the_way  = self.collision_free(tree.node[node_id], action)
 
+        x_path, u_path, all_the_way  = self.collision_free(tree.node[node_id], action)
         u_path = self._collapse_action(u_path)
 
         new_id = self.get_node_id()
@@ -359,6 +373,7 @@ class RRT():
                                          }
         )
         tree.add_edge(node_id,new_id)
+        self.logger.debug('extend_from added node')
         self.check_goal(new_id)
         return new_id
     
@@ -423,6 +438,8 @@ class RRT():
                 if len(x_path) == 0:
                     self.logger.debug('aggresive extension %d still found nothing to extend from!'%(extension_aggressiveness))
                     return
+                else:
+                    self.logger.debug('aggresive extension worked')
         
         if not all_the_way:
             x_new = x_path[-1]
@@ -447,15 +464,22 @@ class RRT():
         c_min = tree.node[x_min]['cost'] + self.cost(tree.node[x_nearest_id]['state'],self._collapse_action(u_path_min))
 
         if do_find_cheapest_parent or do_rewire:
-            X_near = self.near(x_new,radius,self.max_nodes_in_ball)
-            self.logger.debug('nodes in ball:{}'.format(len(X_near)))
+            X_near_to = self.near(x_new,radius,self.max_nodes_in_ball,'to_point')
+            X_near_from = self.near(x_new,radius,self.max_nodes_in_ball,'from_point')
+            self.logger.debug('nodes in X_near_to:{}'.format(len(X_near_to)))
+            self.logger.debug('nodes in X_near_from:{}'.format(len(X_near_from)))
+            #just getting this info out of curiosity
+            X_near_both = set.intersection(set(X_near_to),set(X_near_from))
+            self.logger.debug('nodes in X_near_both:{}'.format(len(X_near_both)))
+        
         else:
-            X_near = None
+            X_near_to = None
+            X_near_from = None
     
         if do_find_cheapest_parent:        
             #consider all nodes in X_near as potential parents for x_new
             #connect x_new to lowest-cost parent
-            for x_near in X_near:                
+            for x_near in X_near_to:                
                 #cheaper to check first condition
                 candidate_x_new, candidate_action = self.steer(tree.node[x_near],x_new)
                 x_path, u_path, all_the_way = self.collision_free(tree.node[x_near],candidate_action) #would be great if didn't need to perform this step in order to compute the cost.
@@ -526,13 +550,14 @@ class RRT():
         
         self.viz_search_radius = radius
 
-        if X_near is not None:
-            self.viz_x_near_id = X_near
-            self.viz_x_near = [tree.node[i]['state'] for i in X_near]
+        if X_near_to is not None:
+            self.viz_x_near_id = X_near_to
+            self.viz_x_near = [tree.node[i]['state'] for i in X_near_to]
         else:
             self.viz_x_near_id = None
             self.viz_x_near = None
 
+        #FIXME visualize X_near from        
 
         self.viz_change = True
         
@@ -545,7 +570,7 @@ class RRT():
                 return
             #if nodes were pruned, then X_near may contain invalid nodes
             #can re-do the query, or just remove
-            X_near = set(X_near) - pruned_nodes 
+            X_near = set(X_near_from) - pruned_nodes            #rewiring means we might route through x_new, so we want to check things that are cheap to get to, *from* x_new
         
             #rewire to see if it's cheaper to go through the new point x_new
             for x_near in X_near:
@@ -734,8 +759,12 @@ class RRT():
             dcost = self.tree.node[b]['cost']-self.tree.node[a]['cost']
             distance = self.distance(self.tree.node[a],self.tree.node[b]['state'])
             error = abs(dcost-distance)
+            error_count = 0
             if error > 1e-4:
-                raise AssertionError('consistency check: edge: %s, dcost: %f, distance: %f, error:%f'%(str(edge),dcost,distance,error))
+                error_count += 1
+                self.logger.warn( 'consistency check: edge: %s, dcost: %f, distance: %f, error:%f'%(str(edge),dcost,distance,error) )
+            if (error_count > 0):
+                raise AssertionError('There were {} inconsistent costs.'.format(error_count))
 
     def check_tree_constraint(self):
         #assert each node has exactly one parent except for the root.
