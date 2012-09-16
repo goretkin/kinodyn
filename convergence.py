@@ -10,8 +10,8 @@ import copy
 
 
 folder = '/home/goretkin/diffruns'
-n_rrts = 50
-n_iters = 20000
+n_rrts = 5
+n_iters = 4000
 
 TEST_IO = False #does no RRT iterations, just checks that all files can save (parallel joblib masks these errors until the end -- very painful)
 TEST_RANDOM = False #prints out a bunch of random numbers from each parallel instance to sanity check things are being seeded properly
@@ -22,7 +22,18 @@ import os.path
 
 rrt_setup.rrt.viz_collided_paths = None #I suspect this takes up a lot a considerable chunk of memory
 
+import signal
+
+signal_file = 'diff_run_int.signal'
+
 def run(pk,filename):
+    f = None
+    try:
+        f = open(signal_file+'_','w')     #rename this file to stop running stuff
+    finally:
+        f.close()
+
+
     print 'starting {} with filename {}'.format(pk,filename)
     rrt = copy.deepcopy(rrt_setup.rrt)
 
@@ -60,13 +71,24 @@ def run(pk,filename):
     if TEST_RANDOM:
         print np.array([rrt.sample() for i in range(3)])
 
+    signal_break = False
+    def signal_handler(signum,frame):
+        global signal_break
+        print 'Signal handler called with signal {}'.format(signum)
+        signal_break = True
+        
+    signal.signal(signal.SIGINT,signal_handler)
+
     iters_of_last_save = 0
     iterations_after_first_solve = None
     remaining = np.inf if not TEST_IO else 0
     while not rrt.found_feasible_solution or iterations_after_first_solve < n_iters:
-        print 'RRT instance {} is at {}. Improved {} times.'.format(pk,rrt.n_iters,len(rrt.cost_history))
+        if os.path.exists(signal_file):
+            signal_break = True
 
-        if (rrt.n_iters - iters_of_last_save > 10000) or TEST_IO:
+        print 'RRT instance {} is at {}. Improved {} times. Break: {}'.format(pk,rrt.n_iters,len(rrt.cost_history),signal_break)
+
+        if (rrt.n_iters - iters_of_last_save > 10000) or TEST_IO or signal_break:
             temp_shelve = shelve.open(filename+'.temp')
             iters_of_last_save = rrt.n_iters
             try:
@@ -74,8 +96,8 @@ def run(pk,filename):
                 rrt.save(temp_shelve)
             finally:
                 temp_shelve.close()
-        if TEST_IO: break
-
+        if TEST_IO or signal_break: break
+        
         rrt.search(min(50,remaining))
         if rrt.found_feasible_solution:                
             i = rrt.cost_history[0][0]  #iteraction at which found first solution
