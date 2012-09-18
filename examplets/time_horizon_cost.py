@@ -73,6 +73,7 @@ Q = np.matrix([[0,0],
 Q_terminal = np.matrix([[0,0],
                         [0,1]])
 
+Q = Q_terminal
 R = np.eye(1)*1e0
 
 #Fs are gain matrices, Ps are cost-to-go matrices

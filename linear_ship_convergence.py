@@ -10,7 +10,7 @@ import numpy as np
 import copy
 
 
-folder = '/home/goretkin/diffruns'
+folder = '/home/goretkin/Dropbox/kinodyn/double_integrator_simple_obstacles'
 n_rrts = 50
 n_iters = 10000
 

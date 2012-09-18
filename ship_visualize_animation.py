@@ -15,6 +15,7 @@ Created on Mon Jun  4 17:41:01 2012
 
 from global_help import Rectangle_centered
 
+import matplotlib.patches
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib as mpl
@@ -39,13 +40,17 @@ class Ship_Sprite():
         self.body_patch = Rectangle_centered((1.5,0.0),
                                                 self.body_length,self.body_width,
                                                 linestyle='solid',linewidth=1)
+        self.body_patches = [self.body_back_patch,self.body_patch] #doesn't include flames
+
+        #self.body_patch = matplotlib.patches.Circle(xy=(0,0),radius=1.5)
+        #self.body_patches = [self.body_patch]
                 
         self.lin_flame_patch = Rectangle_centered((0.0,0.0),1.0,1.0,linestyle='solid',color='g')
         self.ang_flame_patch = Rectangle_centered((2.0,0.0),1.0,1.0,linestyle='solid',color='r')
 
         self.patches = [self.body_patch,self.body_back_patch,self.lin_flame_patch,self.ang_flame_patch]
         
-        self.body_patches = [self.body_back_patch,self.body_patch] #doesn't include flames
+
         #self.ship_collection = matplotlib.collections.PatchCollection(self.patches,match_original=True)
         
         #self.flame_color_map = matplotlib.cm.get_cmap(name='hot')
@@ -115,6 +120,7 @@ class Ship_Sprite():
         trans3 = matplotlib.transforms.Affine2D().scale(1)
         for p in self.patches:
             p.set_transform(trans3 + trans2+trans1+trans0)
+        self.ship_patch.set_transform(trans3 + trans2+trans1+trans0)
             
     def collision(self,obstacle_paths):
         trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
@@ -136,15 +142,21 @@ class Ship_Sprite():
                                #[trans.transform_path(p) for p in mpl.collections.PatchCollection(self.patches).get_paths()]
                                [trans.transform_path(p.get_path()) for p in self.body_patches]
                                )
-    def collision2(self,obstacle_paths):
-        #use a single ship patch
+    def get_ship_path(self):
+        """
+        get transformed path
+        """
         trans1 = matplotlib.transforms.Affine2D().translate(self.x,self.y)
         trans2 = matplotlib.transforms.Affine2D().rotate_around(0,0,self.theta)
         
         trans = trans2+trans1
+        return trans.transform_path(self.ship_patch.get_path())
+        
+    def collision2(self,obstacle_paths):
+        #use a single ship patch
         
         return intersect_paths(obstacle_paths,
-                               [trans.transform_path(self.ship_patch.get_path())]
+                               [self.get_ship_path()]
                                )
                                
     def collision3(self,shapely_multipoly):
@@ -171,9 +183,11 @@ class Ship_Sprite():
             a.update_transform_axes(ax)
         
             a.set_alpha(0.3)
-            collide = a.collision2(obstacle_pc.get_paths())
-            if collide:
-                print i,'collide'
+            if False:
+                collide = a.collision2(obstacle_pc.get_paths())
+                if collide:
+                    print i,'collide'
+            collide = False
             for p in a.patches:
                 #p.set_alpha(0.6)
                 if(collide):
@@ -206,47 +220,62 @@ def benchmark_collision(n):
 if __name__ == '__main__':
     import matplotlib.animation as animation
     import shelve
-    import ipdb
-    #ship_shelve = shelve.open('ship.shelve')
-    ship_shelve = shelve.open('kin_traj.shelve')
-    field_shelve = shelve.open('field1.shelve')
+
+    trail_figure = plt.figure(None)
     
-    obstacle_paths = field_shelve['obstacle_paths']
+    trail_plot = trail_figure.gca() #.subplot(111,aspect='equal')
+    trail_plot.set_axis_bgcolor((.9,.9,.9)) #gray background
+
     
-    print 'loading local vars',ship_shelve.keys()
-    
-    #to pacify the linter
-    traj = None
-    utraj = None
-    T = None
-    
-    for k in ship_shelve.keys():
-        locals()[k]=ship_shelve[k]
+    if False:
+        #ship_shelve = shelve.open('ship.shelve')
+        #ship_shelve = shelve.open('kin_traj.shelve')
+        #field_shelve = shelve.open('field1.shelve')
+
+        #obstacle_paths = field_shelve['obstacle_paths']
+ 
+        print 'loading local vars',ship_shelve.keys()
+        #to pacify the linter
+        traj = None
+        utraj = None
+        T = None
         
-    shapely_obstacles = geo.Polygon()
-    pps = []
-    for op in obstacle_paths:
-        #trans = mpl.transforms.Affine2D().scale(15)+mpl.transforms.Affine2D().translate(35,20)
-        #op = trans.transform_path(op)
-        pp = matplotlib.patches.PathPatch(path=op,color='k')
-        pps.append(pp)
-        shapely_obstacles = shapely_obstacles.union(geo.Polygon(op.vertices))
-        #trail_plot.add_patch(pp)
-    obstacle_pc = matplotlib.collections.PatchCollection(pps,match_original=True)
+        for k in ship_shelve.keys():
+            locals()[k]=ship_shelve[k]
+
+
+            
+        shapely_obstacles = geo.Polygon()
+        pps = []
+        for op in obstacle_paths:
+            #trans = mpl.transforms.Affine2D().scale(15)+mpl.transforms.Affine2D().translate(35,20)
+            #op = trans.transform_path(op)
+            pp = matplotlib.patches.PathPatch(path=op,color='k')
+            pps.append(pp)
+            shapely_obstacles = shapely_obstacles.union(geo.Polygon(op.vertices))
+            #trail_plot.add_patch(pp)
+        obstacle_pc = matplotlib.collections.PatchCollection(pps,match_original=True)
+        trail_plot.add_collection(obstacle_pc)
+    
+    else:
+        s = shelve.open('rrt_ship_sol.shelve',flag='r')
+        traj = s['xtraj']
+        utraj = s['utraj']
+        T = len(traj)
+        from ship_field import get_patch_collection
+        trail_plot.add_collection(get_patch_collection())
+        
     
     if False:
         path_figure = plt.figure(None)
         path_figure.gca().plot(traj[:,3],traj[:,4],'.')
         path_figure.gca().set_aspect('equal')
         
-    trail_figure = plt.figure(None)
-    
-    trail_plot = trail_figure.gca() #.subplot(111,aspect='equal')
-    trail_plot.set_axis_bgcolor((.9,.9,.9)) #gray background
+
 
     #only draw these time indices    
     #trail_indices = np.arange(0,T,20)
-    trail_indices = np.arange(0,T,1)
+    trail_indices = np.arange(0,T,10)
     max_lin_thrust = np.max(np.abs(utraj[:,0]))
     max_ang_thrust = np.max(np.abs(utraj[:,1]))
     
@@ -262,9 +291,17 @@ if __name__ == '__main__':
     trail_plot.set_ylim(np.min(traj[:,4]-10),np.max(traj[:,4])+10)
     trail_plot.set_aspect('equal')
     
-    trail_plot.add_collection(obstacle_pc)
 
-    assert False    
+
+    if False: #plot explored states
+        s = shelve.open('kin_rrt.shelve')
+        tree = s['tree']
+        states = [node['state'] for node in tree.node.values()]
+        states = np.array(states).T
+        trail_plot.plot(states[0], states[1], 'r.', zorder=0,alpha=.4)
+        s.close()
+
+    #assert False    
     ani_fig = plt.figure(None)
     ani_ax = ani_fig.gca()
     

@@ -8,18 +8,22 @@ import itertools
 
 from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR, final_value_LQR, lqr_dim
 
-class Diff_RRT():
-    def __init__(self,linA,linB,dyn_f,cost_0,cost_1,cost_2,n,m,max_time_horizon):
-        (self.n,self.m) = (n,m)   #n+1 for affine term
-        self.max_time_horizon = max_time_horizon
-        
-        self.linA = linA
-        self.linB = linB
-        self.dyn_f = dyn_f
+class LQR_RRT():
+    """
+    just like other LQR_RRT, but now cost functions can depend on state
+    """
+    def __init__(self,A,B,max_time_horizon,cost_0,cost_1,cost_2):
+        (self.n,self.m) = B.shape
+        assert self.n == A.shape[0] == A.shape[1]
+
+        self.A = A
+        self.B = B
 
         self.cost_zeroth_ord = cost_0
         self.cost_first_ord = cost_1
         self.cost_second_ord = cost_2
+
+        self.max_time_horizon = max_time_horizon
         
         def action_state_valid(x,u):
             return True
@@ -31,24 +35,6 @@ class Diff_RRT():
 
         self.u0 = np.zeros(self.m)
 
-    def get_ABc(self,x,u):
-        """
-            x[k+1] = A(x[k] - x0) + B(u[k] - u0) +   f(x0,u)
-            x[k+1] = A*x[k] + B*u[k] +   -A*x0 -B*u0 + f(x0,u)
-        """
-        A = self.linA(x,u)
-        B = self.linB(x,u)
-        c = self.dyn_f(x,u).reshape(self.n,1) - np.dot(A,x.reshape(self.n,1)) - np.dot(B,u.reshape(self.m,1))
-
-        A = np.matrix(A)
-        B = np.matrix(B)
-        c = np.matrix(c)
-
-        assert A.shape == (self.n,self.n)
-        assert B.shape == (self.n,self.m)
-        assert c.shape == (self.n,1)
-        return A,B,c
-    
     def get_QRqrd(self,x,u):
         n,m = self.n, self.m
         d = self.cost_zeroth_ord(x,u)
@@ -65,9 +51,10 @@ class Diff_RRT():
         assert R.shape == (m,m)
                     
         return Q,R,q,r,d
-        
-    def run_forward(self,x0,us):
 
+    def run_forward(self,x0,us):
+        A = self.A
+        B = self.B
         n = self.n+1  #+1 for time dimension 
         m = self.m
         #us = np.reshape(us,newshape=(-1,m))
@@ -77,19 +64,19 @@ class Diff_RRT():
         xs[0] = np.squeeze(x0)
 
         for i in range(1,T+1):
-            xs[i,0:self.n] = self.dyn_f(xs[i-1,0:self.n].T,us[i-1].T).reshape((1,self.n))
+            xs[i,0:self.n] = np.dot(A,xs[i-1,0:self.n].T) + np.dot(B,us[i-1].T)
             xs[i,self.n] = xs[i-1,self.n] + 1               #increase time
         return xs[1:]
 
     def run_forward_fb(self,x0,gain_schedule):
-        raise NotImplementedError 
+        raise NotImplementedError #this hasn't been tested
         A = self.A
         B = self.B
         n = self.n+1  #+1 for time dimension 
         m = self.m
         assert len(x0) == n
         T = gain_schedule.shape[0]
-        assert gain_schedule.shape[2] == n-1 #no time in the gain 
+        assert gain_schedule.shape[2] == n-1  +1 #no time in the gain, but affine term.
         assert gain_schedule.shape[1] == m
 
         xs = np.zeros(shape=(T+1,n))
@@ -97,12 +84,13 @@ class Diff_RRT():
 
         xs[0] = np.squeeze(x0)
 
-        for i in range(1,T+1):
-            us[i-1] = -1* np.dot(gain_schedule[i-1],xs[i-1,0:self.n])
-            xs[i,0:self.n] = np.dot(A,xs[i-1,0:self.n].T) + np.dot(B,us[i-1].T)
-            xs[i,self.n] = xs[i-1,self.n] + 1
-        return xs[1:],us
+        Fs = gain_schedule
+        for i in range(T):
+            us[i] = -1 * (np.dot(Fs[i,:,0:self.n],xs[i,0:self.n]) + Fs[i,:,self.n])
+            xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T)
+            xs[i+1,self.n] = xs[i,self.n] + 1
 
+        return xs[1:],us
 
     def collision_free(self,from_node,action):
         """
@@ -183,8 +171,8 @@ class Diff_RRT():
         return cost
 
     def node_cache_ctg(self,node):
-        print 'cache'
-        A,B,c = self.get_ABc(node['state'][0:self.n],self.u0)
+        A = self.A
+        B = self.B
         Q,R,q,r,d = self.get_QRqrd(node['state'][0:self.n],self.u0)
 
         max_time_horizon = self.max_time_horizon
@@ -194,8 +182,6 @@ class Diff_RRT():
         #reverse system
         Ar = A.I
         Br = -A.I * B
-        cr = -A.I * c
-
         kmax = max_time_horizon - x[self.n] +1
         assert kmax > 0
 
@@ -203,17 +189,16 @@ class Diff_RRT():
         #so ctg[k] with k = max_time_horizon - from_node['state'][self.n] is time to go
 
 
-        Fs, Ps = final_value_LQR(Ar,Br,Q,R,x[0:self.n],kmax,c=cr,q=q,r=r,d=d)
+        Fs, Ps = final_value_LQR(Ar,Br,Q,R,x[0:self.n],kmax, q=q,r=r,d=d)
+        #u = -Fs[i] * x + pk, but it is zero since the penalty on actuation is purely quadratic
         #storing in reverse order is easier to think about.
         #node['gain'][i] is what you should do with i steps left to go.
         node['ctg'] = Ps[::-1] 
         node['gain'] = Fs[::-1]
 
-        node['dynamics'] = (A,B,c)
-        node['reverse_dynamics'] = (Ar,Br,cr)
-
     def steer(self,x_from_node,x_toward,cost_limit=True):
-        A,B,c = self.get_ABc(x_from_node['state'][0:self.n],self.u0)
+        A = self.A
+        B = self.B
         Q,R,q,r,d = self.get_QRqrd(x_from_node['state'][0:self.n],self.u0)
 
         x_from = x_from_node['state']
@@ -240,13 +225,14 @@ class Diff_RRT():
 
         (Ah,Bh,Qh,Rh,pk) = AQR(     A=A,
                                     B=B,
-                                    c=c,
+                                    c=np.zeros(shape=(self.n,1)),
                                     Q=Q,
                                     R=R,
                                     q=q,
                                     r=r,
                                     d=d,
                                     ctdt='dt')
+        #pk should be zeros. 
 
         Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
         #print Fs
@@ -256,29 +242,22 @@ class Diff_RRT():
 
         cost = 0
         for i in range(T):
-            us[i] = -1 * (np.dot(Fs[i,:,0:self.n],xs[i,0:self.n]) + Fs[i,:,self.n]) + np.array(pk).reshape((self.m,)) #FIXME
-            #xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T) + c	#pretend the system is linear
-            #xs[i+1,self.n] = xs[i,self.n] + 1
-
+            us[i] = -1 * (np.dot(Fs[i,:,0:self.n],xs[i,0:self.n]) + Fs[i,:,self.n])
+            xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T)
+            xs[i+1,self.n] = xs[i,self.n] + 1
             cost += self.cost(xs[i].T,us[i].reshape(1,self.m))
             if cost_limit and cost > self.max_steer_cost:
-                #print 'cost limit {}'.format(cost)
                 break
 
-            xs[i+1] = self.run_forward(xs[i], us[[i]] )
-
-        if i < T-1:
-            us = us[:i]
-            x_final = xs[i]
+        if i == T-1:
+            x_actual = xs[-1]
+            return (x_actual, us)
         else:
-            x_final = xs[T]
-
-        return (x_final, us)
+            return (xs[i], us[:i])
 
     def steer_cache(self,x_from_node,x_toward,cost_limit=True):
-        raise NotImplementedError
-        A,B,c = self.get_ABc(x_from_node['state'][0:self.n],self.u0)
-
+        A = self.A
+        B = self.B
 
         x_from = x_from_node['state']
         assert len(x_from) == self.n+1
@@ -310,7 +289,6 @@ class Diff_RRT():
         #reverse system
         Ar = A.I
         Br = -A.I * B
-        cr = A.I * c
 
         xs_r = np.zeros(shape=(T+1,self.n+1))   #r for reverse
         us = np.zeros(shape=(T,self.m))
@@ -321,29 +299,35 @@ class Diff_RRT():
         for i in range(T):
             j = T - i-1 #gain matrices Fs[j] is what you should do with j steps remaining
             us[i] = -1 * (np.dot(Fs[j,:,0:self.n],xs_r[i,0:self.n]) + Fs[j,:,self.n])
-            xs_r[i+1,0:self.n] = np.dot(Ar,xs_r[i,0:self.n].T) + np.dot(Br,us[i].T) + np.array(cr).T[0] #sloppy dimensions
+            xs_r[i+1,0:self.n] = np.array(np.dot(Ar,xs_r[[i],0:self.n].T) + np.dot(Br,us[[i]].T)).T[0]
             xs_r[i+1,self.n] = xs_r[i,self.n] - 1 #reverse time
-    
-        us_r = us
-        us = us_r[::-1]
+
+        us = us[::-1]
+        #the xs are for the reverse system -- we could reverse them and hope that they're close enough (that the final value constraint is strong) but instead we forward simiulate the true system
+
         xs = np.zeros(shape=(T+1,self.n+1))
+        xs[0] = x_from
         cost = 0
         for i in range(T):
-            xs[i+1] = self.run_forward(xs[i], us[[i]] ) 
-
-            assert xs[i+1,self.n] == xs[i,self.n] + 1
+            xs[i+1,0:self.n] = np.dot(A,xs[i,0:self.n].T) + np.dot(B,us[i].T)
+            xs[i+1,self.n] = xs[i,self.n] + 1
             cost += self.cost(xs[i].T,us[i].reshape(1,self.m))
             if cost_limit and cost > self.max_steer_cost:
                 break
 
-        return (xs[i+1], us[:i])
-
+        if i == T-1:
+            x_actual = xs[-1]   
+            #print 'error',(x_from - xs[0])
+            return (x_actual, us)
+        else:
+            return (xs[i], us[:i])
 
     def steer_QP(self,x_from_node,x_toward):
-        raise NotImplemented
-        A,B,c = self.get_ABc(x_from_node['state'][0:self.n],self.u0)
-        Q,R,q,r,d = self.get_QRqrd(node['state'][0:self.n],self.u0)
-
+        raise NotImplementedError
+        A = self.A
+        B = self.B
+        Q = self.Q
+        R = self.R
 
         x_from = x_from_node['state']
         assert len(x_from) == self.n+1
@@ -396,9 +380,9 @@ class Diff_RRT():
     def distance(self,from_node,to_point):
         #to_point is an array and from_point is a node
 
-        A,B,c = self.get_ABc(from_node['state'][0:self.n],self.u0)
+        A = self.A
+        B = self.B
         Q,R,q,r,d = self.get_QRqrd(from_node['state'][0:self.n],self.u0)
-
 
         x_from = from_node['state']
         x_toward = to_point
@@ -433,11 +417,12 @@ class Diff_RRT():
                                     B=B,
                                     Q=Q,
                                     R=R,
-                                    c=c,
                                     q=q,
                                     r=r,
                                     d=d,
                                     ctdt='dt')
+        assert np.allclose(pk,np.zeros(1))
+        #pk should be zeros. 
 
         T = T+1
         Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
@@ -480,7 +465,7 @@ class Diff_RRT():
 
         if T >= len(from_node['ctg']):
             print 'requested uncached distance!!!'
-            distance(from_node,to_point)
+            self.distance(from_node,to_point)
 
         ctg = from_node['ctg'][T]
 
@@ -489,6 +474,16 @@ class Diff_RRT():
         x_to_homo[self.n] = 1
          
         return np.dot(x_to_homo,np.dot(ctg,x_to_homo.T))
+
+    def distance_direct_steer_cache(self,from_node,to_point):
+        #print from_node['state'], to_point
+        #to_point is an array and from_point is a node
+        assert len(to_point)==self.n+1
+        x_actual,action = self.steer_cache(from_node,to_point)
+        if self.same_state(x_actual,to_point): #if actually drove there:
+            return self.cost(from_node['state'],action)
+        else:
+            return np.inf
 
     def check_cache_distances(self,rrt,to_point):
         for node in rrt.tree.nodes():

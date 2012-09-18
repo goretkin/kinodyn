@@ -332,7 +332,7 @@ if True:
 plt.show()
 
 import shelve
-field_shelve = shelve.open('field.shelve')
+field_shelve = shelve.open('field_simple.shelve')
 field_shelve['obstacle_paths']=[p.get_path() for p in ax.patches]
 field_shelve.close()
 

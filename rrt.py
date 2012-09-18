@@ -120,6 +120,13 @@ class RRT():
         
         for var in self.save_vars:
             shelf_file[var] = self.__dict__[var]
+
+    def load_dirty(self,shelf_file):
+        #skip any checking
+        for var in self.save_vars:
+            if var not in shelf_file.keys():
+                raise AssertionError('shelf file is missing key: %s'%str(var))
+            self.__dict__[var] = shelf_file[var]
             
     def load(self,shelf_file,strict_consistency_check=False):
         if not self.search_initialized:
@@ -310,6 +317,7 @@ class RRT():
     def search(self,iters=5e2):
         iters = int(iters)
         self.logger.info('starting search of {}'.format(iters))
+        self.logger.debug('debugging is on')
         for i in xrange(iters):
             self.n_iters += 1
             x_rand = self.sample()
@@ -354,6 +362,80 @@ class RRT():
         if len(u_path) > 0: assert u_path.shape[1] == self.control_ndim
         return u_path
 
+    def extend_from_nonlin(self,node_id,to_state):
+        """
+        extend toward to_state, but only go one step at a time
+        """
+        tree = self.tree
+        last_node = node_id
+        nodes_added = []
+        total_action = []
+        while(True):
+            self.logger.debug("extend_from iteration. added {}".format(len(nodes_added)))        
+            x_actual,action = self.steer(tree.node[last_node],to_state)
+            if len(action) == 0:
+                self.logger.debug("extend_from_nonlin zero-length action from steer")
+                break
+
+            one_step_action = action[[0]]
+            x_path, u_path, all_the_way  = self.collision_free(tree.node[last_node], one_step_action)
+
+            
+            if len(u_path) == 0:
+                self.logger.debug("extend_from_nonline zero-length path from collision_free")
+                break            
+
+            assert to_state[self.state_ndim-1] >= x_path[0][self.state_ndim-1]  #if this were not true, then steer would return an empty action (because it cannot go back in time) FIXME time agnostic
+
+            u_path = self._collapse_action(u_path)
+            assert np.allclose(u_path[[0]],one_step_action)
+
+            new_id = self.get_node_id()
+            tree.add_node(new_id,attr_dict={  'state': x_path[0],
+                                                'action':one_step_action,
+                                                'hops':1+tree.node[last_node]['hops'],
+                                                'cost':tree.node[last_node]['cost']+self.cost(tree.node[last_node]['state'],one_step_action)
+                                             }
+            )
+            tree.add_edge(last_node,new_id)
+            assert tree.node[new_id]['state'][self.state_ndim-1] - tree.node[last_node]['state'][self.state_ndim-1] == 1 #single time steps #refactoring necessary -- rrt.py should be space-agnostic
+
+            nodes_added.append(new_id)
+            total_action.append(one_step_action[0])
+
+            last_node = new_id
+        
+        self.logger.debug('extend_from_nonlin added {} nodes'.format(len(nodes_added)))
+        
+        if len(nodes_added) > 15:
+            total_action = np.array(total_action)
+            self.remove_subtree(nodes_added[1])
+            
+            x_path, u_path, all_the_way  = self.collision_free(tree.node[node_id], total_action)
+            assert all_the_way  #was already collision checked
+
+
+            #segment the extension into tiny parts, as given by the collision_free function
+            last_node_id = node_id                      #FIXME refactor copied code
+            for i in range(len(x_path)):
+                x = x_path[i]
+                u = u_path[i]
+
+                this_node_id = self.get_node_id()
+                tree.add_node(this_node_id,attr_dict={  'state':x,
+                                                        'action':u,
+                                                        'hops':1+tree.node[last_node_id ]['hops'],
+                                                        'cost':tree.node[last_node_id ]['cost']+self.cost(tree.node[last_node_id]['state'],u)
+                                                     }
+                )
+                tree.add_edge(last_node_id,this_node_id)
+                last_node_id = this_node_id                
+            last_node = last_node_id
+
+        self.check_goal(last_node)
+        return last_node
+                
+        
     def extend_from(self,node_id,to_state):
         tree = self.tree
 
@@ -398,7 +480,7 @@ class RRT():
         cardinality = len(tree.node)
         radius = self.gamma_rrt * (np.log(cardinality)/cardinality)**(1.0/self.state_ndim)
         radius = np.min((radius,self.eta))          #radius of search ball
-
+        self.logger.debug('find x_nearest')
         x_nearest_id, nearest_distance  = self.nearest_neighbor(x_rand)
         if nearest_distance == np.inf:
             self.logger.debug('no nearest node')
@@ -476,7 +558,8 @@ class RRT():
             X_near_to = None
             X_near_from = None
     
-        if do_find_cheapest_parent:        
+        if do_find_cheapest_parent:
+            self.logger.debug('choose parents') 
             #consider all nodes in X_near as potential parents for x_new
             #connect x_new to lowest-cost parent
             for x_near in X_near_to:                
@@ -564,6 +647,7 @@ class RRT():
         self.check_goal(x_new_id)
         pruned_nodes = self.prune()
         if do_rewire:
+            self.logger.debug('rewiring')
             if x_new_id in pruned_nodes:
                 #pruning removed x_new
                 self.logger.debug('pruning removed x_new')

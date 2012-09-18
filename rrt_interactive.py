@@ -6,9 +6,10 @@ import networkx as nx
 
 
 class RRT_Interactive():
-    def __init__(self,rrt,run_forward=None,plot_dims=[0,1],slider_dim=-1,slider_range=(0,100)):
+    def __init__(self,rrt,run_forward=None,cost_traj=None,plot_dims=[0,1],slider_dim=-1,slider_range=(0,100)):
         self.rrt = rrt
         self.run_forward = run_forward
+        self.cost_traj = cost_traj
         self.plot_dims = plot_dims
         self.slider_dim = self.rrt.state_ndim-1 if slider_dim==-1 else slider_dim
 
@@ -89,8 +90,10 @@ class RRT_Interactive():
         print 'done update canvas'
 
 
-    def draw_rrt(self,int_ax,control_ax=None):
+    def draw_rrt(self,int_ax,control_ax=None,cost_coded_edges=False, colormap = None, hide_legend=True):
         ax = int_ax
+        if colormap is None:
+            colormap = mpl.cm.get_cmap(name='copper')
 
         for thing in self.to_clear:
             if type(thing) in [matplotlib.collections.LineCollection, matplotlib.collections.PatchCollection, matplotlib.collections.Collection]:
@@ -133,7 +136,15 @@ class RRT_Interactive():
             control_ax.cla()
             control_ax.plot(np.squeeze(upath))
         """
-        
+        #draw best solution
+        if len(rrt.cost_history) > 0:
+            x0 = rrt.state0
+            utraj = rrt.cost_history[-1][2][2]
+            xs = self.run_forward(x0,utraj)
+            xs = np.concatenate((x0.reshape((1,-1)),xs))
+            xs = xs[:,self.plot_dims]
+            ax.plot(xs[:,0],xs[:,1],'-',lw=3,alpha=.9,color='red',label='best solution',zorder=30)
+
         #draw paths that collided
         if (not rrt.viz_collided_paths is None) and (not self.run_forward is None):
             if len(rrt.viz_collided_paths) > 100:
@@ -170,9 +181,10 @@ class RRT_Interactive():
         node_collection = nx.draw_networkx_nodes(G=tree,
                                                 pos=pos,
                                                 ax=ax,
-                                                node_size=25,
-                                                node_color=col,
-                                                cmap = mpl.cm.get_cmap(name='copper'),
+                                                node_size=1 if cost_coded_edges else 15,
+                                                node_color='black' if cost_coded_edges else col,
+                                                cmap = None if cost_coded_edges else colormap,
+                                                node_shape = '.' if cost_coded_edges else 'o'   #if color is in the edges, don't need big nodes
                                                 )
 
         if not node_collection is None:
@@ -187,33 +199,67 @@ class RRT_Interactive():
                                                     edge_color='b',
                                                     )
         else:
-            #draw dynamical edges
-            if not self.__dict__.has_key('edge_cache'):
-                'reset edge_cache'
-                self.edge_cache = {}
+            if not cost_coded_edges:
+                #draw uniform color dynamical edges
+                if not self.__dict__.has_key('edge_cache'):
+                    'reset edge_cache'
+                    self.edge_cache = {}
 
-            lines = []
-            for i in tree.nodes():
-                if self.edge_cache.has_key(i):
-                    xs = self.edge_cache[i]
-                else:
+                lines = []
+                for i in tree.nodes():
+                    if self.edge_cache.has_key(i):
+                        xs = self.edge_cache[i]
+                    else:
+                        s = tree.predecessors(i)
+                        if len(s) == 0:
+                            continue
+                        assert len(s) == 1 #it's a tree
+                        s = s[0]
+                        x0 = tree.node[s]['state']
+                        xs = self.run_forward(x0, tree.node[i]['action'])
+                        xs = np.concatenate((x0.reshape((1,-1)),xs))
+                        self.edge_cache[i] = xs
+
+                    lines.append(xs[:,self.plot_dims])
+                    
+                edge_collection = mpl.collections.LineCollection(lines)
+                ax.add_collection(edge_collection)
+
+            else:
+                #shade edges with cost
+                if self.cost_traj is None: raise ValueError("Color-coded edges requires a cost function")
+                lines = []
+                costs = []
+                for i in tree.nodes():
                     s = tree.predecessors(i)
                     if len(s) == 0:
                         continue
                     assert len(s) == 1 #it's a tree
                     s = s[0]
                     x0 = tree.node[s]['state']
-                    xs = self.run_forward(x0, tree.node[i]['action'])
-                    xs = np.concatenate((x0.reshape((1,-1)),xs))
-                    self.edge_cache[i] = xs
-
-                lines.append(xs[:,self.plot_dims])
+                    c0 = tree.node[s]['cost']
+                    utraj = tree.node[i]['action']
+                    
+                    for j in range(len(utraj)):
+                        u = utraj[[j]]  #chop up the action
+                        xs = self.run_forward(x0,u)
+                        assert len(xs) == 1 #one-step trajectory
+                        xs = xs[0]
+                        c0 += self.cost_traj(x0,u)
+                        #the edge  between x0 and xs has cost c0
+                        line = [ x0[self.plot_dims], xs[self.plot_dims] ] 
+                        lines.append(line)
+                        costs.append(c0)
+                        
+                        x0 = xs
                 
-            edge_collection = mpl.collections.LineCollection(lines)
-            ax.add_collection(edge_collection)
-            
-
-        
+                edge_collection = mpl.collections.LineCollection(lines,cmap=colormap)
+                costs = np.array(costs).reshape((-1,))
+                edge_collection.set_array(costs) #shade the edges
+                edge_collection.set_alpha(.6)
+                ax.add_collection(edge_collection)
+                
+                    
         if not edge_collection is None:
                 edge_collection.set_zorder(4)
                 self.to_clear.append(node_collection)       
@@ -232,23 +278,24 @@ class RRT_Interactive():
             if rrt.viz_x_near is not None and len(rrt.viz_x_near)>0:
                 x_near = np.array(rrt.viz_x_near)
                 self.to_clear.extend(   ax.plot(x_near[:,self.plot_dims[0]],x_near[:,self.plot_dims[1]], marker='o', mfc='none',mec='r', mew=1 ,ls='None',alpha=.5, zorder=10, label='X_near')  )
+    
+        if not hide_legend:
+            ax.legend(bbox_to_anchor=(1.05,0.0),loc=3,
+                           ncol=1, borderaxespad=0.,
+                            fancybox=True, shadow=True,numpoints=1)
+            
+            #ani_ax.legend()
+            if ax.get_legend() is not None:
+                self.to_clear.append(ax.get_legend())
+                plt.setp(ax.get_legend().get_texts(),fontsize='small')
 
-        ax.legend(bbox_to_anchor=(1.05,0.0),loc=3,
-                       ncol=1, borderaxespad=0.,
-                        fancybox=True, shadow=True,numpoints=1)
-        
-        #ani_ax.legend()
-        if ax.get_legend() is not None:
-            self.to_clear.append(ax.get_legend())
-            plt.setp(ax.get_legend().get_texts(),fontsize='small')
+            info = ""
+            info += "# nodes: %d\n" % (len(tree.nodes()))
+            #info += "# edges: %d\n" % (len(tree.edges()))
+            info += "cost: %s\n" % (str(rrt.worst_cost) if rrt.found_feasible_solution else "none")
 
-        info = ""
-        info += "# nodes: %d\n" % (len(tree.nodes()))
-        #info += "# edges: %d\n" % (len(tree.edges()))
-        info += "cost: %s\n" % (str(rrt.worst_cost) if rrt.found_feasible_solution else "none")
-
-        if self.info_text is None:
-            self.info_text = ax.figure.text(.8, .5, info,size='small')
-        self.info_text.set_text(info)
+            if self.info_text is None:
+                self.info_text = ax.figure.text(.8, .5, info,size='small')
+            self.info_text.set_text(info)
 
 

@@ -217,7 +217,7 @@ def final_value_LQR(A,B,Q,R,x_toward,T,c=None,q=None,r=None,d=None):
                                 c=c,q=q,r=r,d=d,
                                 ctdt='dt')
     #pk should be zeros since system is Affine
-    assert np.allclose(pk,np.zeros(m))  #this assertion and the comment only hold when r=0, so it's no surprise if this gets triggered when we use a different cost function.
+    #assert np.allclose(pk,np.zeros(m))  #this assertion and the comment only hold when r=0, so it's no surprise if this gets triggered when we use a different cost function.
 
     Fs, Ps = dtfh_lqr(A=Ah,B=Bh,Q=Qh,R=R,N=T,Q_terminal=Qhf)
     #should use broadcasting

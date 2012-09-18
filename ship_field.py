@@ -15,7 +15,7 @@ def ellipse(center,radii):
 def circle(center,radius):
     return ellipse(center,(radius,radius))
 
-EASY = False
+EASY = True
    
 obstacles_coords = []
 

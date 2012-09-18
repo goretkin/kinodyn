@@ -9,6 +9,8 @@ import sympy
 
 from sympy.core import numbers
 
+import sympy.functions
+
 from sympy.utilities.autowrap import autowrap
 from mod_autowrap import autowrap_and_store 
 import functools
@@ -59,17 +61,17 @@ theta = theta + dt * vtheta
 
 x = sympy.Symbol('x')
 y = sympy.Symbol('y')
-theta = sympy.Symbol('theta')
+
 
 vx = sympy.Symbol('vx')
 vy = sympy.Symbol('vy')
-vtheta = sympy.Symbol('vtheta')
-dt = sympy.Symbol('dt')
-lin_thrust = sympy.Symbol('lin_thrust')
-ang_thrust = sympy.Symbol('ang_thrust')
 
-state_symbol = sympy.Matrix([vx,vy,vtheta,x,y,theta])
-control_symbol = sympy.Matrix([lin_thrust,ang_thrust])
+dt = sympy.Symbol('dt')
+x_thrust = sympy.Symbol('x_thrust')
+y_thrust = sympy.Symbol('y_thrust')
+
+state_symbol = sympy.Matrix([vx,vy,x,y])
+control_symbol = sympy.Matrix([x_thrust,y_thrust])
 parameter_symbol = [dt]
 parameter_bindings = {dt:5e-2}
 
@@ -78,96 +80,22 @@ m = len(control_symbol)
 
 dynamics_symbols = list(state_symbol) + list(control_symbol)
 
-symbolic_dynamics = sympy.Matrix([vx + dt * sympy.cos(theta) * lin_thrust,
-                                  vy + dt * sympy.sin(theta) * lin_thrust,
-                                  vtheta + dt * ang_thrust,
-                                  x + dt * vx,
-                                  y + dt * vy,
-                                  theta + dt * vtheta])
 
-assert len(symbolic_dynamics) == n
-
-symbolic_dynamics_p = symbolic_dynamics.subs(parameter_bindings)
-
-#produces a list of functions
-if 'dyn_f_list' not in locals(): #cache within an interactive session. do this better!
-    print 'compiling the dynamics'
-    dyn_f_list = [autowrap(symbolic_dynamics_p[i],language="f95",args=dynamics_symbols) for i in range(len(symbolic_dynamics))]
-    print 'done compiling the dynamics'
-
-def dyn_f(x,u):
-    assert len(x)==n
-    assert len(u)==m
-    xu = list(x) + list(u)
-    return np.array(
-        [dyn_f_list[i](*xu) for i in range(len(symbolic_dynamics_p))]
-    )
-
-def dyn_simulate(x0,u,t):
-    assert len(u) == m
-    xtraj = np.zeros(shape=(t,n))
-    xtraj[0] = x0
-
-    #integrate    
-    for i in range(t-1):
-        xtraj[i+1] = dyn_f(xtraj[i],u)
-    return xtraj
-
-linearized_sym_A = symbolic_dynamics_p.jacobian(state_symbol)
-linearized_sym_B = symbolic_dynamics_p.jacobian(control_symbol)
-
-if 'lin_A_aw' not in locals() or 'lin_B_aw' not in locals():
-    print 'compiling dynamics Jacobians'
-    lin_A_aw = [
-                    [
-                        autowrap(linearized_sym_A[i,j],language="f95",args=dynamics_symbols)
-                    for j in range(n)] 
-                for i in range(n)]
-
-    lin_B_aw = [
-                    [
-                        autowrap(linearized_sym_B[i,j],language="f95",args=dynamics_symbols)
-                    for j in range(m)] 
-                for i in range(n)]
-    print 'done compiling dynamics Jacobians'
-
-def linearized_A(x,u):
-    assert len(x)==n
-    assert len(u)==m
-    xu = list(x) + list(u)
-
-    return np.array(
-        [
-            [float(lin_A_aw[i][j](*xu)) for j in range(n)] 
-        for i in range(n)]
-    )
-
-def linearized_B(x,u):
-    assert len(x)==n
-    assert len(u)==m
-    xu = list(x) + list(u)
-
-    return np.array(
-        [[float(lin_B_aw[i][j](*xu)) for j in range(m)] for i in range(n)]
-    )
 
 x0 = sympy.Symbol('x0')
 y0 = sympy.Symbol('y0')
-theta0 = sympy.Symbol('theta0')
 
 vx0 = sympy.Symbol('vx0')
 vy0 = sympy.Symbol('vy0')
-vtheta0 = sympy.Symbol('vtheta0')
 
-lin_thrust0 = sympy.Symbol('lin_thrust0')
-ang_thrust0 = sympy.Symbol('ang_thrust0')
 
-xu0 = sympy.Matrix([vx0,vy0,vtheta0,x0,y0,theta0,lin_thrust0,ang_thrust0])
+x_thrust0 = sympy.Symbol('x_thrust0')
+y_thrust0 = sympy.Symbol('y_thrust0')
+
+xu0 = sympy.Matrix([vx0,vy0,x0,y0,x_thrust0,y_thrust0])
 xu_star = sympy.Matrix(dynamics_symbols) - xu0
 
-
-#cost = (x-50)**2 + (y-50)**2 + lin_thrust**2 + ang_thrust**2
-cost =  lin_thrust**2 + ang_thrust**2
+cost =  sympy.functions.exp(y/25.0)*(x_thrust**2) + y_thrust**2
 
 
 #first-order coef
@@ -184,8 +112,8 @@ cost_hes = sympy.hessian(cost,dynamics_symbols)
 
 
 #Symbolic Taylor expansion
-if True:
-    mapping = {x:x0,y:y0,theta:theta0,vx:vx0,vy:vy0,vtheta:vtheta0,lin_thrust:lin_thrust0,ang_thrust:ang_thrust0}
+if False:
+    mapping = {x:x0,y:y0,vx:vx0,vy:vy0,x_thrust:x_thrust0,y_thrust:y_thrust0}
     grad0 = cost_grad.subs(mapping)
     hes0 = cost_hes.subs(mapping)
 

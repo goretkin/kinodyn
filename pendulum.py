@@ -15,7 +15,6 @@ import itertools
 import networkx as nx
 
 from rrt import RRT
-from ship_visualize_animation import Ship_Sprite
 from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR
 from diff_rrt import Diff_RRT
 from rrt_interactive import RRT_Interactive
@@ -77,7 +76,7 @@ def dyn_f(x,u):
     return xk
 
 def cost_0(x,u):
-    return 0
+    return u[0]**2
 
 def cost_1(x,u):
     return np.zeros((1,3))
@@ -106,7 +105,6 @@ def get_QRqrd(x,u):
             
 max_time_horizon = 700
 goal = np.array([0,np.pi,500])
-
 
 def isStateValid(state):
     #returns True if state is not in collision
@@ -167,7 +165,8 @@ rrt.sample_goal = lambda : goal
 rrt.set_distance(lqr_rrt.distance_cache)
 rrt.set_same_state(lqr_rrt.same_state)
 rrt.set_cost(lqr_rrt.cost)
-rrt.set_steer(lqr_rrt.steer_cache)
+#rrt.set_steer(lqr_rrt.steer_cache)
+rrt.set_steer(lqr_rrt.steer)
 
 rrt.set_goal_test(goal_test)
 rrt.set_sample(sample)
@@ -175,16 +174,14 @@ rrt.set_collision_free(lqr_rrt.collision_free)
 
 rrt.set_distance_from_goal(distance_from_goal)
 
-
-rrt.gamma_rrt = 2
-rrt.eta = 1000
+rrt.gamma_rrt = 15
+rrt.eta = 20
 rrt.c = 1
 rrt.max_nodes_in_ball = 30
 
 rrt.set_start(start)
 rrt.init_search()
 
-rrt_int = RRT_Interactive(rrt,lqr_rrt.run_forward,plot_dims=[0,1],slider_range=(0,max_time_horizon))
 
 
 def draw(rrt,ani_ax=None):
@@ -225,19 +222,54 @@ def draw(rrt,ani_ax=None):
         lines.append(xs[:,[0,1]])
     edge_collection = mpl.collections.LineCollection(lines,alpha=.5,zorder=0)
     ani_ax.add_collection(edge_collection)
-
-
-def hook(rrt):
-    plt.ioff()
-    a = plt.figure()
-
-    c = rrt.worst_cost
-    fname = "rrt_pendulum_%d,%d.png"%(start_time,rrt.n_iters)
-    draw(rrt,a.gca())
-    a.savefig(fname)
-    plt.ion()
     
-rrt.improved_solution_hook = hook
+
+
+def generate_partial_trees(rrt):
+    sample_goal = rrt.sample_goal
+    rrt.sample_goal = None
+    
+    for i in [20,50,100,300,300]:
+        if i>50: rrt.sample_goal = sample_goal #turn off goal bias to get exploration in the whole space
+        rrt.search(i)
+        hook(rrt)
+
+if __name__ == '__main__':
+
+    def hook(rrt):
+        print 'hook'
+        plt.ioff()
+        a = plt.figure()
+        c = rrt.worst_cost
+        print 'draw'
+        fname = "rrt_pendulum__%d,%d.png"%(start_time,rrt.n_iters)
+        draw(rrt,a.gca())
+        a.savefig(fname)
+        plt.ion()
+
+        print 'save'
+        import shelve
+        s = shelve.open("rrt_pendulum_%d,%d.shelve"%(start_time,rrt.n_iters))
+        #upath = rrt.best_solution_goal()[2]
+        #xpath = lqr_rrt.run_forward(start,upath)
+        #s['traj'] = xpath
+        #s['utraj'] = upath
+        rrt.save(s)
+        print 'saved {}'.format(rrt.n_iters)
+        s.close()
+
+
+    rrt.improved_solution_hook = hook
+
+    isinteractive = plt.isinteractive()
+
+    if isinteractive: plt.ioff()
+    rrt_int = RRT_Interactive(rrt,lqr_rrt.run_forward,plot_dims=[0,1],slider_range=(0,max_time_horizon))
+    rrt_int.int_ax.set_xlim(-3,3)
+    rrt_int.int_ax.set_ylim(-5,5)
+    rrt_int.rrts()
+
+
 
 if False and __name__ == '__main__':
 #    if False:

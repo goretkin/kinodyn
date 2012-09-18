@@ -146,6 +146,7 @@ def draw_rrt(rrt,int_ax,control_ax=None,plot_dims=[0,1]):
     global no_obstacles_test
     global obstacle_bitmap
     global info_text
+    global lqr_rrt
 
     ani_ax = int_ax
     ani_rrt = rrt
@@ -155,7 +156,8 @@ def draw_rrt(rrt,int_ax,control_ax=None,plot_dims=[0,1]):
     ani_ax.set_ylim(-1.5,1)
     #ani_ax.set_aspect('equal')
     #ani_ax.set_aspect('auto')
-    if not no_obstacles_test: ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5,zorder=1,aspect='auto')    
+#    if not no_obstacles_test: 
+    ani_ax.imshow(obstacle_bitmap,origin='lower',extent=[-1,1,-1,1],alpha=.5,zorder=1,aspect='auto')    
     
     for l in ani_ax.lines:
         l.remove()
@@ -192,7 +194,7 @@ def draw_rrt(rrt,int_ax,control_ax=None,plot_dims=[0,1]):
         lines = []
         for (node,action) in rrt.viz_collided_paths:
             x0 = node['state']
-            xs = lqr_rrt,run_forward(x0,action)
+            xs = lqr_rrt.run_forward(x0,action)
             xs = np.concatenate((x0.reshape((1,-1)),xs))
             lines.append(xs[:,plot_dims])
         
@@ -243,7 +245,7 @@ def draw_rrt(rrt,int_ax,control_ax=None,plot_dims=[0,1]):
             assert len(s) == 1 #it's a tree
             s = s[0]
             x0 = tree.node[s]['state']
-            xs = run_forward(x0, tree.node[i]['action'])
+            xs = lqr_rrt.run_forward(x0, tree.node[i]['action'])
             xs = np.concatenate((x0.reshape((1,-1)),xs))
             lines.append(xs[:,plot_dims])
         edge_collection = mpl.collections.LineCollection(lines)

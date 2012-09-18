@@ -18,8 +18,10 @@ import networkx as nx
 from rrt import RRT
 from lin_ship_visualize_animation import Ship_Sprite
 from lqr_tools import LQR_QP, dtfh_lqr, simulate_lti_fb_dt, AQR
-from lqr_rrt import LQR_RRT
+from lqr_rrt_cost import LQR_RRT
 from rrt_interactive import RRT_Interactive
+
+from lin_ship_cost import cost_zeroth_ord, cost_first_ord, cost_second_ord
 
 #[velx, vely, posx, posy]
 A = np.matrix([ [1,     0,      0,      0   ],
@@ -31,13 +33,9 @@ B = np.matrix([ [1,     0       ],
                 [0,     1       ],
                 [0,     0       ],
                 [0,     0       ]])
-
-Q = np.zeros(shape=(4,4))
-R = np.eye(2)
-
+    
 max_time_horizon = 300
 goal = np.array([0,0,100,100,max_time_horizon])
-
 
 #field_shelve = shelve.open('field_simple.shelve')
 #obstacle_paths = field_shelve['obstacle_paths']
@@ -98,7 +96,11 @@ def goal_test(node):
     return distance(node,goal) < goal_region_radius                     #need to think more carefully about this one
 
 start = np.array([0,0,0,0,0])
-lqr_rrt = LQR_RRT(A,B,Q,R,max_time_horizon)
+
+lqr_rrt = LQR_RRT(A,B,max_time_horizon,     cost_0 = cost_zeroth_ord, 
+                                            cost_1 = cost_first_ord, 
+                                            cost_2 = cost_second_ord )
+
 rrt = RRT(state_ndim=5,control_ndim=2)
 
 lqr_rrt.action_state_valid = action_state_valid
@@ -124,7 +126,7 @@ rrt.eta = .2
 rrt.c = 1
 rrt.max_nodes_in_ball = 30
 
-lqr_rrt.max_steer_cost = .015
+#lqr_rrt.max_steer_cost = .015
 
 rrt.set_start(start)
 rrt.init_search()

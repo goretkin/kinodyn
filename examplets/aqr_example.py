@@ -22,8 +22,8 @@ from lqr_tools import AQR, LQR_QP, simulate_lti_fb_dt, simulate_lti_fb
 from lqr_tools import dtfh_lqr, dtfh_lqr_dual
 
 #continuous-time affine dynamics. 
-d= -0e-1    #damping
-g = 0      #gravity
+d= -2e-1    #damping
+g = 10      #gravity
 k  = 0      #spring
 Act = np.matrix([[d,-k,g],
                  [1,0,0],
@@ -85,11 +85,13 @@ else:
 dp_xs,dp_us = simulate_lti_fb_dt(A=Ah,B=Bh,x0=np.concatenate([x0,[1]]),
                    gain_schedule=-gain_matrices,T=T)
 
-qp_solution,(QP_P,QP_q,QP_A,QP_B),qp_xs,qp_us = LQR_QP(Ah,Bh,Qh,Rh,T=T,x0=np.concatenate([x0,[1]]),                     
-                     #xT=np.concatenate([[10,0],[1]])
-                     #xT=np.concatenate([[1,0],[1]])
-                     xT=np.concatenate([desired.flat,[1]])
-                     )
+DO_QP = False
+if DO_QP:
+    qp_solution,(QP_P,QP_q,QP_A,QP_B),qp_xs,qp_us = LQR_QP(Ah,Bh,Qh,Rh,T=T,x0=np.concatenate([x0,[1]]),                     
+                         #xT=np.concatenate([[10,0],[1]])
+                         #xT=np.concatenate([[1,0],[1]])
+                         xT=np.concatenate([desired.flat,[1]])
+                         )
 
 #qp_solution,(QP_P,QP_q,QP_A,QP_B) = LQR_QP(Ah,Bh,Qh,Rh,T=T,x0=np.concatenate([x0,[1]]))
 
@@ -116,10 +118,10 @@ def cost_traj(x,u):
         
     return c
 
-qp_cost = cost_traj(qp_xs,qp_us)
+if DO_QP: qp_cost = cost_traj(qp_xs,qp_us)
 dp_cost = cost_traj(dp_xs,dp_us)
 
-qp_vars = np.array(qp_solution['x'])
+if DO_QP: qp_vars = np.array(qp_solution['x'])
 #transforms the DP solution into the vector form the QP uses.
 #dsol_dp = np.concatenate([dp_solution[0],dp_solution[1]],axis=0)
 #dp_vars = dsol_dp.reshape(-1,1,order='F')
@@ -136,7 +138,7 @@ dsol1 = np.vstack( (dsol,np.ones(shape=(1,T))) )
 cost_to_go = np.zeros(shape=(ct_gain_samples))
        
 
-DUAL = True
+DUAL = False
 ts = np.linspace(0,T*Ts,ct_gain_samples)
 
 if DUAL:
@@ -175,13 +177,13 @@ plt.plot(dp_us[0,:].T,'r-') #imparted acceleration
 print dp_xs
 plt.axhline(color='k')
 
-
-plt.subplot(3,1,2)
-plt.title('QP')
-plt.plot(qp_xs[0,:].T,'g-') #velocity
-plt.plot(qp_xs[1,:].T,'b-') #position
-plt.plot(qp_us[0,:].T,'r-') #imparted acceleration
-plt.axhline(color='k')
+if DO_QP:
+    plt.subplot(3,1,2)
+    plt.title('QP')
+    plt.plot(qp_xs[0,:].T,'g-') #velocity
+    plt.plot(qp_xs[1,:].T,'b-') #position
+    plt.plot(qp_us[0,:].T,'r-') #imparted acceleration
+    plt.axhline(color='k')
 
 plt.subplot(3,1,3)
 #plt.plot(cost_to_go,'g-')
