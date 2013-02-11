@@ -69,10 +69,9 @@ def linearized_B(x,u):
     return B
 
 def dyn_f(x,u):
-    xk = np.zeros((2,1))
-    xk[0] = (1.0-damping) * x[0] + dt*(-np.sin(x[1]) + u[0])
-    xk[1] = x[1] + dt*x[0]
-    xk = np.matrix(xk)
+    xk0 = (1.0-damping) * x[0] + dt*(-np.sin(x[1]) + u[0])
+    xk1 = ( x[1] + dt*x[0] ) * np.ones_like(xk0) #make have same dimension due to u
+    xk = np.concatenate((xk0,xk1),axis=0)
     return xk
 
 def cost_0(x,u):

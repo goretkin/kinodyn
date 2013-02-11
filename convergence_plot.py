@@ -3,8 +3,15 @@ from joblib import Parallel, delayed
 import examplets_import
 #import rrt_2d_example as rrt_setup
 #import linear_ship_rrt as rrt_setup
-#import pendulum as rrt_setup
-import linear_ship_rrt_cost as rrt_setup
+
+if False:
+    import pendulum as rrt_setup
+    folder = '/home/goretkin/Dropbox/kinodyn/experiments/pendulum_longtime'
+    plot_dims = [0,1]
+else:
+    import linear_ship_rrt_cost as rrt_setup
+    folder = '/home/goretkin/Dropbox/kinodyn/experiments/double_integrator_fancy_cost'
+    plot_dims = [2,3]
 
 import shelve
 import numpy as np
@@ -19,8 +26,6 @@ a = []
 n_iters_s = []
 rrt_shelves = []
 
-folder = '/home/goretkin/diffruns'
-
 if len(sys.argv) > 1:
     folder = sys.argv[1]
 
@@ -32,14 +37,18 @@ def load_all_shelve(folder):
     f = []
     for files in os.listdir(folder):
         if files.endswith(".shelve"):
+            print files
             s.append(shelve.open(os.path.join(folder,files),flag='r'))
             sname.append(files)
             f.append(files)
+            
     for files in os.listdir(folder):
         if files.endswith(".shelve.temp") and files[:-5] not in sname:  #don't add a tempfile for the same run
+            print files
             s.append(shelve.open(os.path.join(folder,files),flag='r'))
             print 'adding temp file: {}'.format(files)
             f.append(files)
+
     return s, f
 
 shelves,files = load_all_shelve(folder)
@@ -57,9 +66,12 @@ n_rrts = len(rrt_shelves) #number of runs of RRT we have.
         
 cost_histories = []
 
-n_iters = 4000
+n_iters = 3000
+
+ONLY_FINISHED = True    #ignore partial runs.
 
 for i in range(n_rrts):
+    print 'RRT {}'.format(i)
     a = rrt_shelves[i]['cost_history']
     if len(a) == 0: 
         print 'RRT {} did not solve'.format(i)
@@ -68,9 +80,11 @@ for i in range(n_rrts):
     
     iters_after_first_sol = n_iters_s[i] - first_solution_itr
     if iters_after_first_sol < n_iters :
-        print 'Iterations after first solve only: {}!'.format(n_iters_s[i] - first_solution_itr)
-    
-    
+        print 'RRT {} Iterations after first solve only: {}!'.format(i,n_iters_s[i] - first_solution_itr)
+        if ONLY_FINISHED: continue
+    else:
+        print 'RRT {} finished.'.format(i)
+        
     cost_history = np.zeros(n_iters)
     for j in range(len(a)):
         k = a[j][0]-first_solution_itr   #iteration relative to first solution
@@ -118,8 +132,6 @@ solutions = []
 
 plot_all = True
 
-plot_dims = [2,3]
-
 for i in range(n_rrts):
     a = rrt_shelves[i]['cost_history']
     print 'processing {} of {}'.format(i,n_rrts)
@@ -138,31 +150,64 @@ solutions.sort(key=lambda x: x[0])  #sort by cost
 solutions = solutions[::-1] #most expensive first
 
 n = len(solutions)
-solutions_to_plot = solutions[0:n/4] + solutions[:n/4:10]
+#solutions_to_plot = solutions[0:n/4] + solutions[:n/4:1]
+solutions_to_plot = solutions
 colormap = matplotlib.cm.get_cmap(name='copper')
+colormap = matplotlib.cm.get_cmap(name='winter')
 if plot_all:
     ax = plt.figure().gca()
     for (i,solution) in enumerate(solutions_to_plot):
         (cost,x_path,u_path) = solution
         normalized_cost = (cost-cost_min)/(cost_max-cost_min)
-        ax.plot(x_path[:,plot_dims[0]],x_path[:,plot_dims[1]],alpha=.3,color=colormap(np.log(normalized_cost+1))[0:3],lw=2,zorder=i)
+        
+        #plot each trajectory
+        #shaded by cost of entire trajectory.
+        #ax.plot(x_path[:,plot_dims[0]],x_path[:,plot_dims[1]],alpha=.3,color=colormap(np.log(normalized_cost+1))[0:3],lw=2,zorder=i)
 
-from ship_field import get_patch_collection
-pc = get_patch_collection()
-pc.set_color('gray')
-ax.add_collection(pc)
-ax.set_xlim(-10,110)
-ax.set_ylim(-10,110)
-ax.axes.xaxis.set_visible(False)
-ax.axes.yaxis.set_visible(False)
-ax.set_aspect('equal')
-ax.set_title('All solutions found over {} runs.'.format(n_rrts))
+        #shaded along trajectory
+        lines = []
+        costs = []
+
+        c0 = 0
+        x0 = start_state
+        for j in range(len(u_path)):
+            u = u_path[[j]]  #chop up the action
+            xs = run_forward(x0,u)
+            assert len(xs) == 1 #one-step trajectory
+            xs = xs[0]
+            c0 += rrt_setup.lqr_rrt.cost(x0,u)
+            #the edge  between x0 and xs has cost c0
+            line = [ x0[plot_dims], xs[plot_dims] ] 
+            lines.append(line)
+            costs.append(c0)
+            x0 = xs
+
+        costs = np.array(costs)
+        costs = np.log(costs+1)
+        costs = costs/ np.log(cost_max+1) 
+        edge_collection = matplotlib.collections.LineCollection(lines,cmap=colormap)
+        costs = np.array(costs).reshape((-1,))
+        edge_collection.set_array(costs) #shade the edges
+        edge_collection.set_alpha(.6)
+        ax.add_collection(edge_collection)
+
+        
+    from ship_field import get_patch_collection
+    pc = get_patch_collection()
+    pc.set_color('gray')
+    ax.add_collection(pc)
+    ax.set_xlim(-10,110)
+    ax.set_ylim(-10,110)
+    ax.axes.xaxis.set_visible(False)
+    ax.axes.yaxis.set_visible(False)
+    ax.set_aspect('equal')
+    ax.set_title('All solutions found over {} runs.'.format(n_rrts))
 
 
 
 best_cost,best_x_traj,best_u_traj = solutions[-1]
 
-best_shelve = shelve.open('rrt_pendulum_best.shelve')
+best_shelve = shelve.open('fancy_cost_best.shelve')
 best_shelve['traj'] = best_x_traj
 best_shelve['utraj'] = best_u_traj
 best_shelve.close()

@@ -3,18 +3,26 @@ mpl.use('Agg')  #no GUI -- don't want to crash anything when running many simula
 
 from joblib import Parallel, delayed
 import examplets_import
-#import pendulum as rrt_setup
-import linear_ship_rrt_cost as rrt_setup
+
+if False:
+    import pendulum as rrt_setup
+    folder = '/home/goretkin/Dropbox/kinodyn/experiments/pendulum_longtime'
+else:
+    import linear_ship_rrt_cost as rrt_setup
+    folder = '/home/goretkin/Dropbox/kinodyn/experiments/double_integrator_fancy_cost'
+
 
 import shelve
 import numpy as np
 
 import copy
 
+import sys
+sys.path.insert(0,folder) #allows domain file to be imported
 
-folder = '/home/goretkin/diffruns'
+
 n_rrts = 50
-n_iters = 3000
+n_iters = 5000
 
 TEST_IO = False #does no RRT iterations, just checks that all files can save (parallel joblib masks these errors until the end -- very painful)
 TEST_RANDOM = False #prints out a bunch of random numbers from each parallel instance to sanity check things are being seeded properly
@@ -24,6 +32,14 @@ logging.getLogger().handlers[0].setLevel(logging.WARN)
 import os.path
 
 rrt_setup.rrt.viz_collided_paths = None #I suspect this takes up a lot a considerable chunk of memory
+
+try:
+    import domain_config
+    domain_config.domain_configure_rrt(rrt_setup.rrt) #set parameters, etc
+    print "domain_config loaded"
+except ImportError:
+    print "no domain_config file found"
+
 
 import signal
 
@@ -48,7 +64,7 @@ def run(pk,folder):
     
 
     rrt = copy.deepcopy(rrt_setup.rrt)
-    rrt.special_convergence_sol_num = 0 #store this number in the RRT. bit weird. also will overwrite stuff on new runs
+    rrt.special_convergence_sol_num = 0 #store this number in the RRT. bit weird. also will overwrite stuff on new runs FIXME
     rrt.special_pk = pk
     print 'sol num: {}'.format(rrt.special_convergence_sol_num)
 
@@ -79,13 +95,29 @@ def run(pk,folder):
 
     rrt.improved_solution_hook = hook
 
+    LOADED_RRT_FILE = False
+
     if os.path.exists(filename):
         f = shelve.open(filename,flag='r')
         if f.has_key('tree'):
-            print '\tloading previous {} {}'.format(pk,filename)
-            rrt.load(f,strict_consistency_check=False)
-            print '\tdone loading {} {}'.format(pk,filename)
+            if os.path.exists(filename+'.temp'):
+                f_temp = shelve.open(filename+'.temp',flag='r')
+                if f['n_iters'] < f_temp['n_iters']:
+                    #the temp version of this file has more iterations than the actual file, so load it instead
+                    #(this means that we crashed before we made a checkpoint)
+                    print '\tloading previous temp {} {}'.format(pk,filename+'.temp')        
+                    rrt.load(f_temp,strict_consistency_check=False)
+                    print '\tdone loading {} {}'.format(pk,filename)
+                    LOADED_RRT_FILE = True
+                else:
+                    print '\ttemp file {} is obsolete'.format(filename+'.temp')
+                f_temp.close()
+            if not LOADED_RRT_FILE:
+                print '\tloading previous {} {}'.format(pk,filename)
+                rrt.load(f,strict_consistency_check=False)
+                print '\tdone loading {} {}'.format(pk,filename)
         f.close()
+
     elif os.path.exists(filename+'.temp'):
         f = shelve.open(filename+'.temp',flag='r')
 
@@ -122,7 +154,7 @@ def run(pk,folder):
 
         print 'RRT instance {} is at {}. Improved {} times. Break: {}'.format(pk,rrt.n_iters,len(rrt.cost_history),signal_break,remaining)
 
-        if (rrt.n_iters - iters_of_last_save > 2000) or TEST_IO or signal_break:
+        if (rrt.n_iters - iters_of_last_save > 500) or TEST_IO or signal_break:
             temp_shelve = shelve.open(filename+'.temp')
             iters_of_last_save = rrt.n_iters
             try:

@@ -95,7 +95,7 @@ y_thrust0 = sympy.Symbol('y_thrust0')
 xu0 = sympy.Matrix([vx0,vy0,x0,y0,x_thrust0,y_thrust0])
 xu_star = sympy.Matrix(dynamics_symbols) - xu0
 
-cost =  sympy.functions.exp(y/25.0)*(x_thrust**2) + y_thrust**2
+cost =  sympy.functions.exp(y/3)*(x_thrust**2) + y_thrust**2
 
 
 #first-order coef
